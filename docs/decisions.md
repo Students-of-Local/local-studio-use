@@ -2511,6 +2511,6 @@ or open things".
 - The model picker and Past chats are full pages. The model page starts with the free choice and recent models, then connected providers.
 - `src/components/settings-form.ts` makes every settings row: a name, one line of help, a control, and the rest under one disclosure.
 - Each change was kept only if a fresh judge, shown two pictures in random order, preferred it: 12 of 12 for the first round, 16 of 16 for the second.
-  Words over twenty screens went from 3433 to 2604 and font sizes from seven to six.
+  Words over nineteen screens went from 3433 to 2604 and font sizes from seven to six.
 
 **Proof.** `test/model-pick.test.mjs`, `test/panel-ui.test.mjs`, `cli/test/e2e-panel.test.mjs`.
