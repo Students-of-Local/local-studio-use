@@ -1384,3 +1384,35 @@ test("issue 45: the Runs view shows the agent's run with its step timeline and a
 	assert.equal(await run(x.p, `document.documentElement.scrollWidth <= innerWidth`), true, "nothing runs past the panel");
 	await x.shot(x.p, "3-runs-timeline");
 });
+
+// Spec B: an outside agent opens a settings page and offers buttons, through the real program and extension.
+test("an agent opens the browser's and the panel's settings, and its offered buttons wait in the panel for a click", { timeout: 60_000 }, async () => {
+	const x = handoff;
+	assert.ok(x.p, "the hand-over case ran first");
+	const { h, run } = x;
+	const bad = await h.call("open_settings", { place: "system/nonsense" });
+	assert.equal(bad.ok, false);
+	assert.match(bad.text, /settings\/<Providers\|/, "a wrong place is answered with the ones there are");
+
+	const extensions = await h.call("open_settings", { place: "browser/extensions" });
+	assert.ok(extensions.ok, extensions.text);
+	await h.until(async () => (await h.targets()).find((t) => t.url.startsWith("chrome://extensions")), 10_000, "the extensions page");
+
+	const refused = await h.call("offer_buttons", { links: ["localstudio://file?path=%2Fusr%2Fbin%2Fenv", "javascript:alert(1)"] });
+	assert.equal(refused.ok, false, "one bad link refuses the whole offer");
+	const offered = await h.call("offer_buttons", { links: ["localstudio://settings/Skills", "localstudio://file?path=%2Ftmp%2Freport.pdf"], note: "Your report is ready" });
+	assert.ok(offered.ok, offered.text);
+	const card = `document.querySelector('[data-testid="offer-card"]')`;
+	await h.until(() => run(x.p, `!!${card}`), 10_000, "the card");
+	assert.match(await run(x.p, `${card}.innerText`), /Your report is ready/);
+	assert.equal(await run(x.p, `${card}.querySelectorAll("local-studio-link button").length`), 2);
+	await x.shot(x.p, "7-offer-card");
+	await run(x.p, `${card}.querySelector('[data-link="settings"]').click()`);
+	assert.equal(await run(x.p, `!!document.querySelector("local-studio-settings")`), false, "a script's click opens nothing");
+
+	const opened = await h.call("open_settings", { place: "settings/Skills" });
+	assert.ok(opened.ok, opened.text);
+	await h.until(() => run(x.p, `document.querySelector("local-studio-settings")?.innerText.includes("Skills")`), 10_000, "Settings on Skills");
+	await run(x.p, `${card}?.querySelector('[data-action="dismiss"]').click()`);
+	await h.until(() => run(x.p, `!${card}`), 5000, "the card to go");
+});
