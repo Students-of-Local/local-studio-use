@@ -1,0 +1,8 @@
+Can you have another model tear apart this plan before I run it?
+I want a second pair of eyes that didn't write this script to look for ways it could go wrong.
+Poke holes in my argument. I want something that will push back hard.
+Before this touches my Gmail login, get an outside check on it.
+Could this change leak my API keys or personal info? Have another model check.
+Get a fresh model to red-team this skill edit and tell me if it's safe to merge.
+I'm too close to this fix. Find someone else to challenge it.
+Have a different AI audit my reasoning and tell me which claims don't hold up.

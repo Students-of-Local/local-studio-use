@@ -1,0 +1,8 @@
+the app froze when I hit export, can you write that up for the devs
+Local Studio keeps crashing on me, make a ticket for it
+something in the side panel is broken, report it to the maintainers
+the CLI keeps throwing an error, file it so they can fix it
+I ran into a problem and want the team to know, format it properly
+the MCP tools stopped responding, log this for the developers
+turn my complaint into a GitHub issue without including my private info
+check whether someone already reported this glitch before I send mine

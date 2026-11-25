@@ -1,0 +1,8 @@
+hook Claude up to my laptop so I can use it from my phone
+make my computer reachable from ChatGPT
+set up a tunnel so Grok can talk to this machine
+my connector stopped working, can you take a look
+let the web chat app control my home PC
+how do I get Tailscale running so claude.ai can reach my machine?
+expose my computer to an AI website without opening it up to everyone
+add this computer as an app in claude.ai

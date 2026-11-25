@@ -1,0 +1,8 @@
+What does the BRCA1 gene actually do in human cells?
+Which species is a zebrafish, and what's its full taxonomy?
+Find the protein record for this enzyme and tell me its job in the body.
+Match this DNA sequence against known ones and see what it resembles.
+Show me the 3D structure of this protein or its predicted fold.
+What domains does this protein have, and where are they?
+Look up the NCBI entry for this mouse gene and give me the accession number.
+I've got a sequence from my lab. What organism is it from?

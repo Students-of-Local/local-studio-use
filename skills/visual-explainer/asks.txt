@@ -1,0 +1,8 @@
+draw me a picture of how this service talks to the database
+I want a one-page visual of what this pull request changes
+map out how a request moves through our backend, boxes and arrows
+sketch the moving parts of this app so new hires get it
+make an HTML page that walks through the states this order goes through
+turn this rollout plan into something I can show the team, with the choices they need to make
+what did we ship this sprint? a little illustrated recap page
+explain how this function works with a diagram I can open in a browser

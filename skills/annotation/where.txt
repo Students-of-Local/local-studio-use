@@ -1,0 +1,2 @@
+hypothes.is
+web.hypothes.is

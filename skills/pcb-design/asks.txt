@@ -1,0 +1,8 @@
+my voltage regulator is running hot, which 3.3V part should I swap to
+KiCad keeps flagging clearance violations on my board
+find me a connector that's in stock at Mouser
+what pin is which on this chip's datasheet
+the footprint I downloaded doesn't line up with the pads, help
+I need the gerber files to send to the board house
+check my circuit before I spend money on a board run
+build me a parts list for my project and find cheaper versions on LCSC

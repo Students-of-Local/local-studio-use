@@ -1,0 +1,5 @@
+octopart.com
+mouser.com
+digikey.com
+lcsc.com
+jlcpcb.com

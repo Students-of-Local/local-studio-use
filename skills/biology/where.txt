@@ -1,0 +1,5 @@
+rest.uniprot.org
+uniprot.org
+rcsb.org
+alphafold.ebi.ac.uk
+blast.ncbi.nlm.nih.gov

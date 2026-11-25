@@ -1,0 +1,8 @@
+solve x squared minus 5x plus 6 equals zero
+what function has x times e to the x as its derivative
+what are the special scaling numbers of this matrix, check my work
+what are the chances of rolling at least one six in four dice
+two trains leave at different times, when do they meet
+show that adding consecutive odd numbers always gives a perfect square
+where does this expression blow up, what x values are allowed
+plot this curve so I can see where it crosses zero

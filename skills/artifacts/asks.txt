@@ -1,0 +1,8 @@
+Turn these numbers into a clean one-pager I can send to my boss.
+I want a shareable web page summarizing this research, nothing that needs a server.
+Make a comparison page for these three vendors that I can print.
+Build a small dashboard from this spreadsheet data as a single HTML file.
+Can you package these findings into something readable instead of a wall of text?
+I need a static page with charts showing sales trends that I can open offline.
+Give me a visual summary I can hand to clients, with sources at the bottom.
+Make an HTML file that lays out these options side by side and works on my phone.

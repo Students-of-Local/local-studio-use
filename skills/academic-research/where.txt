@@ -1,0 +1,5 @@
+scholar.google.com
+api.crossref.org
+api.openalex.org
+arxiv.org
+pubmed.ncbi.nlm.nih.gov

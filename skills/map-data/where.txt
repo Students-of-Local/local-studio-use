@@ -1,0 +1,4 @@
+nominatim.openstreetmap.org
+overpass-api.de
+overpass-turbo.eu
+geojson.io

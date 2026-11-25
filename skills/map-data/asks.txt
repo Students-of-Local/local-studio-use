@@ -1,0 +1,8 @@
+what are the lat/long numbers for 221B Baker Street
+turn this list of store addresses into a map file I can open
+find every hospital in Austin and export them with their coordinates
+my pins are landing in the ocean, fix the coordinates
+what's the GPS position of the Lincoln Memorial
+convert these points from my Google Earth file into something a web map can read
+pull every park in Denver from OpenStreetMap into a file
+what address is at 40.7128, -74.0060

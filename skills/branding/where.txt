@@ -1,0 +1,3 @@
+tmsearch.uspto.gov
+branddb.wipo.int
+tmdn.org

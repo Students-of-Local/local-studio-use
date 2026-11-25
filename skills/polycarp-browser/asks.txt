@@ -1,0 +1,8 @@
+open this site and tell me what the checkout button says
+fill out the signup form on this page for me
+check how my local app looks in the browser after I changed the CSS
+my dashboard is throwing an error, go look at it while I'm logged in
+scroll down and grab a screenshot of the pricing page
+click through the wizard on this site until I hit the confirm step
+this page keeps timing out when I load it, can you see what's happening
+grab the latest posts from my signed-in feed tab

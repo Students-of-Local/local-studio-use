@@ -1,0 +1,8 @@
+my script needs the GitHub token, how do I get it in there without pasting it here
+the deploy keeps asking for the Stripe key, can you pull it from my vault
+the credential is in my Proton login, run the tests with it
+start the server with the DB password from my 1Password login
+I don't want secrets going through this chat, can you wire my key into the CLI
+this tool wants an env var and the value is in my vault, make it run
+build the project using the Bitwarden secrets for it
+the migration needs the database URL from my password app, and I don't want to see it
