@@ -633,6 +633,33 @@ test("tabs the user shares stay out of any group; only tabs the agent opens are 
 	assert.equal(s.isLoose(home), false);
 });
 
+test("ending or releasing never closes the user's own tab, nor takes it out of a group they keep it in", async () => {
+	const fake = installFakeChrome();
+	const { BrowserSession } = await load("panel");
+	const s = await BrowserSession.open("tab-1", "chat", 1);
+	const loose = () => fake.addTab({ url: "https://mail.example/" });
+	const [released, ended, mine] = [loose(), loose(), loose()];
+	const theirs = await chrome.tabs.group({ tabIds: [released, ended, mine] });
+	for (const id of [released, ended]) await s.adopt(id, true, { group: false });
+	const opened = (await s.createTab("https://shop.example/")).id;
+	await s.release(released);
+	assert.equal(fake.groupOf(released), theirs, "release took it out of the user's group");
+	// One the user put in the agent's group is handed back out of it.
+	const given = loose();
+	await s.adopt(given, true, { group: false });
+	fake.userSetGroup(given, fake.groupOf(opened));
+	await s.end();
+	assert.equal(fake.groupOf(ended), theirs, "end took it out of the user's group");
+	assert.deepEqual([fake.groupOf(opened), fake.groupOf(given)], [-1, -1]);
+	const t = await BrowserSession.open("tab-2", "chat", 1);
+	await t.adopt(mine, true, { group: false });
+	const own = (await t.createTab("https://shop.example/")).id;
+	await t.end({ close: true });
+	assert.equal(fake.hasTab(own), false);
+	assert.ok(fake.hasTab(mine), "the user's own tab was closed");
+	assert.equal(fake.groupOf(mine), theirs);
+});
+
 test("a panel tab the user takes out of the group stays out, and the agent keeps using it", async () => {
 	const fake = installFakeChrome();
 	const { BrowserSession } = await load("panel");

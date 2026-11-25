@@ -1052,7 +1052,9 @@ export class BrowserSession {
 	/** Release a tab without closing it. */
 	async release(tabId: number, options: { clearCurrent?: boolean } = {}): Promise<void> {
 		const done = touch(tabId);
+		let loose = false;
 		await this.update((s) => {
+			loose = s.loose?.includes(tabId) ?? false;
 			s.grouped = (s.grouped ?? []).filter((id) => id !== tabId);
 			markLoose(s, tabId, false);
 			s.tabIds = s.tabIds.filter((id) => id !== tabId);
@@ -1067,12 +1069,14 @@ export class BrowserSession {
 			s.released = released;
 		});
 		await detachTab(tabId, true);
-		try {
-			await chrome.tabs.ungroup(tabId);
-		} catch {
-			/* tab gone */
-		}
+		await this.ungroup(tabId, loose);
 		done();
+	}
+
+	/** Take a tab out of the session's group. A `loose` one leaves no other: the group it is in is the user's own. */
+	private async ungroup(tabId: number, loose: boolean): Promise<void> {
+		if (loose && (await tabExists(tabId))?.groupId !== this.state.groupId) return;
+		await chrome.tabs.ungroup(tabId).catch(() => undefined);
 	}
 
 	async closeTab(tabId: number): Promise<void> {
@@ -1089,8 +1093,8 @@ export class BrowserSession {
 	}
 
 	/**
-	 * End the session: close its tabs (`close`) or hand them to the user, and forget it. A client
-	 * still holding it opens a fresh one on its next call; `notice` tells that agent why.
+	 * End the session: close its tabs (`close`; never the user's own, loose ones) or hand them to the user, and
+	 * forget it. A client still holding it opens a fresh one on its next call; `notice` tells that agent why.
 	 */
 	async end(options: { close?: boolean; notice?: string } = {}): Promise<{ tabs: number[]; closed: boolean }> {
 		await this.refresh();
@@ -1098,8 +1102,9 @@ export class BrowserSession {
 		for (const id of tabs) {
 			const done = touch(id);
 			await detachTab(id, true);
-			if (options.close) await chrome.tabs.remove(id).catch(() => undefined);
-			else await chrome.tabs.ungroup(id).catch(() => undefined);
+			const loose = this.isLoose(id);
+			if (options.close && !loose) await chrome.tabs.remove(id).catch(() => undefined);
+			else await this.ungroup(id, loose);
 			done();
 		}
 		await mutateTable(({ table }) => {
