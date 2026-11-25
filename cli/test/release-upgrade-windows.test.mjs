@@ -63,7 +63,7 @@ test("on Windows, an upgrade while local-studio-browser.exe runs from the instal
 	};
 	const first = install(await makeRelease("9.9.8"));
 	assert.equal(first.status, 0, first.out);
-	const release = join(local, "Local Studio", "release");
+	const release = join(local, "LocalStudioBrowser", "release");
 	const sleeper = spawn(join(release, "local-studio-browser.exe"), ["sleep"], { cwd, stdio: "ignore" });
 	try {
 		await new Promise((r) => setTimeout(r, 1500));
@@ -72,7 +72,7 @@ test("on Windows, an upgrade while local-studio-browser.exe runs from the instal
 		assert.equal(second.status, 0, second.out);
 		assert.equal(JSON.parse(readFileSync(join(release, "extension", "manifest.json"), "utf8")).version, "9.9.9");
 		assert.equal(readFileSync(join(release, "ran-with"), "utf8"), "install");
-		const versions = join(local, "Local Studio", "versions");
+		const versions = join(local, "LocalStudioBrowser", "versions");
 		assert.ok(readdirSync(versions).some((v) => v.startsWith("9.9.8")), "the running copy's folder was removed");
 		sleeper.kill();
 		await new Promise((r) => (sleeper.exitCode === null ? sleeper.once("exit", r) : r()));

@@ -123,7 +123,7 @@ try {
 	log(`${command}: exit ${one.status}, ${Date.now() - started} ms`);
 	assert.equal(one.status, 0, `${one.stdout}${one.stderr}`);
 	assert.match(one.stdout, /matches SHA256SUMS/);
-	assert.match(one.stdout, /Next: /);
+	assert.match(one.stdout, /Load the extension once/);
 	const root = installed(u.home);
 	const extension = join(dirname(root), "extension"); // the fixed folder next to release/, which outlives each version
 	assert.ok(one.stdout.includes(extension), `the installer did not print the folder to load (${extension}):\n${one.stdout}`);
