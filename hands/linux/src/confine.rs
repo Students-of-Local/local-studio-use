@@ -4,7 +4,9 @@
 //! handoff folder. Landlock holds it there (and everything it starts), and the program replaces this process, so the
 //! process id the window rules name stays the app's.
 //!
-//! Sockets are not files to Landlock: the display, the app's own bus and the accessibility bus stay in reach.
+//! Sockets are not files to Landlock: the display, the app's own bus and the accessibility bus stay in reach, and so does
+//! any other whose path is known. So the app gets none of the session's variables that name one (`kept`), and what Default
+//! starts is an app that runs no code of the user's (`DEFAULT_APPS`).
 
 use crate::access;
 use std::ffi::CString;
@@ -177,7 +179,8 @@ pub fn restrict(program: &Path, write: &[&Path]) -> Result<(), String> {
     }
     add(program, READ_FILE | EXECUTE, true)?;
     for p in write {
-        add(p, all, true)?;
+        // Nothing an app writes is run as a program.
+        add(p, all & !EXECUTE, true)?;
     }
     if unsafe { libc::prctl(libc::PR_SET_NO_NEW_PRIVS, 1, 0, 0, 0) } != 0 {
         return Err(failed("no_new_privs"));
@@ -193,6 +196,34 @@ fn basename(p: &Path) -> String {
     p.file_name()
         .map(|n| n.to_string_lossy().into_owned())
         .unwrap_or_default()
+}
+
+/// Whether a confined app gets this variable: what it needs to draw, speak its language and find its own bus, and
+/// nothing that names another socket (`SWAYSOCK`, `SSH_AUTH_SOCK`) or holds a secret.
+fn kept(name: &str) -> bool {
+    const NAMES: &[&str] = &[
+        "PATH",
+        "LANG",
+        "LANGUAGE",
+        "TZ",
+        "USER",
+        "LOGNAME",
+        "DISPLAY",
+        "XAUTHORITY",
+        "WAYLAND_DISPLAY",
+        "XDG_RUNTIME_DIR",
+        "XDG_DATA_DIRS",
+        "XDG_CONFIG_DIRS",
+        "XDG_CURRENT_DESKTOP",
+        "XDG_SESSION_TYPE",
+        "DBUS_SESSION_BUS_ADDRESS",
+        "AT_SPI_BUS_ADDRESS",
+        "GIO_EXTRA_MODULES",
+        "LIBGL_ALWAYS_SOFTWARE",
+        "NO_AT_BRIDGE",
+    ];
+    const FAMILIES: &[&str] = &["LC_", "GDK_", "GSK_", "GTK_", "QT_", "XCURSOR_"];
+    NAMES.contains(&name) || FAMILIES.iter().any(|f| name.starts_with(f))
 }
 
 /// The command line that starts `argv` confined.
@@ -245,18 +276,12 @@ pub fn run(args: &[String]) -> i32 {
     let mut cmd = std::process::Command::new(&found);
     cmd.args(rest)
         .current_dir(home)
+        .env_clear()
+        .envs(std::env::vars_os().filter(|(k, _)| k.to_str().is_some_and(kept)))
         .env("HOME", home)
         .env("TMPDIR", &tmp)
         // Settings kept in the person's dconf are out of reach, and its service isn't on the app's bus.
         .env("GSETTINGS_BACKEND", "memory");
-    for k in [
-        "XDG_CONFIG_HOME",
-        "XDG_DATA_HOME",
-        "XDG_STATE_HOME",
-        "XDG_CACHE_HOME",
-    ] {
-        cmd.env_remove(k);
-    }
     let e = cmd.exec();
     eprintln!("{found}: {e}");
     126

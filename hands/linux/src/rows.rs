@@ -100,7 +100,7 @@ fn states_of(info: &Info, interactive: bool) -> Vec<String> {
     }
     if info.has(state::INDETERMINATE) {
         s.push("mixed".into());
-    } else if info.has(state::CHECKED) {
+    } else if state::on(&info.role, info.states) {
         s.push("checked".into());
     } else if matches!(
         info.role.as_str(),
@@ -352,6 +352,21 @@ mod tests {
             },
             kids: vec![],
         }
+    }
+
+    #[test]
+    fn a_toggle_button_that_is_down_reads_checked_and_a_push_button_held_down_does_not() {
+        let states = |role: &str, more: u32| {
+            let mut node = n(role, "Bold", &[ACTION], None, None);
+            node.info.states |= 1 << more;
+            states_of(&node.info, true)
+        };
+        for on in [state::PRESSED, state::CHECKED] {
+            assert!(states("toggle button", on).contains(&"checked".to_string()));
+        }
+        assert!(states("toggle button", state::FOCUSED).contains(&"unchecked".to_string()));
+        assert!(states("check box", state::PRESSED).contains(&"unchecked".to_string()));
+        assert!(!states("push button", state::PRESSED).contains(&"checked".to_string()));
     }
 
     fn fixture() -> Tree {

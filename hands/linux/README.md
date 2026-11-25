@@ -48,7 +48,10 @@ The person's access mode and app list live in `hands.json` in the Local Studio h
   started under `full`.
 - An app started under `default` runs confined (`src/confine.rs`): Landlock lets it, and anything it starts, read the
   system's programs and settings and its own program file, and read and write only a home folder of the agents' own
-  (`app-home` in the data folder) and the handoff folder. Its file dialogs reach nothing else of the person's. A kernel
+  (`app-home` in the data folder) and the handoff folder, where nothing runs as a program. Its file dialogs reach nothing
+  else of the person's. Landlock does not cover sockets, so the app starts without the variables that name the session's,
+  and the default apps are ones that run no plugin, script or command. An app in `apps` that does (an editor with
+  plugins, a terminal) could reach the session through them: list one only if the agent may have that. A kernel
   without Landlock, and an app that starts through `flatpak run` or `snap run`, answer `not_supported`: `open` needs
   `full` there.
 - Under `full`, every window is open to an agent on this computer, and any app may be started.

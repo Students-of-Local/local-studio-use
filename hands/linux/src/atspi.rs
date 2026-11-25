@@ -27,12 +27,18 @@ pub mod state {
     pub const EXPANDABLE: u32 = 9;
     pub const EXPANDED: u32 = 10;
     pub const FOCUSED: u32 = 12;
+    pub const PRESSED: u32 = 20;
     pub const SELECTED: u32 = 23;
     pub const SENSITIVE: u32 = 24;
     pub const SHOWING: u32 = 25;
     pub const VISIBLE: u32 = 30;
     pub const INDETERMINATE: u32 = 32;
     pub const READ_ONLY: u32 = 43;
+
+    /// Whether a box, a switch or a toggle button is on. GTK 4 says a toggle button that is down is pressed, not checked.
+    pub fn on(role: &str, states: u64) -> bool {
+        states & (1 << CHECKED) != 0 || (role == "toggle button" && states & (1 << PRESSED) != 0)
+    }
 }
 
 /// AtspiCoordType.

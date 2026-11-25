@@ -68,24 +68,18 @@ pub struct Engine {
 }
 
 const DEFAULT_WAIT: i64 = 10;
-/// Apps an agent may start under Default: editors, calculators and viewers. The person adds more in hands.json.
+/// Apps an agent may start under Default: editors, calculators and viewers that run no plugin, script or command of the
+/// user's (so not gedit, kate, xed, pluma, featherpad, qalculate, eog or gthumb): code an agent writes must not run beside
+/// the sockets confinement leaves open. The person adds more in hands.json.
 const DEFAULT_APPS: &[&str] = &[
     "gnome-text-editor",
-    "gedit",
     "mousepad",
     "kwrite",
-    "kate",
-    "xed",
-    "pluma",
-    "featherpad",
     "leafpad",
     "gnome-calculator",
     "galculator",
     "kcalc",
-    "qalculate-gtk",
-    "eog",
     "loupe",
-    "gthumb",
     "evince",
     "papers",
     "okular",
@@ -1582,7 +1576,7 @@ impl Engine {
             if s & (1 << state::EXPANDABLE) != 0 {
                 s & (1 << state::EXPANDED) != 0
             } else {
-                s & (1 << state::CHECKED) != 0
+                state::on(&row.role, s)
             }
         };
         let actions = block_on(at.actions(&row.obj));
@@ -3039,18 +3033,20 @@ mod tests {
             std::fs::set_permissions(&p, std::fs::Permissions::from_mode(0o755)).unwrap();
             p.to_string_lossy().into_owned()
         };
-        let (gedit, other) = (file("gedit"), file("other"));
-        let kate = dir.join("kate").to_string_lossy().into_owned();
-        std::os::unix::fs::symlink(&other, &kate).unwrap();
+        let (mousepad, other) = (file("mousepad"), file("other"));
+        let plugins = file("gedit");
+        let kwrite = dir.join("kwrite").to_string_lossy().into_owned();
+        std::os::unix::fs::symlink(&other, &kwrite).unwrap();
         let none: &[String] = &[];
-        assert!(startable("gedit", &v(&[&gedit]), none));
-        assert!(startable("org.gnome.gedit", &v(&["env", "A=b", &gedit]), none));
+        assert!(startable("mousepad", &v(&[&mousepad]), none));
+        assert!(startable("org.gnome.mousepad", &v(&["env", "A=b", &mousepad]), none));
         for (app, argv) in [
-            (gedit.as_str(), v(&[&gedit])),
-            ("kate", v(&[&kate])),
+            (mousepad.as_str(), v(&[&mousepad])),
+            ("kwrite", v(&[&kwrite])),
             ("other", v(&[&other])),
-            ("x.gedit", v(&["flatpak", "run", "evil.gedit"])),
-            ("x.gedit", v(&["snap", "run", "gedit"])),
+            ("gedit", v(&[&plugins])),
+            ("x.mousepad", v(&["flatpak", "run", "evil.mousepad"])),
+            ("x.mousepad", v(&["snap", "run", "mousepad"])),
         ] {
             assert!(!startable(app, &argv, none), "{app}");
         }
