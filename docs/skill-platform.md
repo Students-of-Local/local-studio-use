@@ -8,7 +8,8 @@ decision D12 in [decisions.md](decisions.md).
 
 - The browser server has no skills of its own. Its `skill_search` and `skill_read` pass through to one
   `local-studio skills mcp`, started at the first call (`cli/src/skills.ts`). Without Local Studio on the machine they
-  answer "Skills come with Local Studio, which isn't installed here. Work without one." In a thread Local Studio started
+  answer "Skills come with Local Studio, which isn't installed here. Work without one." On a Mac every channel's app counts
+  (release, Nightly, Dev, in that order), and one from before the app had skills answers that it needs an update. In a thread Local Studio started
   (`LOCAL_STUDIO_SKILLS_SERVER`), which already has that server, neither tool is offered.
 - The first browser result on a host in a session ends with the names of that host's skills (`cli/src/skill-lines.ts`).
   So does the first `computer_*` result that lands on an app, with the skills for that app.

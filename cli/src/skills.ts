@@ -12,25 +12,39 @@ import { getDefaultEnvironment, StdioClientTransport } from "@modelcontextprotoc
 import { COMPILED, selfExec } from "./self.ts";
 
 export const NO_SKILLS = "Skills come with Local Studio, which isn't installed here. Work without one.";
+export const OLD_APP = "The Local Studio app here is older than its skills. Ask the user to update it, and work without one until then.";
 export const SKILLS_SILENT = "Skills are not answering.";
 /** Set by Local Studio in its own threads, which already have the skills server. */
 export const HAS_SKILLS = "LOCAL_STUDIO_SKILLS_SERVER";
 const ANSWER_MS = 10_000;
 const NAMES = process.platform === "win32" ? ["local-studio-cli.exe", "local-studio.exe"] : ["local-studio-cli", "local-studio", "local-studio-nightly", "local-studio-dev"];
 
+/** The app's names on a Mac, one per release channel (the app's core/src/update/mod.rs). */
+const MAC_APPS = ["Local Studio.app", "Local Studio Nightly.app", "Local Studio Dev.app"];
+
 type Env = Record<string, string | undefined>;
 export type SkillsTool = "skill_search" | "skill_read";
 export type SkillsAnswer = { content: Array<{ type: "text"; text: string }>; isError?: boolean };
 
+function macApps(platform: NodeJS.Platform): string[] {
+	if (platform !== "darwin") return [];
+	return ["/", homedir()].flatMap((root) => MAC_APPS.map((app) => join(root, "Applications", app, "Contents", "MacOS")));
+}
+
+/** A Mac app from before it carried its command line tool. */
+const oldApp = (platform: NodeJS.Platform): boolean => macApps(platform).some((folder) => existsSync(join(folder, "LocalStudio")));
+
+/** What skill_search answers when there is no tool to ask. */
+export const noSkills = (platform: NodeJS.Platform = process.platform): string => (oldApp(platform) ? OLD_APP : NO_SKILLS);
+
 /** Local Studio's command line tool: LOCAL_STUDIO_CLI_BIN, else in the app this program is part of, on PATH, in ~/.local/bin or in the Mac app. */
-export function skillsCommand(env: Env = process.env): string | undefined {
+export function skillsCommand(env: Env = process.env, platform: NodeJS.Platform = process.platform): string | undefined {
 	if (env.LOCAL_STUDIO_CLI_BIN) return existsSync(env.LOCAL_STUDIO_CLI_BIN) ? env.LOCAL_STUDIO_CLI_BIN : undefined;
 	// In the app, this program is in browser/ beside the tool (Linux, or lib/local-studio/browser under its bin) or in Resources.
 	const beside = dirname(selfExec());
 	const folders = [...(COMPILED ? [beside, join(beside, ".."), join(beside, "..", "..", "MacOS"), join(beside, "..", "..", "..", "bin")] : []), ...(env.PATH ?? "").split(delimiter).filter(isAbsolute)];
-	const apps = process.platform === "darwin" ? ["/", homedir()].map((root) => join(root, "Applications", "Local Studio.app", "Contents", "MacOS")) : [];
 	const own = process.platform === "win32" ? [] : [join(homedir(), ".local", "bin")];
-	return [...folders, ...own, ...apps].flatMap((folder) => NAMES.map((name) => join(folder, name))).find(existsSync);
+	return [...folders, ...own, ...macApps(platform)].flatMap((folder) => NAMES.map((name) => join(folder, name))).find(existsSync);
 }
 
 /** The folders the store reads from, and nothing else of this process's environment. */
@@ -51,7 +65,7 @@ export class Skills {
 
 	async call(tool: SkillsTool, args: Record<string, unknown>): Promise<SkillsAnswer> {
 		const command = skillsCommand(this.env);
-		if (!command) return { content: [{ type: "text", text: NO_SKILLS }] };
+		if (!command) return { content: [{ type: "text", text: noSkills() }] };
 		try {
 			const client = await this.open(command);
 			return (await client.callTool({ name: tool, arguments: args }, undefined, { timeout: this.answerMs })) as SkillsAnswer;

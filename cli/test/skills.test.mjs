@@ -114,6 +114,34 @@ test("a nightly Local Studio in ~/.local/bin answers when PATH names none", { sk
 	rmSync(own, { recursive: true });
 });
 
+test("on a Mac every channel's app has the tool, the release first, and an app without it is named as too old", async () => {
+	const { skillsCommand, noSkills, NO_SKILLS, OLD_APP } = await loadTs('export { skillsCommand, noSkills, NO_SKILLS, OLD_APP } from "@src/skills.ts";');
+	const home = process.env.HOME;
+	const mac = mkdtempSync(join(root, "mac-"));
+	const put = (app, file) => {
+		const folder = join(mac, "Applications", app, "Contents", "MacOS");
+		mkdirSync(folder, { recursive: true });
+		writeFileSync(join(folder, file), "");
+		return join(folder, file);
+	};
+	process.env.HOME = mac;
+	try {
+		const found = () => skillsCommand({ PATH: "" }, "darwin");
+		assert.equal(noSkills("darwin"), NO_SKILLS);
+		put("Local Studio Nightly.app", "LocalStudio");
+		assert.equal(found(), undefined);
+		assert.equal(noSkills("darwin"), OLD_APP);
+		assert.equal(noSkills("linux"), NO_SKILLS);
+		for (const app of ["Local Studio Dev.app", "Local Studio Nightly.app", "Local Studio.app"]) {
+			const tool = put(app, "local-studio-cli");
+			assert.equal(found(), tool);
+		}
+		assert.equal(skillsCommand({ PATH: "" }, "linux"), undefined);
+	} finally {
+		process.env.HOME = home;
+	}
+});
+
 test("a thread in Local Studio has its own skills server, so this one offers neither tool", async () => {
 	const names = async (client) => (await client.listTools()).tools.map((tool) => tool.name).filter((name) => name.startsWith("skill_"));
 	const inThread = await start({ LOCAL_STUDIO_SKILLS_SERVER: "1" });
