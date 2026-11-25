@@ -10,6 +10,7 @@ import { Download, FileDown, FileUp, Pencil, Trash2 } from "lucide";
 import "../components/HeaderMenu.js";
 import type { HeaderMenuItem } from "../components/HeaderMenu.js";
 import { Toast } from "../components/Toast.js";
+import { type AppThread, appThreads, folderName, inOrder, unopened } from "../threads/app-threads.js";
 
 type ExportedSession = {
 	session: SessionData;
@@ -21,12 +22,16 @@ export class LocalStudioSessionListDialog extends DialogBase {
 	@state() private sessions: SessionMetadata[] = [];
 	@state() private loading = true;
 	@state() private searchQuery = "";
+	/** The Local Studio app's own threads that match the search. */
+	@state() private threads: AppThread[] = [];
+	private threadSearch?: ReturnType<typeof setTimeout>;
 	/** The row whose title is being edited in place. */
 	@state() private renamingId?: string;
 
 	private onSelectCallback?: (sessionId: string) => void;
 	private onDeleteCallback?: (sessionId: string) => void;
 	private onRenameCallback?: (sessionId: string, title: string) => void;
+	private onThreadCallback?: (thread: AppThread) => void;
 	private currentId?: string;
 	private deletedSessions = new Set<string>();
 	private closedViaSelection = false;
@@ -39,17 +44,31 @@ export class LocalStudioSessionListDialog extends DialogBase {
 		onDelete?: (sessionId: string) => void,
 		onRename?: (sessionId: string, title: string) => void,
 		currentId?: string,
+		onThread?: (thread: AppThread) => void,
 	) {
 		const dialog = new LocalStudioSessionListDialog();
 		dialog.onSelectCallback = onSelect;
 		dialog.onDeleteCallback = onDelete;
 		dialog.onRenameCallback = onRename;
 		dialog.currentId = currentId;
+		dialog.onThreadCallback = onThread;
 		dialog.open();
 		// Typing finds a chat at once; Enter opens the top match.
 		await dialog.updateComplete;
 		dialog.querySelector<HTMLInputElement>("input[type=search]")?.focus();
-		await dialog.loadSessions();
+		await Promise.all([dialog.loadSessions(), dialog.loadThreads()]);
+	}
+
+	private async loadThreads() {
+		const query = this.searchQuery;
+		const threads = this.onThreadCallback ? await appThreads(query) : [];
+		if (query === this.searchQuery) this.threads = threads;
+	}
+
+	private handleThread(thread: AppThread) {
+		this.closedViaSelection = true;
+		this.onThreadCallback?.(thread);
+		this.close();
 	}
 
 	private async loadSessions() {
@@ -393,6 +412,26 @@ export class LocalStudioSessionListDialog extends DialogBase {
 		];
 	}
 
+	/** A thread of the app's: opening it goes on from there in the panel, so it has no actions of its own. */
+	private renderThread(thread: AppThread) {
+		const meta = [this.formatDate(thread.modified), folderName(thread.folder)].filter(Boolean).join(" · ");
+		return html`
+			<li data-thread=${thread.id} class="rounded-lg border border-border hover:bg-secondary/50">
+				<button
+					type="button"
+					class="w-full min-w-0 text-left px-3 py-2.5 rounded-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-ring"
+					@click=${() => this.handleThread(thread)}
+				>
+					<div class="flex items-center gap-2">
+						<span class="font-medium text-sm text-foreground truncate">${thread.title}</span>
+						<span class="shrink-0 ml-auto text-[11px] text-muted-foreground">In the app</span>
+					</div>
+					<div class="text-xs text-muted-foreground mt-0.5">${meta}</div>
+				</button>
+			</li>
+		`;
+	}
+
 	private rowAction(label: string, iconNode: typeof Pencil, action: string, run: () => void, danger = false) {
 		return html`<button
 			type="button"
@@ -464,6 +503,11 @@ export class LocalStudioSessionListDialog extends DialogBase {
 
 	protected override renderContent() {
 		const filteredSessions = this.getFilteredSessions();
+		const threads = unopened(this.threads, this.sessions);
+		// A search keeps its best match first; without one, everything is by time.
+		const rows = this.searchQuery.trim()
+			? [...filteredSessions.map((chat) => ({ chat })), ...threads.map((thread) => ({ thread }))]
+			: inOrder(filteredSessions, threads);
 
 		return html`
 			${DialogContent({
@@ -479,14 +523,17 @@ export class LocalStudioSessionListDialog extends DialogBase {
 						.value=${this.searchQuery}
 						@input=${(e: InputEvent) => {
 							this.searchQuery = (e.target as HTMLInputElement).value;
+							clearTimeout(this.threadSearch);
+							this.threadSearch = setTimeout(() => void this.loadThreads(), 200);
 						}}
 						@keydown=${(e: KeyboardEvent) => {
 							if (e.key === "Enter" && !e.isComposing) {
 								const top = this.getFilteredSessions()[0];
 								if (top) this.handleSelect(top.id);
+								else if (threads[0]) this.handleThread(threads[0]);
 							} else if (e.key === "ArrowDown") {
 								e.preventDefault();
-								this.querySelector<HTMLElement>("li[data-session] button")?.focus();
+								this.querySelector<HTMLElement>("li[data-session] button, li[data-thread] button")?.focus();
 							}
 						}}
 						class="flex-1 min-w-0 h-9 px-3 text-sm rounded-md border border-input bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
@@ -498,11 +545,13 @@ export class LocalStudioSessionListDialog extends DialogBase {
 						${
 							this.loading
 								? html`<li class="text-center py-8 text-sm text-muted-foreground">${i18n("Loading...")}</li>`
-								: filteredSessions.length === 0
+								: rows.length === 0
 									? html`<li class="text-center py-8 text-sm text-muted-foreground">
 											${this.searchQuery ? i18n("No matching chats") : i18n("No chats yet")}
 										</li>`
-									: filteredSessions.map((session) => this.renderRow(session))
+									: rows.map((row) =>
+											"chat" in row ? this.renderRow(row.chat) : this.renderThread(row.thread),
+										)
 						}
 					</ul>
 				`,

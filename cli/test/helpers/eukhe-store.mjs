@@ -73,18 +73,23 @@ async function fakeDaemon(path, sessions) {
 		const lines = readFileSync(jsonl, "utf8").trim().split("\n").map((l) => JSON.parse(l));
 		return { id: lines[0].id, cwd: lines[0].cwd, name: lines.find((l) => l.type === "session_info")?.name, messages: lines.filter((l) => l.type === "message").map((l) => l.message) };
 	};
-	const open = (sessionPath, cwd) => {
+	const liveRow = (folder, id) => {
+		const activeSessionId = `live-${++n}`;
+		live.set(activeSessionId, { folder, id, streaming: false });
+		return { activeSessionId, sessionId: id };
+	};
+	const open = (sessionPath, cwd, noSession) => {
 		const id = sessionPath ? sessionPath.replace(/\.jsonl$/, "").split("/").pop() : `app-${++n}`;
 		const folder = join(sessions, id);
 		if (!existsSync(folder)) {
 			const jsonl = `${folder}.jsonl`;
 			const s = existsSync(jsonl) ? imported(jsonl) : { id, cwd, name: "", messages: [] };
+			// Kept nowhere, as the panel's own sessions ask: the stand-in has it in memory only as a live row.
+			if (noSession) return liveRow(folder, id);
 			mkdirSync(folder);
 			store(folder, s);
 		}
-		const activeSessionId = `live-${++n}`;
-		live.set(activeSessionId, { folder, id, streaming: false });
-		return { activeSessionId, sessionId: id };
+		return liveRow(folder, id);
 	};
 	const rows = () => {
 		const ids = new Set(readdirSync(sessions).filter((f) => !f.startsWith(".")).map((f) => f.replace(/\.jsonl$/, "")));
@@ -106,7 +111,7 @@ async function fakeDaemon(path, sessions) {
 			case "list_saved_sessions":
 				return { sessions: rows().filter((r) => c.scope !== "current" || r.cwd === c.cwd) };
 			case "create": {
-				const made = open(c.sessionPath, c.config?.cwd);
+				const made = open(c.sessionPath, c.config?.cwd, c.noSession || c.config?.noSession);
 				if (c.lifecycle === "client_owned") live.get(made.activeSessionId).owner = socket;
 				return made;
 			}

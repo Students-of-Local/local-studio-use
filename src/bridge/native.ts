@@ -36,6 +36,7 @@ import { recordStep, runEnded, runWaiting } from "../runs/worker.js";
 import { onHostSites, startSiteKeeper } from "../site-edits/keeper.js";
 import { handleThreads } from "../threads/bridge.js";
 import { resyncMirror, startThreadMirror } from "../threads/mirror.js";
+import { onChats, resyncChats, startChatSync } from "../threads/sync.js";
 import { asBuildInfo, BUILD, type BuildInfo } from "../update/build.js";
 import type { UpdateAction } from "../update/logic.js";
 import { runningFromStore } from "../update/store-install.js";
@@ -929,6 +930,9 @@ function onHostMessage(message: HostToExt): void {
 		case "eukhe":
 			eukheHandler?.(message);
 			return;
+		case "chats":
+			onChats(message);
+			return;
 		case "connect":
 			connectHandler?.(message);
 			return;
@@ -1307,6 +1311,7 @@ function connect(): void {
 		subscriptionHandler?.("disconnected");
 		connectHandler?.("disconnected");
 		eukheHandler?.("disconnected");
+		onChats("disconnected");
 		assembler = new ChunkAssembler();
 		// The host answered these "interrupted: it may have run" and the agent may repeat them
 		// after checking the page: the running handlers must send no more input.
@@ -1336,6 +1341,7 @@ function connect(): void {
 		helloSent = true;
 		// A new host has an empty view of the threads: send them all (and which ones are gone).
 		setTimeout(() => void resyncMirror().catch(() => undefined), 1000);
+		setTimeout(() => void resyncChats().catch(() => undefined), 2000);
 		send({
 			type: "hello",
 			version: chrome.runtime.getManifest().version,
@@ -1484,6 +1490,11 @@ export function startBridge(): void {
 	});
 	chrome.action.onClicked.addListener(() => connect());
 	startThreadMirror((message) => {
+		if (!port || !helloSent) return false;
+		send(message);
+		return true;
+	});
+	startChatSync((message) => {
 		if (!port || !helloSent) return false;
 		send(message);
 		return true;

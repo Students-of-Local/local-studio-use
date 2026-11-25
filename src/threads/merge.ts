@@ -47,7 +47,8 @@ export function messageKeys(messages: readonly unknown[]): (string | undefined)[
 /**
  * The chat with the app's messages put in, once each and nothing dropped. Both sides are split into turns (a user message
  * and what follows it): a turn the app added goes after the last turn here that started at or before it, and an answer
- * the app added goes to the end of the turn it answers.
+ * the app added goes to the end of the turn it answers. Nothing goes before the panel's last compaction record, which
+ * counts the messages before it.
  */
 export function mergeTurns<T>(here: readonly T[], app: readonly SessionMessage[]): (T | SessionMessage)[] {
 	interface Turn {
@@ -67,6 +68,11 @@ export function mergeTurns<T>(here: readonly T[], app: readonly SessionMessage[]
 			byUser.set(key, turn);
 		} else turns[turns.length - 1].messages.push(m);
 	});
+	// The turn the last compaction record is in.
+	let floor = 0;
+	turns.forEach((t, i) => {
+		if (t.messages.some((m) => (m as Loose).role === "compaction")) floor = i;
+	});
 	let turn: Turn | undefined;
 	app.forEach((m, i) => {
 		const key = appKeys[i];
@@ -78,10 +84,11 @@ export function mergeTurns<T>(here: readonly T[], app: readonly SessionMessage[]
 		if (m.role === "user" || !turn) {
 			// After every turn that started at or before it, and before the next.
 			let at = turns.length;
-			while (at > 1 && turns[at - 1].at > m.timestamp) at--;
+			while (at > floor + 1 && turns[at - 1].at > m.timestamp) at--;
 			turn = { at: m.timestamp, messages: [m] };
 			turns.splice(at, 0, turn);
-		} else turn.messages.push(m);
+		} else if (turns.indexOf(turn) < floor) turns[floor].messages.push(m);
+		else turn.messages.push(m);
 	});
 	return turns.flatMap((t) => t.messages);
 }

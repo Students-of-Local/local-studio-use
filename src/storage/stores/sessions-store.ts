@@ -13,6 +13,13 @@ function announce(id: string): void {
 	}
 }
 
+/** What a chat's metadata carries beyond pi-web-ui's. */
+export interface ChatMarks {
+	localStudioPrivate?: boolean;
+	/** The Local Studio thread this chat was opened from, and that thread's time then. */
+	from?: { thread: string; modified: string };
+}
+
 /**
  * Extended SessionsStore that migrates old tool result messages from output to content format.
  */
@@ -20,12 +27,15 @@ export class LocalStudioSessionsStore extends SessionsStore {
 	/**
 	 * A thread saved while private mode is on is marked private, for good: the bridge never serves
 	 * it and the local mirror never writes it (src/threads). Every save, rename and delete is
-	 * announced to the worker. A failed read rejects the save: it can't show the thread isn't private.
+	 * announced to the worker. A failed read rejects the save: it can't show the thread isn't private. The thread a chat was opened
+	 * from stays with it: the panel builds a chat's metadata anew on every save.
 	 */
 	async save(data: SessionData, metadata: SessionMetadata): Promise<void> {
 		const privateNow = (await this.getBackend().get<boolean>("settings", PRIVATE_MODE_KEY)) === true;
-		const before = privateNow ? undefined : await this.getMetadata(data.id);
-		if (privateNow || (before as { localStudioPrivate?: boolean } | null | undefined)?.localStudioPrivate) {
+		const before = (await this.getMetadata(data.id)) as (SessionMetadata & ChatMarks) | null;
+		const from = (metadata as ChatMarks).from ?? before?.from;
+		if (from) (metadata as ChatMarks).from = from;
+		if (privateNow || before?.localStudioPrivate) {
 			(data as SessionData & { localStudioPrivate?: boolean }).localStudioPrivate = true;
 			(metadata as SessionMetadata & { localStudioPrivate?: boolean }).localStudioPrivate = true;
 		}

@@ -91,8 +91,8 @@ import { FREE_KEY_NOTE, FREE_PRIVACY_NOTE, FREE_SHORT_NOTE } from "./models/free
 import { freeComposerText, installFreeMode, setFreeMode, streamFree } from "./models/free-panel.js";
 import { isFreeModeModel } from "./models/free-runtime.js";
 import { refreshDiscoveredModels } from "./models/registry.js";
-import { SYNTHETIC_DEFAULT_MODEL } from "./models/synthetic.js";
 import { watchStream } from "./models/stream-watchdog.js";
+import { SYNTHETIC_DEFAULT_MODEL } from "./models/synthetic.js";
 import { installBugCapture } from "./privacy/capture.js";
 import { assertPrivateProxy, PRIVATE_MODE_KEY, privateModel, TRUSTED_HOSTS_KEY } from "./privacy/private-mode.js";
 import { SYSTEM_PROMPT } from "./prompts/prompts.js";
@@ -105,6 +105,7 @@ import { CONNECT_CHANGED } from "./subscriptions/ConnectList.js";
 import { cachedSubscriptionStatus, trySubscriptionStatus } from "./subscriptions/client.js";
 import { CHATGPT_PROVIDER } from "./subscriptions/constants.js";
 import { planBadge } from "./subscriptions/plan-badge.js";
+import { isExtensionPage } from "./subscriptions/relay-protocol.js";
 import {
 	explainErrors,
 	isSubscriptionProvider,
@@ -113,6 +114,9 @@ import {
 	registerSubscriptionApis,
 	routeSubscriptionModel,
 } from "./subscriptions/stream.js";
+import { openAppThread } from "./threads/app-threads.js";
+import { CHAT_MERGE } from "./threads/events.js";
+import { mergeTurns, type SessionMessage } from "./threads/merge.js";
 import { DebuggerTool } from "./tools/debugger.js";
 import { createExtractDocumentTool, type LoadedDocument } from "./tools/extract-document.js";
 import { ExtractImageTool, registerExtractImageRenderer } from "./tools/extract-image.js";
@@ -169,6 +173,37 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 		return true; // Keep channel open for async response
 	}
 });
+
+// What the Local Studio app added to the chat this panel shows (src/threads/sync.ts): put in at once, or when the run ends.
+let appAdded: { id: string; messages: SessionMessage[]; title?: string }[] = [];
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+	if (message?.type !== CHAT_MERGE || !isExtensionPage(sender, chrome.runtime.getURL(""))) return;
+	if (!currentSessionId || message.id !== currentSessionId || !agent || !Array.isArray(message.messages)) return;
+	const title = typeof message.title === "string" ? message.title : undefined;
+	appAdded.push({ id: message.id, messages: message.messages, title });
+	if (agent.state.isStreaming || sendReserving) {
+		sendResponse("later");
+		return;
+	}
+	void mergeAppAdded().then(
+		() => sendResponse("merged"),
+		() => sendResponse("later"),
+	);
+	return true;
+});
+
+async function mergeAppAdded(): Promise<void> {
+	const added = appAdded.filter(({ id }) => id === currentSessionId);
+	appAdded = [];
+	if (!agent || added.length === 0) return;
+	for (const { messages, title } of added) {
+		agent.replaceMessages(mergeTurns(agent.state.messages, messages) as AgentMessage[]);
+		if (title) currentTitle = title;
+	}
+	chatPanel.agentInterface?.requestUpdate();
+	await saveSession();
+	renderApp();
+}
 
 // Messages from code injected through the debugger path (no userScripts API) arrive
 // here instead of chrome.runtime.onMessage; route them exactly the same way.
@@ -1094,6 +1129,7 @@ const createAgent = async (initialState?: Partial<AgentState>, shouldSave = true
 			if (currentSessionId) {
 				saveSession();
 			}
+			if (event.type === "agent_end" && appAdded.length > 0) setTimeout(() => void mergeAppAdded(), 0);
 
 			refreshModelLabel();
 			renderApp();
@@ -1389,6 +1425,12 @@ function openSessions() {
 			renderApp();
 		},
 		currentSessionId,
+		(thread) => {
+			const state = agent?.state;
+			openAppThread(thread, state?.model ?? null, state?.thinkingLevel ?? "off").then(loadSession, (err) =>
+				Toast.error(err instanceof Error ? err.message : String(err)),
+			);
+		},
 	);
 }
 

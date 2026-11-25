@@ -10,7 +10,7 @@ import { BUG_LOG_KEY, BUG_REPORTS_KEY, type BugEntry, NEW_ISSUE_URL, reportText 
 import { setBugReports } from "../privacy/capture.js";
 import { hostOf, PRIVATE_MODE_KEY, TRUSTED_HOSTS_KEY } from "../privacy/private-mode.js";
 import { getLocalStudioStorage } from "../storage/app-storage.js";
-import { MIRROR_KEY } from "../threads/keys.js";
+import { CHAT_SYNC_KEY, MIRROR_KEY } from "../threads/keys.js";
 import { SHARE_OLDER_KEY, SHARED_SINCE_KEY } from "../threads/store.js";
 import { saveSwitch } from "./switch-save.js";
 
@@ -32,6 +32,7 @@ export class PrivacyTab extends SettingsTab {
 	@state() private trustedHosts = "";
 	@state() private bugReports = false;
 	@state() private mirror = true;
+	@state() private sync = true;
 	@state() private modelsDev = true;
 	@state() private shareOlder = false;
 	@state() private sharedSince = "";
@@ -51,8 +52,9 @@ export class PrivacyTab extends SettingsTab {
 		this.bugReports = (await settings.get<boolean>(BUG_REPORTS_KEY)) === true;
 		this.modelsDev = (await settings.get<boolean>(MODELS_DEV_KEY)) !== false;
 		this.log = (await settings.get<BugEntry[]>(BUG_LOG_KEY)) ?? [];
-		const threads = await chrome.storage.local.get([MIRROR_KEY, SHARE_OLDER_KEY, SHARED_SINCE_KEY]);
+		const threads = await chrome.storage.local.get([MIRROR_KEY, CHAT_SYNC_KEY, SHARE_OLDER_KEY, SHARED_SINCE_KEY]);
 		this.mirror = threads[MIRROR_KEY] !== false;
+		this.sync = threads[CHAT_SYNC_KEY] !== false;
 		this.shareOlder = threads[SHARE_OLDER_KEY] === true;
 		this.sharedSince = typeof threads[SHARED_SINCE_KEY] === "string" ? threads[SHARED_SINCE_KEY] : "";
 	}
@@ -76,6 +78,12 @@ export class PrivacyTab extends SettingsTab {
 	private async setMirror(on: boolean) {
 		if (await this.save(() => chrome.storage.local.set({ [MIRROR_KEY]: on }), "past chats for coding agents"))
 			this.mirror = on;
+	}
+
+	/** One set of chats with the Local Studio app (src/threads/sync.ts). */
+	private async setSync(on: boolean) {
+		if (await this.save(() => chrome.storage.local.set({ [CHAT_SYNC_KEY]: on }), "chats in Local Studio"))
+			this.sync = on;
 	}
 
 	private async setModelsDev(on: boolean) {
@@ -184,6 +192,28 @@ export class PrivacyTab extends SettingsTab {
 						table at https://models.dev/api.json when its copy is a day old or missing, to fill in names, prices and context
 						limits the provider leaves out. models.dev sees your IP address, as any site does. Off: models.dev is never asked; Local Studio uses the provider's own
 						details, its built-in table and a copy it downloaded earlier, if any.`,
+					)}
+				</div>
+
+				<div class="space-y-2">
+					<label class="flex items-start justify-between gap-3 text-sm font-medium text-foreground cursor-pointer">
+						<span>Same chats here and in the Local Studio app</span>
+						<input
+							type="checkbox"
+							role="switch"
+							class="tk-switch"
+							.checked=${live(this.sync)}
+							@change=${(e: Event) => this.setSync((e.target as HTMLInputElement).checked)}
+						/>
+					</label>
+					${explained(
+						"On by default. Start a chat in either one and go on with it in the other.",
+						"What is kept where",
+						`Your side panel chats are written to the Local Studio app's threads on this computer, what you add in the app
+						comes back here, and the app's own threads show under Past chats. Nothing is uploaded. Chats made in private mode
+						are never written, keys pasted into a chat and the model's reasoning are left out, and threads you
+						keep local-only in the app don't show here. Turning this off stops both ways; chats the app already has stay
+						there.`,
 					)}
 				</div>
 

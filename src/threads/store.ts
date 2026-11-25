@@ -1,8 +1,8 @@
 /**
  * Read the side panel's threads from the service worker. Both share the extension's IndexedDB
  * ("local-studio-storage", stores "sessions-metadata" and "sessions"), so threads can be served while
- * no panel is open. Read-only, and never creates the database: opening a name that doesn't exist
- * yet would make an empty version-1 database before the panel's own upgrade.
+ * no panel is open. Never creates the database: opening a name that doesn't exist yet would make an empty version-1
+ * database before the panel's own upgrade. The one write is what the Local Studio app added to a chat (changeThread).
  */
 
 import { DB_NAME } from "../storage/db-name.js";
@@ -45,6 +45,7 @@ function one<T>(db: IDBDatabase, store: string, key: string): Promise<T | undefi
 export interface ThreadSource {
 	list(): Promise<ThreadMeta[]>;
 	read(id: string): Promise<{ meta?: ThreadMeta; data?: ThreadData }>;
+	write?(meta: ThreadMeta, data: ThreadData): Promise<void>;
 }
 
 let source: ThreadSource | undefined;
@@ -78,6 +79,44 @@ export async function readThread(id: string): Promise<{ meta?: ThreadMeta; data?
 			one<ThreadData>(db, "sessions", id),
 		]);
 		return { meta, data };
+	} finally {
+		db.close();
+	}
+}
+
+/** Change one thread in a single transaction; `change` returns undefined to leave it. False when there was nothing to write. */
+export async function changeThread(
+	id: string,
+	change: (meta: ThreadMeta, data: ThreadData) => { meta: ThreadMeta; data: ThreadData } | undefined,
+): Promise<boolean> {
+	if (source) {
+		const { meta, data } = await source.read(id);
+		const next = meta && data ? change(meta, data) : undefined;
+		if (!next || !source.write) return false;
+		await source.write(next.meta, next.data);
+		return true;
+	}
+	const db = await openDb();
+	if (!db) return false;
+	try {
+		return await new Promise((resolve, reject) => {
+			const tx = db.transaction(["sessions-metadata", "sessions"], "readwrite");
+			let wrote = false;
+			const metas = tx.objectStore("sessions-metadata");
+			const datas = tx.objectStore("sessions");
+			const metaReq = metas.get(id);
+			const dataReq = datas.get(id);
+			dataReq.onsuccess = () => {
+				const next = metaReq.result && dataReq.result ? change(metaReq.result, dataReq.result) : undefined;
+				if (!next) return;
+				metas.put(next.meta);
+				datas.put(next.data);
+				wrote = true;
+			};
+			tx.oncomplete = () => resolve(wrote);
+			tx.onerror = () => reject(tx.error);
+			tx.onabort = () => reject(tx.error);
+		});
 	} finally {
 		db.close();
 	}
