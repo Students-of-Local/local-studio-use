@@ -89,6 +89,11 @@ pub fn handoff_dir() -> PathBuf {
     data_dir().join("handoff")
 }
 
+/// The home folder of apps agents start without Full Access.
+pub fn app_home() -> PathBuf {
+    data_dir().join("app-home")
+}
+
 pub fn shots_dir() -> PathBuf {
     cache_dir().join("shots")
 }
@@ -176,8 +181,9 @@ pub fn parent_of(pid: u32) -> Option<u32> {
     after.split_whitespace().nth(1)?.parse().ok()
 }
 
-/// Processes agents started on this machine, kept in the state folder across helper runs, as `pid start_time` lines.
-/// A window belongs to an agent when its process is one of these or a child of one.
+/// Processes agents started on this machine, kept in the state folder across helper runs, as `pid start_time` lines, a
+/// confined one (src/confine.rs) with `confined` after them. A window belongs to an agent when its process is one of
+/// these or a child of one.
 pub struct AgentProcesses;
 
 impl AgentProcesses {
@@ -185,31 +191,47 @@ impl AgentProcesses {
         state_dir().join("hands-agent-processes")
     }
 
-    pub fn load() -> Vec<(u32, u64)> {
+    pub fn load() -> Vec<AgentProcess> {
         let text = fs::read_to_string(Self::path()).unwrap_or_default();
-        text.lines()
-            .filter_map(|l| {
-                let mut it = l.split_whitespace();
-                Some((it.next()?.parse().ok()?, it.next()?.parse().ok()?))
-            })
-            .filter(|(pid, start)| start_time(*pid) == Some(*start))
+        parse_processes(&text)
+            .into_iter()
+            .filter(|p| start_time(p.pid) == Some(p.start))
             .collect()
     }
 
-    pub fn add(pid: u32) {
+    pub fn add(pid: u32, confined: bool) {
         let Some(start) = start_time(pid) else { return };
         let mut all = Self::load();
-        all.push((pid, start));
+        all.push(AgentProcess {
+            pid,
+            start,
+            confined,
+        });
         let _ = fs::create_dir_all(state_dir());
-        let text: String = all.iter().map(|(p, s)| format!("{p} {s}\n")).collect();
+        let text: String = all
+            .iter()
+            .map(|p| {
+                let mark = if p.confined { " confined" } else { "" };
+                format!("{} {}{mark}\n", p.pid, p.start)
+            })
+            .collect();
         let _ = fs::write(Self::path(), text);
     }
 
+    /// The ids of those an agent under `mode` may use: an app started under Full Access can open any file, so a session
+    /// with less doesn't get its windows.
+    pub fn ids(list: &[AgentProcess], mode: Mode) -> Vec<u32> {
+        list.iter()
+            .filter(|p| p.confined || mode == Mode::Full)
+            .map(|p| p.pid)
+            .collect()
+    }
+
     /// Whether `pid` is an agent's process or descends from one.
-    pub fn owns(list: &[(u32, u64)], pid: u32) -> bool {
+    pub fn owns(list: &[u32], pid: u32) -> bool {
         let mut p = pid;
         for _ in 0..32 {
-            if list.iter().any(|(q, _)| *q == p) {
+            if list.contains(&p) {
                 return true;
             }
             match parent_of(p) {
@@ -221,9 +243,36 @@ impl AgentProcesses {
     }
 }
 
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct AgentProcess {
+    pub pid: u32,
+    pub start: u64,
+    pub confined: bool,
+}
+
+fn parse_processes(text: &str) -> Vec<AgentProcess> {
+    text.lines()
+        .filter_map(|l| {
+            let mut it = l.split_whitespace();
+            Some(AgentProcess {
+                pid: it.next()?.parse().ok()?,
+                start: it.next()?.parse().ok()?,
+                confined: it.next() == Some("confined"),
+            })
+        })
+        .collect()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn only_full_access_gets_the_windows_of_an_app_that_is_not_confined() {
+        let all = parse_processes("10 5\n11 6 confined\n12 7 other\nx\n");
+        assert_eq!(AgentProcesses::ids(&all, Mode::Full), vec![10, 11, 12]);
+        assert_eq!(AgentProcesses::ids(&all, Mode::Default), vec![11]);
+    }
 
     fn read(t: &str) -> std::io::Result<String> {
         Ok(t.to_string())

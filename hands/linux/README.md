@@ -43,8 +43,14 @@ The person's access mode and app list live in `hands.json` in the Local Studio h
 - `access`: `read_only`, `default` (the default, and what any other value reads as) or `full`. A connector
   (`--connector`) never gets more than `default`.
 - Under `default`, an agent may use windows on the agent workspace and windows of processes an agent started, and may
-  start editors, calculators and viewers (`DEFAULT_APPS` in `src/engine.rs`) plus the apps in `apps`. The person's own
-  windows are `outside_agent_workspace`.
+  start editors, calculators and viewers (`DEFAULT_APPS` in `src/engine.rs`, by command or desktop file, never by a
+  path) plus the apps in `apps`. The person's own windows are `outside_agent_workspace`, and so are those of an app
+  started under `full`.
+- An app started under `default` runs confined (`src/confine.rs`): Landlock lets it, and anything it starts, read the
+  system's programs and settings and its own program file, and read and write only a home folder of the agents' own
+  (`app-home` in the data folder) and the handoff folder. Its file dialogs reach nothing else of the person's. A kernel
+  without Landlock, and an app that starts through `flatpak run` or `snap run`, answer `not_supported`: `open` needs
+  `full` there.
 - Under `full`, every window is open to an agent on this computer, and any app may be started.
 - Browsers, mail, chat, file managers, password managers, contacts and calendars are never started for an agent, in
   any mode (`needs_sandbox`): they hold the person's own data and sessions. The helper looks through `env`,

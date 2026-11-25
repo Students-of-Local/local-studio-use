@@ -326,11 +326,21 @@ impl Atspi {
     }
 
     pub async fn insert_text(&self, o: &Obj, at: i32, text: &str) -> Result<bool, String> {
+        let root = Obj {
+            bus: o.bus.clone(),
+            path: "/org/a11y/atspi/accessible/root".into(),
+        };
+        let toolkit = self
+            .prop(&root, "org.a11y.atspi.Application", "ToolkitName")
+            .await
+            .ok()
+            .and_then(|v| String::try_from(v).ok())
+            .unwrap_or_default();
         self.call::<_, bool>(
             o,
             EDITABLE,
             "InsertText",
-            &(at, text, text.chars().count() as i32),
+            &(at, text, insert_length(&toolkit, text)),
         )
         .await
     }
@@ -637,4 +647,29 @@ pub fn format_number(v: f64) -> String {
         t.pop();
     }
     t
+}
+
+/// InsertText's length. GTK, and the toolkits that speak AT-SPI through ATK, take it as bytes of UTF-8 and cut the text
+/// there; Qt cuts or pads its UTF-16 string to it.
+fn insert_length(toolkit: &str, text: &str) -> i32 {
+    if toolkit.to_lowercase().starts_with("qt") {
+        text.encode_utf16().count() as i32
+    } else {
+        text.len() as i32
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn an_insert_is_as_long_as_the_toolkit_counts() {
+        let text = "caf\u{e9} \u{2013} \u{1f600}";
+        assert_eq!(insert_length("gtk", text), 14);
+        assert_eq!(insert_length("GTK", text), 14);
+        assert_eq!(insert_length("", text), 14);
+        assert_eq!(insert_length("Qt", text), 9);
+        assert_eq!(insert_length("qt6", "plain"), 5);
+    }
 }

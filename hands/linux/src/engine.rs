@@ -496,7 +496,22 @@ impl Engine {
 
     /// Every window this machine shows, joined to AT-SPI and scoped: `agent_workspace`, `agent_started`, or `person`.
     fn all_windows(&mut self) -> HResult<Vec<Win>> {
-        let agent = AgentProcesses::load();
+        let started = AgentProcesses::load();
+        let (mine, any) = (
+            AgentProcesses::ids(&started, self.mode()),
+            AgentProcesses::ids(&started, Mode::Full),
+        );
+        // An agent's app this session may not use (one started under Full Access) is none of its windows anywhere.
+        let scope_of = |pid: u32, on_agent_workspace: bool| {
+            let ours = pid > 0 && AgentProcesses::owns(&mine, pid);
+            if on_agent_workspace && (ours || pid == 0 || !AgentProcesses::owns(&any, pid)) {
+                "agent_workspace"
+            } else if ours {
+                "agent_started"
+            } else {
+                "person"
+            }
+        };
         let atspi = self.atspi();
         let tops: Vec<TopLevel> = match &atspi {
             Ok(a) => block_on(a.toplevels()),
@@ -528,17 +543,12 @@ impl Engine {
                         .is_some_and(|t| {
                             matches!(t.role.as_str(), "dialog" | "alert" | "file chooser")
                         });
-                let scope = if w
-                    .workspace
-                    .as_deref()
-                    .is_some_and(|ws| self.backend.is_agent_workspace(ws))
-                {
-                    "agent_workspace"
-                } else if w.pid > 0 && AgentProcesses::owns(&agent, w.pid) {
-                    "agent_started"
-                } else {
-                    "person"
-                };
+                let scope = scope_of(
+                    w.pid,
+                    w.workspace
+                        .as_deref()
+                        .is_some_and(|ws| self.backend.is_agent_workspace(ws)),
+                );
                 out.push(Win {
                     wm: w,
                     frame,
@@ -555,11 +565,7 @@ impl Engine {
                     t.states & (1 << state::SHOWING) != 0 || t.states & (1 << state::VISIBLE) != 0
                 })
                 .map(|t| {
-                    let scope = if t.pid > 0 && AgentProcesses::owns(&agent, t.pid) {
-                        "agent_started"
-                    } else {
-                        "person"
-                    };
+                    let scope = scope_of(t.pid, false);
                     let kind = if matches!(t.role.as_str(), "dialog" | "alert" | "file chooser") {
                         "dialog"
                     } else {
@@ -2105,7 +2111,7 @@ impl Engine {
                 .suggest("Ask the person to open the app, or to turn on Full Access in hands.json."));
         }
         let (argv, label, categories) = resolve_app(&app)?;
-        let (names, base) = program_names(&argv).map_err(|launcher| {
+        let (names, _) = program_names(&argv).map_err(|launcher| {
             HandsError::new(Code::NeedsSandbox, format!("{app} starts through {launcher}, so the helper can't tell which app it is; agents don't open those on this computer"))
                 .suggest("Name the app's own command or desktop file instead.")
         })?;
@@ -2116,11 +2122,7 @@ impl Engine {
         {
             return Err(personal());
         }
-        let listed = settings
-            .apps
-            .iter()
-            .any(|x| x == &app || x == &argv[0] || x == &base);
-        if mode != Mode::Full && !DEFAULT_APPS.contains(&base.as_str()) && !listed {
+        if mode != Mode::Full && !startable(&app, &argv, &settings.apps) {
             return Err(HandsError::new(
                 Code::NeedsLend,
                 format!(
@@ -2133,6 +2135,19 @@ impl Engine {
                 DEFAULT_APPS.join(", "),
                 access::config_dir().join("hands.json").display()
             )));
+        }
+        if mode != Mode::Full {
+            let why = if launcher_forks(&argv) {
+                Some(format!("{app} starts through a launcher with file access of its own, which the helper can't hold back"))
+            } else if crate::confine::version() == 0 {
+                Some("this kernel has no Landlock, which keeps an agent's app away from the person's files".to_string())
+            } else {
+                None
+            };
+            if let Some(why) = why {
+                return Err(not_supported(format!("{why}, so open needs Full Access here"))
+                    .suggest("Ask the person to open the app, or to turn on Full Access in hands.json."));
+            }
         }
         if !arg_b(a, "new_window") && a.contains_key("new_window") {
             let all = self.all_windows()?;
@@ -2186,6 +2201,10 @@ impl Engine {
             Backend::Sway(_) if !held => Some(sway_agent_display(&self.backend)?),
             _ => None,
         };
+        if mode != Mode::Full {
+            full = crate::confine::command(&full)
+                .map_err(|e| HandsError::new(Code::EngineError, e))?;
+        }
         let full = own_bus(
             &full,
             &a11y,
@@ -2193,7 +2212,12 @@ impl Engine {
             agent_display.as_ref().map(|d| d.dir.as_path()),
         );
         let before = self.backend.windows().unwrap_or_default();
-        let had: HashSet<i64> = before.iter().map(|w| w.id).collect();
+        // From accessibility too: GNOME and KDE on Wayland list no windows of their own.
+        let had: HashSet<i64> = before
+            .iter()
+            .map(|w| w.id)
+            .chain(self.all_windows()?.iter().map(|w| w.wm.id))
+            .collect();
         let focused_before = before.iter().find(|w| w.focused).map(|w| w.id);
         let pid = match (&self.backend, &agent_display) {
             (Backend::Hyprland(_), _) => self.backend.hypr_exec(&full).map_err(engine_err)?,
@@ -2218,17 +2242,12 @@ impl Engine {
         };
         // The app holds the pipe's write end now: the compositor accepts on its socket for as long as the app lives.
         drop(agent_display);
-        AgentProcesses::add(pid);
+        AgentProcesses::add(pid, mode != Mode::Full);
         let wait = arg_i(a, "wait").unwrap_or(7).clamp(0, 7);
         let deadline = Instant::now() + Duration::from_secs(wait as u64);
-        let agent = AgentProcesses::load();
         loop {
             let all = self.all_windows()?;
-            let fresh = all.iter().find(|w| {
-                !had.contains(&w.wm.id)
-                    && (w.wm.pid == pid || AgentProcesses::owns(&agent, w.wm.pid))
-                    && (w.frame.is_some() || self.backend.has_wm())
-            });
+            let fresh = fresh_window(&all, &had, pid, self.backend.has_wm());
             if let Some(w) = fresh.cloned() {
                 if matches!(self.backend, Backend::Sway(_))
                     && w.wm.workspace.as_deref() != Some(crate::desktop::SWAY_AGENT)
@@ -2258,8 +2277,7 @@ impl Engine {
                     while Instant::now() < watch {
                         let now = self.backend.windows().unwrap_or_default();
                         let took = now.iter().find(|x| x.focused).is_some_and(|x| {
-                            Some(x.id) != focused_before
-                                && (x.pid == pid || AgentProcesses::owns(&agent, x.pid))
+                            Some(x.id) != focused_before && AgentProcesses::owns(&[pid], x.pid)
                         });
                         if took {
                             changed = true;
@@ -2391,6 +2409,35 @@ pub fn match_frame(w: &WmWindow, tops: &[TopLevel], used: &mut HashSet<Obj>) -> 
     pick
 }
 
+/// Whether an agent without Full Access may start `app`, which `resolve_app` made `argv`. An app in the person's list by
+/// its exact name; or one of `DEFAULT_APPS` named as a command or desktop file, never by a path or a flatpak or snap id,
+/// whose file, after symlinks, carries that name too. A path is a caller's to choose, so only the list lets one in.
+fn startable(app: &str, argv: &[String], listed: &[String]) -> bool {
+    if listed.iter().any(|x| x == app.trim()) {
+        return true;
+    }
+    if app.contains('/') || launcher_forks(argv) {
+        return false;
+    }
+    let Ok((names, base)) = program_names(argv) else {
+        return false;
+    };
+    if listed.iter().any(|x| *x == base || *x == argv[0]) {
+        return true;
+    }
+    names.iter().all(|n| DEFAULT_APPS.contains(&n.as_str()) || n == "env")
+        && DEFAULT_APPS.contains(&base.as_str())
+}
+
+/// The first window of the app started as `pid` that wasn't there before, never another agent's app's.
+fn fresh_window<'a>(all: &'a [Win], had: &HashSet<i64>, pid: u32, has_wm: bool) -> Option<&'a Win> {
+    all.iter().find(|w| {
+        !had.contains(&w.wm.id)
+            && AgentProcesses::owns(&[pid], w.wm.pid)
+            && (w.frame.is_some() || has_wm)
+    })
+}
+
 /// `app` as a command line: a path, a desktop file id, or a command on PATH.
 fn resolve_app(app: &str) -> HResult<(Vec<String>, String, Vec<String>)> {
     let app = app.trim();
@@ -2508,7 +2555,7 @@ pub fn split_exec(exec: &str) -> Vec<String> {
         .collect()
 }
 
-fn which(cmd: &str) -> Option<String> {
+pub fn which(cmd: &str) -> Option<String> {
     let path = std::env::var("PATH").unwrap_or_default();
     for d in path.split(':').filter(|d| !d.is_empty()) {
         let p = std::path::Path::new(d).join(cmd);
@@ -2979,6 +3026,69 @@ mod tests {
             ..w.clone()
         };
         assert_eq!(match_frame(&other, &tops, &mut used), None);
+    }
+
+    #[test]
+    fn without_full_access_a_default_app_is_known_by_its_file_and_never_by_a_path() {
+        let dir = std::env::temp_dir().join(format!("ls-startable-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let file = |n: &str| {
+            let p = dir.join(n);
+            std::fs::write(&p, "#!/bin/sh\n").unwrap();
+            use std::os::unix::fs::PermissionsExt;
+            std::fs::set_permissions(&p, std::fs::Permissions::from_mode(0o755)).unwrap();
+            p.to_string_lossy().into_owned()
+        };
+        let (gedit, other) = (file("gedit"), file("other"));
+        let kate = dir.join("kate").to_string_lossy().into_owned();
+        std::os::unix::fs::symlink(&other, &kate).unwrap();
+        let none: &[String] = &[];
+        assert!(startable("gedit", &v(&[&gedit]), none));
+        assert!(startable("org.gnome.gedit", &v(&["env", "A=b", &gedit]), none));
+        for (app, argv) in [
+            (gedit.as_str(), v(&[&gedit])),
+            ("kate", v(&[&kate])),
+            ("other", v(&[&other])),
+            ("x.gedit", v(&["flatpak", "run", "evil.gedit"])),
+            ("x.gedit", v(&["snap", "run", "gedit"])),
+        ] {
+            assert!(!startable(app, &argv, none), "{app}");
+        }
+        assert!(startable(&other, &v(&[&other]), &v(&[&other])), "listed by its path");
+        assert!(startable("other", &v(&[&other]), &v(&["other"])), "listed by its name");
+        assert!(!startable(&other, &v(&[&other]), &v(&["other"])), "a path is not its name");
+        std::fs::remove_dir_all(&dir).unwrap();
+    }
+
+    #[test]
+    fn open_answers_with_its_own_apps_window_and_not_another_agents() {
+        let win = |id: i64, pid: u32, frame: bool| Win {
+            wm: WmWindow {
+                id,
+                pid,
+                title: String::new(),
+                app: String::new(),
+                workspace: None,
+                visible: true,
+                rect: None,
+                focused: false,
+                dialog: false,
+            },
+            frame: frame.then(|| Obj {
+                bus: ":1.1".into(),
+                path: "/a".into(),
+            }),
+            scope: "agent_started",
+            kind: "window",
+        };
+        // Two apps on a desktop with no window list: ids come from accessibility, and both were started by an agent.
+        let all = [win(1, 900_001, true), win(2, 900_002, true)];
+        let had = HashSet::from([1]);
+        assert_eq!(fresh_window(&all, &had, 900_002, false).map(|w| w.wm.id), Some(2));
+        assert!(fresh_window(&all[..1], &HashSet::new(), 900_002, false).is_none());
+        assert!(fresh_window(&all, &HashSet::from([2]), 900_002, false).is_none());
+        assert!(fresh_window(&[win(3, 900_002, false)], &had, 900_002, false).is_none());
+        assert!(fresh_window(&[win(3, 900_002, false)], &had, 900_002, true).is_some());
     }
 
     #[test]

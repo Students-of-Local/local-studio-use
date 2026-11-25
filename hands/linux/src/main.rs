@@ -3,6 +3,7 @@
 
 mod access;
 mod atspi;
+mod confine;
 mod desktop;
 mod engine;
 mod envelope;
@@ -28,6 +29,8 @@ fn main() {
         }
         // What this desktop allows, for the Local Studio app's settings page.
         Some("grants") if args[1..] == ["--json"] => println!("{}", engine::Engine::new(false).grants()),
+        // Internal: how `open` starts an app for an agent without Full Access (src/confine.rs).
+        Some("confine") => std::process::exit(confine::run(&args[1..])),
         // Internal: how `open` starts an agent's app on a Sway before 1.10 (src/hold.rs).
         Some("hold") => std::process::exit(hold::run(&args[1..])),
         Some("--version") | Some("version") => println!("local-studio-computer {}", mcp::VERSION),
