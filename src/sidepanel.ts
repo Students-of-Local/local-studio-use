@@ -59,9 +59,6 @@ import {
 } from "./composer/refs.js";
 import { ApiKeyDialog } from "./dialogs/ApiKeyDialog.js";
 import { knownProvidersWithKeys, providersWithKeys } from "./dialogs/provider-key-status.js";
-import { RecordSkillDialog } from "./dialogs/RecordSkillDialog.js";
-import { SessionCostDialog } from "./dialogs/SessionCostDialog.js";
-import { LocalStudioSessionListDialog } from "./dialogs/SessionListDialog.js";
 import {
 	isLocalStudioProvider,
 	LOCAL_STUDIO_PROVIDER,
@@ -511,6 +508,7 @@ async function toggleRecording() {
 		renderApp();
 		try {
 			const result = await current.stop();
+			const { RecordSkillDialog } = await import("./dialogs/RecordSkillDialog.js");
 			RecordSkillDialog.open(result);
 		} catch (err) {
 			console.error("Failed to stop recording:", err);
@@ -1239,8 +1237,7 @@ const createAgent = async (initialState?: Partial<AgentState>, shouldSave = true
 			return note ? [note] : [];
 		},
 		onCostClick: () => {
-			if (!agent) return;
-			SessionCostDialog.open(agent.state.messages);
+			openCosts();
 		},
 		toolsFactory: (_agent, _agentInterface, _artifactsPanel, runtimeProvidersFactory) => {
 			const navigateTool = new NavigateTool();
@@ -1405,7 +1402,14 @@ function artifactsButton() {
 	return headerButton(`Artifacts (${count})`, FileCode2, () => chatPanel?.openArtifacts(), count);
 }
 
-function openSessions() {
+function openCosts(): void {
+	void import("./dialogs/SessionCostDialog.js").then(
+		({ SessionCostDialog }) => agent && SessionCostDialog.open(agent.state.messages),
+	);
+}
+
+async function openSessions() {
+	const { LocalStudioSessionListDialog } = await import("./dialogs/SessionListDialog.js");
 	LocalStudioSessionListDialog.open(
 		(sessionId: string) => {
 			loadSession(sessionId);
@@ -1601,7 +1605,7 @@ window.addEventListener(
 		if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key.toLowerCase() === "k") {
 			e.preventDefault();
 			if (agent?.state.messages && agent.state.messages.length > 0) {
-				SessionCostDialog.open(agent.state.messages);
+				openCosts();
 			}
 		}
 	},

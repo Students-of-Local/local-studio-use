@@ -10,9 +10,10 @@ import { fileURLToPath } from "node:url";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 // Settings and its sections load when Settings opens (2026-11-25), which took 320 KB out.
-const OPEN_BYTES_LIMIT = 1_715_000;
+// The slide and OpenDocument viewers, Past chats, costs and the recorder's dialog load when used, which took out 141 KB more.
+const OPEN_BYTES_LIMIT = 1_590_000;
 // Each of these is large and needed only by some chats. None may load with the panel.
-const ON_FIRST_USE = ["pdfjs-dist", "xlsx", "docx-preview", "jszip", "katex", "chart.js", "@lmstudio/sdk", "@mistralai", "@google/genai", "openai/", "@anthropic-ai/sdk", "library-skills", "highlight.js/lib/languages/1c", "ajv/", "src/tools/default-skills", "public-suffixes", "settings-sections"];
+const ON_FIRST_USE = ["pdfjs-dist", "xlsx", "docx-preview", "jszip", "katex", "chart.js", "@lmstudio/sdk", "@mistralai", "@google/genai", "openai/", "@anthropic-ai/sdk", "library-skills", "highlight.js/lib/languages/1c", "ajv/", "src/tools/default-skills", "public-suffixes", "settings-sections", "preview/pptx", "preview/odf", "SessionCostDialog"];
 
 const siblings = existsSync(join(root, "vendor/pi-mono/packages")) && existsSync(join(root, "node_modules"));
 

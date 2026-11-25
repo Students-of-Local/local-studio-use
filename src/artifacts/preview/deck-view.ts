@@ -1,6 +1,7 @@
 import { i18n } from "@mariozechner/mini-lit";
+import { imageUrls } from "./page-media.js";
 import { type Deck, EMU_PER_PX } from "./pptx.js";
-import { imageUrls, renderSlide } from "./slide-render.js";
+import { renderSlide } from "./slide-render.js";
 
 /**
  * Shows a deck as a scrolling column of slides, each scaled to the panel width, with its

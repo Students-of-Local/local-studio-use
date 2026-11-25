@@ -3,8 +3,8 @@ import { customElement } from "lit/decorators.js";
 import { PREVIEW_LIMITS, PreviewLimitError } from "./preview/content.js";
 import { PreviewArtifact } from "./preview/PreviewArtifact.js";
 import { documentPage } from "./preview/page.js";
+import { fontFamily } from "./preview/page-media.js";
 import { looksLikeRtf, parseRtf, type RtfParagraph, type RtfRun } from "./preview/rtf.js";
-import { fontFamily } from "./preview/slide-render.js";
 
 const PX_PER_PT = 96 / 72;
 

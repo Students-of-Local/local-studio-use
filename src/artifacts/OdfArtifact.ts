@@ -1,12 +1,11 @@
 import { i18n } from "@mariozechner/mini-lit";
 import { customElement } from "lit/decorators.js";
 import { PREVIEW_LIMITS } from "./preview/content.js";
-import { mountDeck } from "./preview/deck-view.js";
 import { getArtifactFileType } from "./preview/file-types.js";
-import { type OdfRun, type OdtBlock, type OdtParagraph, readOdp, readOdt } from "./preview/odf.js";
+import type { OdfRun, OdtBlock, OdtParagraph } from "./preview/odf.js";
 import { PreviewArtifact } from "./preview/PreviewArtifact.js";
 import { documentPage } from "./preview/page.js";
-import { fontFamily, imageUrls } from "./preview/slide-render.js";
+import { fontFamily, imageUrls } from "./preview/page-media.js";
 
 const PX_PER_PT = 96 / 72;
 const EMU_PER_PX = 9525;
@@ -23,7 +22,11 @@ export class OdfArtifact extends PreviewArtifact {
 
 	protected async renderPreview(container: HTMLElement) {
 		const bytes = this.decodedContent(PREVIEW_LIMITS.maxDocumentBytes);
-		if (getArtifactFileType(this.filename) === "odp") return mountDeck(container, await readOdp(bytes));
+		const { readOdp, readOdt } = await import("./preview/odf.js");
+		if (getArtifactFileType(this.filename) === "odp") {
+			const { mountDeck } = await import("./preview/deck-view.js");
+			return mountDeck(container, await readOdp(bytes));
+		}
 
 		const odt = await readOdt(bytes);
 		const doc = container.ownerDocument;
