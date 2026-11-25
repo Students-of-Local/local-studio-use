@@ -11,7 +11,6 @@ import { getModel, getModels, type Model } from "@mariozechner/pi-ai";
 import {
 	ChatPanel,
 	createStreamFn,
-	ModelSelector,
 	// PersistentStorageDialog,
 	setAppStorage,
 	setArtifactViewerFactory,
@@ -1183,7 +1182,8 @@ const createAgent = async (initialState?: Partial<AgentState>, shouldSave = true
 					return;
 				}
 			}
-			const selector = ModelSelector.open(
+			const { ModelPage } = await import("./dialogs/ModelPage.js");
+			const page = ModelPage.open(
 				agent.state.model,
 				(model) => {
 					// Free mode checks for an OpenRouter key first and explains how to get a free one.
@@ -1212,7 +1212,7 @@ const createAgent = async (initialState?: Partial<AgentState>, shouldSave = true
 				refreshDiscoveredModels(storage, { wait: true, timeoutMs: 15000 }).catch(() => {}),
 				refreshLocalStudioModels().catch(() => []),
 			]).then(([subscriptions, , studio]) =>
-				selector.refreshed([...(studio.length ? [LOCAL_STUDIO_PROVIDER] : []), ...withKeys, ...subscriptions]),
+				page.refreshed([...(studio.length ? [LOCAL_STUDIO_PROVIDER] : []), ...withKeys, ...subscriptions]),
 			);
 		},
 		onBeforeSend: async () => {

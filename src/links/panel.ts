@@ -110,7 +110,7 @@ export function offerCards(): TemplateResult | typeof nothing {
 			(o) => `${o.clientId}:${o.at}`,
 			(
 				o,
-			) => html`<section class="tk-ask-card" role="group" aria-label=${`${o.agentName} offers`} data-testid="offer-card">
+			) => html`<section class="tk-ask-card tk-ask-done" role="group" aria-label=${`${o.agentName} offers`} data-testid="offer-card">
 				<div class="flex items-start gap-2 text-sm">
 					<p class="min-w-0 flex-1 break-words">
 						<span class="font-semibold text-foreground">${o.agentName}</span>
@@ -118,7 +118,7 @@ export function offerCards(): TemplateResult | typeof nothing {
 					</p>
 					<button
 						type="button"
-						class="tk-icon-btn shrink-0"
+						class="tk-icon-btn -mr-1.5 -mt-1.5"
 						aria-label="Dismiss"
 						title="Dismiss"
 						data-action="dismiss"

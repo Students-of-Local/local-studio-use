@@ -84,12 +84,12 @@ test("a library that failed to load can be tried again, since an update can repl
 test("the model button opens the picker before anything that waits on the network or the helper", () => {
 	const panel = readFileSync(join(root, "src/sidepanel.ts"), "utf8");
 	const start = panel.indexOf("onModelSelect: async () => {");
-	const open = panel.indexOf("ModelSelector.open(", start);
+	const open = panel.indexOf("ModelPage.open(", start);
 	assert.ok(start > 0 && open > start);
 	const before = panel.slice(start, open);
 	assert.doesNotMatch(before, /await refreshDiscoveredModels/, "a stale provider's list held the picker for up to 4 seconds");
 	assert.doesNotMatch(before, /\.\.\.\(await refreshSubscriptionModels/, "the helper's answer held the picker");
-	assert.match(panel.slice(open, open + 1400), /selector\.refreshed\(/, "fresh lists still reach the open picker");
+	assert.match(panel.slice(open, open + 1400), /page\.refreshed\(/, "fresh lists still reach the open picker");
 });
 
 test("Settings loads on first use, and a panel whose files were replaced says what to do", () => {

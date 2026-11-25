@@ -176,12 +176,12 @@ test("with no model and no helper the home screen names every way to connect one
 		await saveKeys(page, []);
 		const home = page.locator("[data-welcome-connect]");
 		await home.waitFor({ timeout: 20_000 });
-		assert.deepEqual(await home.locator("[data-connect-list] .tk-row .font-medium:first-child").allInnerTexts(), [
-			"Local Studio app",
-			"ChatGPT plan",
-			"GitHub Copilot plan",
-			"Claude or Gemini plan",
+		assert.deepEqual(await home.locator("[data-connect-list] [data-row-name]").allInnerTexts(), [
+			"Get the Local Studio app",
+			"Continue with ChatGPT",
+			"Sign in with GitHub Copilot",
 			"API key",
+			"Use your own agent",
 		]);
 		const link = home.locator("[data-get-app]").first();
 		await link.waitFor({ timeout: 10_000 });

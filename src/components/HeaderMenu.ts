@@ -24,6 +24,8 @@ export class HeaderMenu extends LitElement {
 	@property({ attribute: false }) items: HeaderMenuItem[] = [];
 	@property() label = "More";
 	@state() private open = false;
+	/** Opens upward when there's no room below. */
+	@state() private up = false;
 
 	protected override createRenderRoot() {
 		return this;
@@ -50,6 +52,7 @@ export class HeaderMenu extends LitElement {
 	}
 
 	private async show(focus: "first" | "last") {
+		this.up = this.getBoundingClientRect().bottom + this.items.length * 34 + 24 > window.innerHeight;
 		this.open = true;
 		await this.updateComplete;
 		const items = this.menuItems();
@@ -129,7 +132,7 @@ export class HeaderMenu extends LitElement {
 			</button>
 			${
 				this.open
-					? html`<div role="menu" aria-label=${this.label} class="tk-menu" @keydown=${(e: KeyboardEvent) => this.onMenuKey(e)}>
+					? html`<div role="menu" aria-label=${this.label} class="tk-menu" ?data-up=${this.up} @keydown=${(e: KeyboardEvent) => this.onMenuKey(e)}>
 							${this.items.map((item) => this.renderItem(item))}
 						</div>`
 					: nothing

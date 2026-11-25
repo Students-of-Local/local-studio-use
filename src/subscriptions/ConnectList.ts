@@ -1,8 +1,21 @@
 import { Button } from "@mariozechner/mini-lit/dist/Button.js";
+import { icon } from "@mariozechner/mini-lit/dist/icons.js";
 import { html, LitElement, nothing, type TemplateResult } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
+import {
+	AppWindow,
+	ArrowUpRight,
+	ChevronDown,
+	ChevronRight,
+	Code,
+	type IconNode,
+	KeyRound,
+	MessageCircle,
+	Terminal,
+} from "lucide";
 import { hostCommand } from "../bridge/host-command.js";
 import { watchHostConnected } from "../bridge/host-state.js";
+import { agentSetupPromptButton } from "../components/AgentSetupPrompt.js";
 import { COMMAND_BOX_CLASS } from "../components/command-box.js";
 import { Toast } from "../components/Toast.js";
 import { localStudioModels, localStudioReachable, refreshLocalStudioModels } from "../eukhe/stream.js";
@@ -20,6 +33,19 @@ export const CONNECT_CHANGED = "connect-changed";
 
 /** Systems the Local Studio app is built for; its row stays away elsewhere. */
 const APP_SYSTEMS: ReadonlySet<string> = new Set(["mac", "win", "linux"]);
+
+/** What a press on the whole row does. */
+interface Act {
+	press?: () => void;
+	href?: string;
+	/** The row's name for a screen reader, when it isn't the name shown. */
+	label?: string;
+	disabled?: boolean;
+	/** Whether what the row opens under itself is open. */
+	open?: boolean;
+}
+
+const isAct = (act: object | symbol): act is Act => typeof act === "object" && ("press" in act || "href" in act);
 
 /**
  * Where the side panel's answers can come from, one row each: the Local Studio app, the two plans with a sign-in other
@@ -243,23 +269,43 @@ export class ConnectList extends LitElement {
 		`;
 	}
 
-	/** A row: its name, one line of state, and one control. What follows shows under it. */
+	/** A row: what it is, one line on it, and what a press does: the whole row, or a small button at its end. */
 	private row(
 		id: string,
+		sign: IconNode,
 		name: string,
 		line: string | TemplateResult,
-		control: TemplateResult | typeof nothing,
+		act: Act | TemplateResult | typeof nothing,
 		under: TemplateResult | typeof nothing = nothing,
 	): TemplateResult {
+		const text = html`<span class="tk-row-icon" aria-hidden="true">${icon(sign, "sm")}</span>
+			<span class="min-w-0 flex-1">
+				<span class="block text-sm font-medium text-foreground" data-row-name>${name}</span>
+				${line ? html`<span class="block text-xs text-muted-foreground break-words">${line}</span>` : nothing}
+			</span>`;
+		const end = (node: IconNode) => html`<span class="tk-row-chevron" aria-hidden="true">${icon(node, "sm")}</span>`;
+		const draw = (): TemplateResult => {
+			if (isAct(act)) {
+				if (act.href)
+					return html`<a class="tk-row tk-row-link" href=${act.href} target="_blank" rel="noopener" data-get-app>
+						${text} ${end(ArrowUpRight)}
+					</a>`;
+				return html`<button
+					type="button"
+					class="tk-row tk-row-link"
+					aria-label=${act.label ?? name}
+					aria-expanded=${act.open === undefined ? nothing : act.open ? "true" : "false"}
+					?disabled=${act.disabled}
+					@click=${act.press}
+				>
+					${text} ${end(act.open ? ChevronDown : ChevronRight)}
+				</button>`;
+			}
+			return html`<div class="tk-row">${text} ${act}</div>`;
+		};
 		return html`
 			<div data-subscription=${id}>
-				<div class="tk-row">
-					<span class="min-w-0 flex-1">
-						<span class="block text-sm font-medium text-foreground">${name}</span>
-						${line ? html`<span class="block text-xs text-muted-foreground break-words">${line}</span>` : nothing}
-					</span>
-					${control}
-				</div>
+				${draw()}
 				${under === nothing ? nothing : html`<div class="flex flex-col gap-2 px-3 pb-3 text-xs text-muted-foreground">${under}</div>`}
 			</div>
 		`;
@@ -283,19 +329,13 @@ export class ConnectList extends LitElement {
 
 	private renderApp(): TemplateResult | typeof nothing {
 		if (!this.appRuns) return nothing;
+		const row = (line: string, act: Act | TemplateResult | typeof nothing, name = "Local Studio app") =>
+			this.row("studio", AppWindow, name, line, act);
 		const models = this.studioModels;
-		if (models)
-			return this.row("studio", "Local Studio app", `${models} ${models === 1 ? "model" : "models"} ready`, nothing);
+		if (models) return row(`${models} ${models === 1 ? "model" : "models"} ready`, nothing);
 		if (this.noHost)
-			return this.row(
-				"studio",
-				"Local Studio app",
-				"Runs models on this computer",
-				html`<a class="tk-row-button" href=${APP_DOWNLOAD_URL} target="_blank" rel="noopener" data-get-app>Get the app</a>`,
-			);
-		return this.row(
-			"studio",
-			"Local Studio app",
+			return row("Runs models on this computer", { href: APP_DOWNLOAD_URL }, "Get the Local Studio app");
+		return row(
 			this.checking || models === undefined
 				? "Checking"
 				: localStudioReachable()
@@ -317,10 +357,7 @@ export class ConnectList extends LitElement {
 			? this.button("Sign out", () => void this.signOut(which))
 			: this.busy === which
 				? this.button("Cancel", () => void this.cancel(which))
-				: this.button(chatgpt ? "Continue with ChatGPT" : "Sign in", () => this.press(which), {
-						label: chatgpt ? undefined : "Sign in with GitHub Copilot",
-						disabled: Boolean(this.busy),
-					});
+				: { press: () => this.press(which), disabled: Boolean(this.busy) };
 		const under: TemplateResult[] = [];
 		if (chatgpt && this.welcome)
 			under.push(html`<div class="flex flex-col gap-2" role="dialog" aria-label="You're using your ChatGPT plan">
@@ -355,10 +392,19 @@ export class ConnectList extends LitElement {
 		if (this.notice?.row === which) under.push(html`<p role="status">${this.notice.text}</p>`);
 		return this.row(
 			which,
-			chatgpt ? "ChatGPT plan" : "GitHub Copilot plan",
+			chatgpt ? MessageCircle : Code,
+			signedIn || this.busy === which
+				? chatgpt
+					? "ChatGPT plan"
+					: "GitHub Copilot plan"
+				: chatgpt
+					? "Continue with ChatGPT"
+					: "Sign in with GitHub Copilot",
 			signedIn
 				? html`Signed in${who ? html` as ${who}` : nothing}${chatgpt ? html`. ${link(SIWC.usageUrl, "Manage usage")}` : nothing}`
-				: "",
+				: this.busy === which
+					? "Signing in"
+					: `Uses your ${chatgpt ? "ChatGPT" : "Copilot"} plan`,
 			control,
 			under.length ? html`${under}` : nothing,
 		);
@@ -367,26 +413,29 @@ export class ConnectList extends LitElement {
 	private renderCli(): TemplateResult {
 		return this.row(
 			"cli",
-			"Claude or Gemini plan",
-			"",
-			html`<button
-				type="button"
-				class="tk-row-button"
-				aria-label="How to use a Claude or Gemini plan"
-				aria-expanded=${this.showCli ? "true" : "false"}
-				@click=${() => {
+			Terminal,
+			"Use your own agent",
+			"Claude Code, Codex or Gemini CLI, on its own plan",
+			{
+				label: "How to use Claude Code, Codex or Gemini CLI",
+				open: this.showCli,
+				press: () => {
 					this.showCli = !this.showCli;
-				}}
-			>
-				How
-			</button>`,
+				},
+			},
 			this.showCli
-				? html`<p>
-							Run Claude Code or Gemini CLI with Local Studio's MCP server, and it drives this browser on your plan.
-							Anthropic's and Google's terms don't allow other apps to sign in with those plans, so this extension doesn't.
-						</p>
-						${this.command("Claude Code", cliMcpSetup("claude", hostCommand()))}
-						${this.command("Gemini CLI", cliMcpSetup("gemini", hostCommand()))}`
+				? html`${agentSetupPromptButton("Paste it into the agent, and it sets itself up.")}
+						<details class="tk-more">
+							<summary>Or run a command</summary>
+							<div class="mt-1.5 flex flex-col gap-2">
+								${this.command("Claude Code", cliMcpSetup("claude", hostCommand()))}
+								${this.command("Gemini CLI", cliMcpSetup("gemini", hostCommand()))}
+							</div>
+						</details>
+						<p>
+							Anthropic's and Google's terms don't allow other apps to sign in with Claude and Gemini plans, so this
+							extension doesn't.
+						</p>`
 				: nothing,
 		);
 	}
@@ -395,17 +444,16 @@ export class ConnectList extends LitElement {
 		return html`
 			<div class="flex flex-col gap-2">
 				<div class="tk-list" data-connect-list>
-					${this.renderApp()} ${this.renderSignIn("chatgpt")} ${this.renderSignIn("copilot")} ${this.renderCli()}
+					${this.renderApp()} ${this.renderSignIn("chatgpt")} ${this.renderSignIn("copilot")}
 					${
 						this.onApiKey
-							? this.row(
-									"key",
-									"API key",
-									"Anthropic, OpenAI, OpenRouter, more",
-									this.button("Add", () => this.onApiKey?.(), { label: "Add an API key" }),
-								)
+							? this.row("key", KeyRound, "API key", "Anthropic, OpenAI, Synthetic, more", {
+									label: "Add an API key",
+									press: () => this.onApiKey?.(),
+								})
 							: nothing
 					}
+					${this.renderCli()}
 				</div>
 				<details class="tk-more px-1 text-xs text-muted-foreground">
 					<summary>About these sign-ins</summary>

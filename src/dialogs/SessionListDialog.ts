@@ -1,14 +1,12 @@
-import { icon } from "@mariozechner/mini-lit";
-import { DialogContent, DialogHeader } from "@mariozechner/mini-lit/dist/Dialog.js";
-import { DialogBase } from "@mariozechner/mini-lit/dist/DialogBase.js";
 import i18n from "@mariozechner/mini-lit/dist/i18n.js";
 import { getAppStorage, type SessionData, type SessionMetadata } from "@mariozechner/pi-web-ui";
 import Fuse from "fuse.js";
-import { html, nothing } from "lit";
+import { html, nothing, type TemplateResult } from "lit";
 import { customElement, state } from "lit/decorators.js";
 import { Download, FileDown, FileUp, Pencil, Trash2 } from "lucide";
 import "../components/HeaderMenu.js";
 import type { HeaderMenuItem } from "../components/HeaderMenu.js";
+import { PageBase } from "../components/PageBase.js";
 import { Toast } from "../components/Toast.js";
 import { type AppThread, appThreads, folderName, inOrder, unopened } from "../threads/app-threads.js";
 
@@ -18,7 +16,7 @@ type ExportedSession = {
 };
 
 @customElement("local-studio-session-list-dialog")
-export class LocalStudioSessionListDialog extends DialogBase {
+export class LocalStudioSessionListDialog extends PageBase {
 	@state() private sessions: SessionMetadata[] = [];
 	@state() private loading = true;
 	@state() private searchQuery = "";
@@ -36,8 +34,7 @@ export class LocalStudioSessionListDialog extends DialogBase {
 	private deletedSessions = new Set<string>();
 	private closedViaSelection = false;
 
-	protected modalWidth = "min(600px, 90vw)";
-	protected modalHeight = "min(700px, 90vh)";
+	protected override fillsHeight = true;
 
 	static async open(
 		onSelect: (sessionId: string) => void,
@@ -159,22 +156,14 @@ export class LocalStudioSessionListDialog extends DialogBase {
 		this.close();
 	}
 
-	private formatDate(isoString: string): string {
-		const date = new Date(isoString);
-		const now = new Date();
-		const diff = now.getTime() - date.getTime();
-		const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-
-		if (days === 0) {
-			return i18n("Today");
-		}
-		if (days === 1) {
-			return i18n("Yesterday");
-		}
-		if (days < 7) {
-			return i18n("{days} days ago").replace("{days}", days.toString());
-		}
-		return date.toLocaleDateString();
+	/** "now", "5m", "3h", "2d", then the date, as the app's own list says it. */
+	private when(isoString: string): string {
+		const minutes = Math.floor((Date.now() - Date.parse(isoString)) / 60_000);
+		if (minutes < 1) return i18n("now");
+		if (minutes < 60) return `${minutes}m`;
+		if (minutes < 24 * 60) return `${Math.floor(minutes / 60)}h`;
+		if (minutes < 7 * 24 * 60) return `${Math.floor(minutes / (24 * 60))}d`;
+		return new Date(isoString).toLocaleDateString(undefined, { month: "short", day: "numeric" });
 	}
 
 	private async handleExport(sessionId?: string) {
@@ -412,96 +401,82 @@ export class LocalStudioSessionListDialog extends DialogBase {
 		];
 	}
 
-	/** A thread of the app's: opening it goes on from there in the panel, so it has no actions of its own. */
-	private renderThread(thread: AppThread) {
-		const meta = [this.formatDate(thread.modified), folderName(thread.folder)].filter(Boolean).join(" · ");
-		return html`
-			<li data-thread=${thread.id} class="rounded-lg border border-border hover:bg-secondary/50">
-				<button
-					type="button"
-					class="w-full min-w-0 text-left px-3 py-2.5 rounded-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-ring"
-					@click=${() => this.handleThread(thread)}
-				>
-					<div class="flex items-center gap-2">
-						<span class="font-medium text-sm text-foreground truncate">${thread.title}</span>
-						<span class="shrink-0 ml-auto text-[11px] text-muted-foreground">In the app</span>
-					</div>
-					<div class="text-xs text-muted-foreground mt-0.5">${meta}</div>
-				</button>
-			</li>
-		`;
+	private renderOpen(title: string, meta: string, time: string, tip: string, open: () => void): TemplateResult {
+		return html`<button type="button" class="tk-chat-open" title=${tip} @click=${open}>
+			<span class="tk-chat-line">
+				<span class="tk-chat-title">${title}</span>
+				<span class="tk-chat-time">${time}</span>
+			</span>
+			${meta ? html`<span class="tk-chat-meta">${meta}</span>` : nothing}
+		</button>`;
 	}
 
-	private rowAction(label: string, iconNode: typeof Pencil, action: string, run: () => void, danger = false) {
-		return html`<button
-			type="button"
-			class="tk-icon-btn ${danger ? "hover:!text-destructive" : ""}"
-			aria-label=${label}
-			data-tip=${label}
-			data-action=${action}
-			@click=${run}
-		>
-			${icon(iconNode, "sm")}
-		</button>`;
+	/** A thread of the app's: opening it goes on from there in the panel, so it has no actions of its own. */
+	private renderThread(thread: AppThread) {
+		const meta = [i18n("In the app"), folderName(thread.folder)].filter(Boolean).join(" · ");
+		return html`<li data-thread=${thread.id} class="tk-chat">
+			${this.renderOpen(thread.title, meta, this.when(thread.modified), thread.title, () => this.handleThread(thread))}
+		</li>`;
+	}
+
+	private rowMenu(session: SessionMetadata): HeaderMenuItem[] {
+		return [
+			{ label: i18n("Rename"), icon: Pencil, run: () => void this.startRename(session.id) },
+			{ label: i18n("Export"), icon: Download, run: () => void this.handleExport(session.id) },
+			{ label: i18n("Delete"), icon: Trash2, separator: true, run: () => void this.handleDelete(session.id) },
+		];
 	}
 
 	private renderRow(session: SessionMetadata) {
 		const cost = session.usage.cost.total;
 		const current = session.id === this.currentId;
-		const meta = [
-			this.formatDate(session.lastModified),
+		const title = session.title || i18n("Untitled chat");
+		const tip = [
+			title,
 			`${session.messageCount} ${i18n("messages")}`,
 			cost > 0 ? `$${cost < 0.01 ? cost.toFixed(4) : cost.toFixed(2)}` : "",
 		]
 			.filter(Boolean)
 			.join(" · ");
-		const renaming = this.renamingId === session.id;
-		return html`
-			<li data-session=${session.id} class="flex items-start gap-1 rounded-lg border ${current ? "border-[var(--tk-accent)]/60" : "border-border"} hover:bg-secondary/50">
-				${
-					renaming
-						? html`<div class="flex-1 min-w-0 p-2">
-								<input
-									data-rename
-									type="text"
-									aria-label=${i18n("Chat name")}
-									.value=${session.title}
-									class="w-full h-9 px-2 text-sm rounded-md border border-input bg-background text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-									@keydown=${(e: KeyboardEvent) => {
-										if (e.key === "Enter")
-											void this.saveRename(session.id, (e.target as HTMLInputElement).value);
-										else if (e.key === "Escape") {
-											e.preventDefault();
-											e.stopPropagation();
-											this.renamingId = undefined;
-										}
-									}}
-									@blur=${(e: FocusEvent) => void this.saveRename(session.id, (e.target as HTMLInputElement).value)}
-								/>
-							</div>`
-						: html`<button
-								type="button"
-								class="flex-1 min-w-0 text-left px-3 py-2.5 rounded-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-ring"
-								@click=${() => this.handleSelect(session.id)}
-							>
-								<div class="flex items-center gap-2">
-									<span class="font-medium text-sm text-foreground truncate">${session.title || i18n("Untitled chat")}</span>
-									${current ? html`<span class="shrink-0 text-[11px] font-semibold text-[var(--tk-accent-text)]">${i18n("Open now")}</span>` : nothing}
-								</div>
-								<div class="text-xs text-muted-foreground mt-0.5">${meta}</div>
-								${session.preview ? html`<div class="text-xs text-muted-foreground mt-1 line-clamp-1">${session.preview}</div>` : nothing}
-							</button>`
-				}
-				<div class="flex shrink-0 gap-0.5 p-1.5 tk-tips-end">
-					${this.rowAction(i18n("Rename"), Pencil, "rename", () => void this.startRename(session.id))}
-					${this.rowAction(i18n("Export"), Download, "export", () => void this.handleExport(session.id))}
-					${this.rowAction(i18n("Delete"), Trash2, "delete", () => void this.handleDelete(session.id), true)}
-				</div>
-			</li>
-		`;
+		// A title says which chat; its first message shows only as what a search found, and only where it adds to the title.
+		const preview = (session.preview ?? "").trim();
+		const meta = this.searchQuery.trim() && !preview.startsWith(title.replace(/(…|\.{3})$/, "")) ? preview : "";
+		if (this.renamingId === session.id)
+			return html`<li data-session=${session.id} class="tk-chat">
+				<input
+					data-rename
+					type="text"
+					aria-label=${i18n("Chat name")}
+					.value=${session.title}
+					class="tk-search m-1"
+					@keydown=${(e: KeyboardEvent) => {
+						if (e.key === "Enter") void this.saveRename(session.id, (e.target as HTMLInputElement).value);
+						else if (e.key === "Escape") {
+							e.preventDefault();
+							e.stopPropagation();
+							this.renamingId = undefined;
+						}
+					}}
+					@blur=${(e: FocusEvent) => void this.saveRename(session.id, (e.target as HTMLInputElement).value)}
+				/>
+			</li>`;
+		return html`<li data-session=${session.id} class="tk-chat" aria-current=${current ? "true" : nothing}>
+			${this.renderOpen(title, meta, current ? i18n("Open now") : this.when(session.lastModified), tip, () =>
+				this.handleSelect(session.id),
+			)}
+			<tk-header-menu class="tk-chat-menu" .items=${this.rowMenu(session)} label=${`${i18n("Actions for")} ${title}`}></tk-header-menu>
+		</li>`;
 	}
 
-	protected override renderContent() {
+	protected override pageTitle(): string {
+		return i18n("Past chats");
+	}
+
+	protected override pageActions(): TemplateResult {
+		return html`<tk-header-menu .items=${this.menuItems()} label=${i18n("More actions")}></tk-header-menu>`;
+	}
+
+	protected override renderContent(): TemplateResult {
 		const filteredSessions = this.getFilteredSessions();
 		const threads = unopened(this.threads, this.sessions);
 		// A search keeps its best match first; without one, everything is by time.
@@ -510,12 +485,8 @@ export class LocalStudioSessionListDialog extends DialogBase {
 			: inOrder(filteredSessions, threads);
 
 		return html`
-			${DialogContent({
-				className: "h-full flex flex-col",
-				children: html`
-					${DialogHeader({ title: i18n("Past chats") })}
-
-					<div class="mt-3 flex items-center gap-1.5">
+			<div class="tk-page-body min-h-0 flex-1 overflow-y-auto">
+				<div class="mx-auto flex max-w-2xl flex-col gap-3 px-4 py-4">
 					<input
 						type="search"
 						aria-label=${i18n("Search chats")}
@@ -536,26 +507,21 @@ export class LocalStudioSessionListDialog extends DialogBase {
 								this.querySelector<HTMLElement>("li[data-session] button, li[data-thread] button")?.focus();
 							}
 						}}
-						class="flex-1 min-w-0 h-9 px-3 text-sm rounded-md border border-input bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+						class="tk-search"
 					/>
-						<tk-header-menu .items=${this.menuItems()} label=${i18n("More actions")}></tk-header-menu>
-					</div>
-
-					<ul class="flex-1 overflow-y-auto mt-3 space-y-2" aria-label=${i18n("Past chats")}>
-						${
-							this.loading
-								? html`<li class="text-center py-8 text-sm text-muted-foreground">${i18n("Loading...")}</li>`
-								: rows.length === 0
-									? html`<li class="text-center py-8 text-sm text-muted-foreground">
-											${this.searchQuery ? i18n("No matching chats") : i18n("No chats yet")}
-										</li>`
-									: rows.map((row) =>
-											"chat" in row ? this.renderRow(row.chat) : this.renderThread(row.thread),
-										)
-						}
+					<ul aria-label=${i18n("Past chats")}>
+					${
+						this.loading
+							? nothing
+							: rows.length === 0
+								? html`<li class="py-8 text-center text-sm text-muted-foreground">
+										${this.searchQuery ? i18n("No matching chats") : i18n("No chats yet")}
+									</li>`
+								: rows.map((row) => ("chat" in row ? this.renderRow(row.chat) : this.renderThread(row.thread)))
+					}
 					</ul>
-				`,
-			})}
+				</div>
+			</div>
 		`;
 	}
 }

@@ -5,7 +5,6 @@ import type { AgentInterface, MessageRenderer } from "@mariozechner/pi-web-ui";
 import { registerMessageRenderer } from "@mariozechner/pi-web-ui";
 import { html, LitElement, type TemplateResult } from "lit";
 import { customElement, property } from "lit/decorators.js";
-import { agentSetupPromptButton } from "../components/AgentSetupPrompt.js";
 import { localStudioMark } from "../components/LocalStudioMark.js";
 import "../subscriptions/ConnectList.js";
 import type { StarterPrompt } from "../tutorials.js";
@@ -91,11 +90,10 @@ export class WelcomeMessageElement extends LitElement {
 			<div class="welcome-container flex flex-col items-center justify-center">
 				<div class="flex w-full max-w-md flex-col gap-4 px-4" data-welcome-connect>
 					<div class="flex flex-col items-center text-center">
-						${localStudioMark(48, "mb-3")}
+						${localStudioMark(44, "mb-3")}
 						<h1 class="text-lg font-semibold tracking-tight">${i18n("Connect a model to chat here")}</h1>
 					</div>
 					<local-studio-connect-list .onApiKey=${setup.onApiKey}></local-studio-connect-list>
-					${agentSetupPromptButton("Claude Code, Codex and other agents can drive this browser without one.")}
 				</div>
 			</div>
 		`;
@@ -106,9 +104,8 @@ export class WelcomeMessageElement extends LitElement {
 		return html`
 			<div class="welcome-container flex flex-col items-center justify-center">
 				<div class="flex flex-col items-center text-center mb-6 px-6">
-					${localStudioMark(64, "mb-4")}
-					<h1 class="text-2xl font-semibold tracking-tight mb-1.5">Local Studio</h1>
-					<p class="text-sm text-muted-foreground max-w-xs">${i18n("You steer. Local Studio works the tabs.")}</p>
+					${localStudioMark(56, "mb-4")}
+					<h1 class="text-lg font-semibold tracking-tight">${i18n("What should we work on?")}</h1>
 				</div>
 
 				<!-- Starter chips: two columns while a pill fits in 10rem, one at a large theme size or a narrow panel (#13) -->

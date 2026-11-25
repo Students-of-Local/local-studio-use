@@ -176,6 +176,23 @@ agent-interface .overflow-y-auto:has(.welcome-container) {
 	color: var(--tk-accent-text);
 }
 
+/* A chat reads at the size of everything around it. */
+agent-interface .markdown-content,
+agent-interface .user-message-container,
+agent-interface message-editor textarea {
+	font-size: 0.875rem;
+	line-height: 1.6;
+}
+
+agent-interface .markdown-content :is(th, td) {
+	padding: 0.3125rem 0.5rem;
+	font-size: 0.8125rem;
+}
+
+agent-interface .markdown-content local-studio-link {
+	margin-block: 0.25rem;
+}
+
 /* A person's own message, on the quiet fill. */
 .user-message-container {
 	position: relative;
@@ -186,8 +203,7 @@ agent-interface .overflow-y-auto:has(.welcome-container) {
 
 /* ask_user question card (src/ask/AskCard.ts): the accent marks the choice. */
 .tk-ask-card {
-	border: 1px solid var(--color-border);
-	border-left: 3px solid var(--tk-accent);
+	border: 1px solid color-mix(in srgb, var(--tk-accent) 45%, var(--color-border));
 	border-radius: var(--radius);
 	background: var(--color-card);
 	color: var(--color-card-foreground);
@@ -196,7 +212,7 @@ agent-interface .overflow-y-auto:has(.welcome-container) {
 }
 
 .tk-ask-card.tk-ask-done {
-	border-left-color: var(--color-border);
+	border-color: var(--color-border);
 	box-shadow: none;
 }
 
@@ -367,7 +383,7 @@ local-studio-link {
 	font-weight: 500;
 	color: var(--color-foreground);
 	background: var(--color-card);
-	border: 1px solid var(--color-border);
+	border: 1px solid color-mix(in srgb, var(--color-foreground) 20%, transparent);
 	border-radius: calc(var(--radius) - 2px);
 	cursor: pointer;
 }
@@ -491,6 +507,11 @@ local-studio-link {
 	box-shadow: var(--shadow-lg);
 }
 
+.tk-menu[data-up] {
+	top: auto;
+	bottom: calc(100% + 4px);
+}
+
 .tk-menu-item {
 	display: flex;
 	align-items: center;
@@ -509,7 +530,8 @@ local-studio-link {
 }
 
 /* A list of rows in one card: Settings, the connect list, skills. */
-.tk-list {
+.tk-list,
+.tk-card {
 	border: 1px solid var(--border);
 	border-radius: var(--radius-lg, 0.625rem);
 	background: var(--card);
@@ -528,6 +550,10 @@ local-studio-link {
 
 .tk-list-inner > * + * {
 	border-top: 1px solid var(--border);
+}
+
+local-studio-provider-key {
+	display: block;
 }
 
 .tk-row {
@@ -585,6 +611,263 @@ local-studio-link {
 	white-space: nowrap;
 }
 
+.tk-row-check {
+	display: inline-flex;
+	flex-shrink: 0;
+	color: var(--tk-accent-text);
+}
+
+/* What a row keeps one click away, under it and inside it. */
+.tk-row-more {
+	padding: 0 0.75rem 0.5rem;
+}
+
+.tk-row-more:not(:has(> *)) {
+	display: none;
+}
+
+.tk-row:has(+ .tk-row-more > *) {
+	padding-bottom: 0.125rem;
+}
+
+.tk-row-tag {
+	margin-left: 0.25rem;
+	flex-shrink: 0;
+	padding: 0 0.375rem;
+	border-radius: var(--radius-sm, 0.25rem);
+	font-size: 0.75rem;
+	color: var(--tk-accent-text);
+	background: color-mix(in srgb, var(--tk-accent) 14%, transparent);
+}
+
+/* A row's value, typed in place. */
+.tk-row-input {
+	flex: 1;
+	min-width: 0;
+	min-height: 2rem;
+	padding: 0 0.625rem;
+	border: 1px solid var(--border);
+	border-radius: calc(var(--radius) - 2px);
+	font-size: 0.875rem;
+	color: var(--foreground);
+	background: var(--background);
+	outline: none;
+}
+
+.tk-row-input::placeholder {
+	color: var(--muted-foreground);
+}
+
+.tk-select {
+	appearance: none;
+	max-width: 60%;
+	min-height: 2rem;
+	padding: 0 1.75rem 0 0.625rem;
+	border: 1px solid var(--border);
+	border-radius: calc(var(--radius) - 2px);
+	font-size: 0.8125rem;
+	color: var(--foreground);
+	background-color: var(--background);
+	background-image:
+		linear-gradient(45deg, transparent 50%, currentColor 50%),
+		linear-gradient(135deg, currentColor 50%, transparent 50%);
+	background-repeat: no-repeat;
+	background-size: 4px 4px;
+	background-position:
+		right 0.875rem center,
+		right 0.625rem center;
+	text-overflow: ellipsis;
+	cursor: pointer;
+	outline: none;
+}
+
+.tk-row-input:focus-visible,
+.tk-select.basis-full {
+	min-width: 0;
+	max-width: 100%;
+}
+
+.tk-select:focus-visible,
+.tk-row-quiet:focus-visible {
+	box-shadow: 0 0 0 2px var(--ring);
+}
+
+.tk-row-quiet {
+	flex-shrink: 0;
+	min-height: 2rem;
+	padding: 0 0.375rem;
+	border-radius: calc(var(--radius) - 2px);
+	font-size: 0.75rem;
+	font-weight: 500;
+	color: var(--muted-foreground);
+	cursor: pointer;
+	outline: none;
+}
+
+.tk-row-quiet:hover {
+	color: var(--foreground);
+	background: var(--accent);
+}
+
+.tk-group-note {
+	padding-inline: 0.75rem;
+	font-size: 0.75rem;
+	color: var(--muted-foreground);
+}
+
+/* The name over a list, as the app's settings groups have it. */
+.tk-group-name {
+	padding-inline: 0.75rem;
+	font-size: 0.75rem;
+	font-weight: 600;
+	color: var(--muted-foreground);
+}
+
+.tk-search {
+	width: 100%;
+	height: 2.25rem;
+	padding-inline: 0.75rem;
+	border: 1px solid var(--border);
+	border-radius: var(--radius-lg, 0.625rem);
+	font-size: 0.875rem;
+	color: var(--foreground);
+	background: var(--card);
+	outline: none;
+}
+
+.tk-search::placeholder {
+	color: var(--muted-foreground);
+}
+
+.tk-search:focus-visible {
+	box-shadow: 0 0 0 2px var(--ring);
+}
+
+/* A few choices side by side, one picked. */
+.tk-seg {
+	display: grid;
+	grid-auto-columns: 1fr;
+	grid-auto-flow: column;
+	gap: 2px;
+	padding: 2px;
+	border: 1px solid var(--border);
+	border-radius: var(--radius-lg, 0.625rem);
+	background: var(--card);
+}
+
+.tk-seg > button {
+	min-height: 1.75rem;
+	border-radius: calc(var(--radius) - 2px);
+	font-size: 0.75rem;
+	font-weight: 500;
+	color: var(--muted-foreground);
+	cursor: pointer;
+	outline: none;
+}
+
+.tk-seg > button:hover {
+	color: var(--foreground);
+}
+
+.tk-seg > button[aria-checked="true"] {
+	color: var(--foreground);
+	background: var(--accent);
+}
+
+.tk-seg > button:focus-visible {
+	box-shadow: 0 0 0 2px var(--ring);
+}
+
+/* ---- Past chats: the app's thread list, in the panel ---- */
+.tk-chat {
+	position: relative;
+	border: 1px solid transparent;
+	border-radius: var(--radius-lg, 0.625rem);
+}
+
+.tk-chat:hover,
+.tk-chat:focus-within {
+	background: color-mix(in srgb, var(--foreground) 5%, transparent);
+}
+
+.tk-chat[aria-current="true"] {
+	border-color: color-mix(in srgb, var(--tk-accent) 45%, transparent);
+	background: color-mix(in srgb, var(--tk-accent) 14%, transparent);
+}
+
+.tk-chat-open {
+	display: flex;
+	flex-direction: column;
+	justify-content: center;
+	gap: 0.125rem;
+	width: 100%;
+	min-height: 2.5rem;
+	padding: 0.4375rem 0.625rem;
+	border-radius: inherit;
+	text-align: left;
+	cursor: pointer;
+	outline: none;
+}
+
+.tk-chat-open:focus-visible {
+	box-shadow: inset 0 0 0 2px var(--ring);
+}
+
+.tk-chat-line {
+	display: flex;
+	align-items: baseline;
+	gap: 0.75rem;
+}
+
+.tk-chat-title {
+	flex: 1;
+	min-width: 0;
+	overflow: hidden;
+	font-size: 0.875rem;
+	font-weight: 500;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.tk-chat-time,
+.tk-chat-meta {
+	font-size: 0.75rem;
+	color: var(--muted-foreground);
+}
+
+.tk-chat-meta {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+/* A row's own menu takes the time's place while the row is pointed at or holds the focus. */
+.tk-chat-menu {
+	position: absolute !important;
+	top: 0.1875rem;
+	right: 0.25rem;
+	opacity: 0;
+}
+
+.tk-chat:hover .tk-chat-menu,
+.tk-chat:focus-within .tk-chat-menu {
+	opacity: 1;
+}
+
+.tk-chat:hover:has(.tk-chat-menu) .tk-chat-time,
+.tk-chat:focus-within:has(.tk-chat-menu) .tk-chat-time {
+	visibility: hidden;
+}
+
+@media (hover: none) {
+	.tk-chat-menu {
+		opacity: 1;
+	}
+	.tk-chat:has(.tk-chat-menu) .tk-chat-time {
+		padding-right: 2rem;
+	}
+}
+
 /* The one control at a row's end. */
 .tk-row-button {
 	display: inline-flex;
@@ -593,7 +876,7 @@ local-studio-link {
 	min-height: 2rem;
 	padding: 0 0.625rem;
 	border: 1px solid var(--input);
-	border-radius: var(--radius-md, 0.375rem);
+	border-radius: calc(var(--radius) - 2px);
 	font-size: 0.75rem;
 	font-weight: 500;
 	color: var(--foreground);

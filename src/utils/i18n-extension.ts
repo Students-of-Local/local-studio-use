@@ -115,7 +115,7 @@ declare module "@mariozechner/mini-lit" {
 		"Waiting for selection": string;
 		"Preparing element selector...": string;
 		About: string;
-		"You steer. Local Studio works the tabs.": string;
+		"What should we work on?": string;
 		"Connect a model to chat here": string;
 		"An AI agent in your side panel, and a browser your coding agents can drive.": string;
 		"Built on the work of": string;
@@ -163,6 +163,9 @@ declare module "@mariozechner/mini-lit" {
 		"Export all chats": string;
 		"Import chats": string;
 		"More actions": string;
+		"Actions for": string;
+		"In the app": string;
+		now: string;
 		"No chats yet": string;
 		"No matching chats": string;
 		"Open now": string;
@@ -283,7 +286,7 @@ const localStudioTranslations = {
 		"Waiting for selection": "Waiting for selection",
 		"Preparing element selector...": "Preparing element selector...",
 		About: "About",
-		"You steer. Local Studio works the tabs.": "You steer. Local Studio works the tabs.",
+		"What should we work on?": "What should we work on?",
 		"Connect a model to chat here": "Connect a model to chat here",
 		"An AI agent in your side panel, and a browser your coding agents can drive.":
 			"An AI agent in your side panel, and a browser your coding agents can drive.",
@@ -335,6 +338,9 @@ const localStudioTranslations = {
 		"Export all chats": "Export all chats",
 		"Import chats": "Import chats",
 		"More actions": "More actions",
+		"Actions for": "Actions for",
+		"In the app": "In the app",
+		now: "now",
 		"No chats yet": "No chats yet",
 		"No matching chats": "No matching chats",
 		"Open now": "Open now",
@@ -452,7 +458,7 @@ const localStudioTranslations = {
 		"Waiting for selection": "Warte auf Auswahl",
 		"Preparing element selector...": "Bereite Element-Auswahl vor...",
 		About: "Über",
-		"You steer. Local Studio works the tabs.": "Du steuerst. Local Studio bedient die Tabs.",
+		"What should we work on?": "Woran arbeiten wir?",
 		"Connect a model to chat here": "Verbinde ein Modell, um hier zu chatten",
 		"An AI agent in your side panel, and a browser your coding agents can drive.":
 			"Ein KI-Agent in deiner Seitenleiste und ein Browser, den deine Coding-Agenten steuern können.",
@@ -504,6 +510,9 @@ const localStudioTranslations = {
 		"Export all chats": "Alle Chats exportieren",
 		"Import chats": "Chats importieren",
 		"More actions": "Weitere Aktionen",
+		"Actions for": "Aktionen für",
+		"In the app": "In der App",
+		now: "jetzt",
 		"No chats yet": "Noch keine Chats",
 		"No matching chats": "Keine passenden Chats",
 		"Open now": "Geöffnet",

@@ -1,6 +1,6 @@
 import { i18n } from "@mariozechner/mini-lit";
 import { icon } from "@mariozechner/mini-lit/dist/icons.js";
-import { html, LitElement, type TemplateResult } from "lit";
+import { html, LitElement, nothing, type TemplateResult } from "lit";
 import { ArrowLeft } from "lucide";
 
 /** Open pages, oldest first. Esc and the back arrow close only the newest. */
@@ -30,6 +30,10 @@ export abstract class PageBase extends LitElement {
 	protected abstract pageTitle(): string;
 	/** The page's content. The page scrolls it unless it fills the height itself (fillsHeight). */
 	protected abstract renderContent(): TemplateResult;
+	/** What sits at the top bar's end. */
+	protected pageActions(): TemplateResult | typeof nothing {
+		return nothing;
+	}
 	/** True when renderContent lays out its own scrolling area and footer. */
 	protected fillsHeight = false;
 
@@ -97,7 +101,8 @@ export abstract class PageBase extends LitElement {
 					>
 						${icon(ArrowLeft, "md")}
 					</button>
-					<h2 id=${titleId} class="min-w-0 truncate text-base font-semibold">${this.pageTitle()}</h2>
+					<h2 id=${titleId} class="min-w-0 flex-1 truncate text-base font-semibold">${this.pageTitle()}</h2>
+					${this.pageActions()}
 				</header>
 				${
 					this.fillsHeight
