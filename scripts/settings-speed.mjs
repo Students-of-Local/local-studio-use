@@ -207,7 +207,7 @@ async function pass(ctx) {
 	// A switch in Agents (chrome.storage), and one in Privacy (the IndexedDB settings store).
 	const switches = [
 		["Agents", "Show when an agent is using a tab", "veil"],
-		["Privacy", "Only use models that don't keep my prompts", "private"],
+		["Privacy", "Only models that don't keep prompts", "private"],
 	];
 	for (const [tab, label, key] of switches) {
 		await page.evaluate(async (t) => {
