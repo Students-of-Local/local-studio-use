@@ -1,6 +1,6 @@
 ---
 name: academic-research
-description: Find, read and verify scholarly sources (Google Scholar, Crossref, OpenAlex, arXiv, PubMed), check each one is real, unretracted and says what you claim, then save it to the Tychicus library and export it as BibTeX, RIS or CSL-JSON (Zotero, Word, LaTeX) or as Obsidian notes. Use when the user asks for papers, studies, journal articles, trials, peer-reviewed sources, a literature review, citations, a bibliography, "what does the research say", or to check whether a citation is real or retracted.
+description: Find, read and verify scholarly sources (Google Scholar, Crossref, OpenAlex, arXiv, PubMed), check each one is real, unretracted and says what you claim, then save it to the local library and export it as BibTeX, RIS or CSL-JSON (Zotero, Word, LaTeX) or as Obsidian notes. Use when the user asks for papers, studies, journal articles, trials, peer-reviewed sources, a literature review, citations, a bibliography, "what does the research say", or to check whether a citation is real or retracted.
 license: AGPL-3.0
 ---
 
@@ -24,12 +24,12 @@ For news and current events, use `news-research`. For a broad multi-step questio
 
 | Need | Use |
 | --- | --- |
-| Search like a student | Tychicus: `navigate {"url":"https://scholar.google.com/scholar?q=..."}` then `get_page_text {}` |
+| Search like a student | Browser: `navigate {"url":"https://scholar.google.com/scholar?q=..."}` then `get_page_text {}` |
 | Check a DOI and its metadata | `https://api.crossref.org/works/<DOI>` (JSON; a fetch tool works, no browser needed) |
 | Search open metadata, retraction flag, citations | `https://api.openalex.org/works?search=<terms>&per-page=10` |
 | Preprints | `https://export.arxiv.org/api/query?search_query=all:<terms>&max_results=10` |
 | Medicine and biology | `https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=pubmed&term=<terms>&retmode=json` |
-| Full text when open | The OpenAlex `open_access.oa_url`, or the publisher page in Tychicus |
+| Full text when open | The OpenAlex `open_access.oa_url`, or the publisher page in the browser |
 | Save, verify, cite, export | `library_add`, `library_search`, `library_cite` (MCP), or `tychicus library` |
 
 Google Scholar has no API and shows a captcha when hit fast. Search it at a human pace: one
@@ -59,7 +59,7 @@ solve it, then go on. Never try to get around it.
       supports your claim. Note its page or section.
 5. **Grade the evidence.** For each source write one line: study type, sample size if
    stated, and whether it supports, weakens or only relates to the claim.
-6. **Save each verified source to the library.** With the Tychicus MCP server:
+6. **Save each verified source to the library.** With the browser tools:
    `library_add {"id":"<DOI>","quote":"<the supporting sentence>","location":"p. 12"}`.
    From a shell: `tychicus library add <DOI> --quote "..." --location "p. 12" --tag <project>`.
    The library fetches the record from the DOI registry and checks retractions again, so

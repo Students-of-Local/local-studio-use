@@ -36,7 +36,7 @@ high-stakes launch, say a lawyer should review it.
 
 1. **Pin the brief.** What is being made, for whom, the feeling wanted, and whether the
    result is commercial.
-2. **Search two or three sources** from the table in Tychicus: `navigate`, `get_page_text
+2. **Search two or three sources** from the table in the browser: `navigate`, `get_page_text
    {"maxChars":4000}`, and `screenshot {}` to see the visual.
 3. **Pick five to eight references.** Varied, each showing one clear idea.
 4. **Record each one:** URL, title, creator, license as stated on the page, and the date

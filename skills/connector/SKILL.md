@@ -1,6 +1,6 @@
 ---
 name: connector
-description: Add Tychicus as a custom connector in claude.ai, ChatGPT or grok.com through a relay or tunnel on the person's own Cloudflare or Tailscale account, and pick what the connector may do, including computer use. Use when the user asks to add a connector, make a Cloudflare relay or tunnel or Tailscale Funnel for Tychicus, reach this computer remotely from a web assistant, or fix a connector that stopped working.
+description: Add Local Studio as a custom connector in claude.ai, ChatGPT or grok.com through a relay or tunnel on the person's own Cloudflare or Tailscale account, and pick what the connector may do, including computer use. Use when the user asks to add a connector, make a Cloudflare relay or tunnel or Tailscale Funnel for Local Studio, reach this computer remotely from a web assistant, or fix a connector that stopped working.
 license: AGPL-3.0
 ---
 
@@ -10,8 +10,8 @@ A web assistant reaches this computer through a relay or tunnel on the person's 
 
 ## When to use
 
-- The user wants Tychicus in claude.ai, ChatGPT or grok.com, or from their phone.
-- The user asks for a tunnel, on Cloudflare or Tailscale, for Tychicus.
+- The user wants Local Studio in claude.ai, ChatGPT or grok.com, or from their phone.
+- The user asks for a tunnel, on Cloudflare or Tailscale, for Local Studio.
 - A connector stopped working.
 
 For driving the browser from an agent on this computer, use the `polycarp-browser` skill. No tunnel is needed.
@@ -35,7 +35,7 @@ For driving the browser from an agent on this computer, use the `polycarp-browse
    - claude.ai: Settings > Connectors > Add custom connector, paste the address.
    - ChatGPT: Settings > Apps & Connectors, turn on dev mode, Create, paste the address, OAuth.
    - grok.com: grok.com/connectors > New Connector > Custom, paste the address.
-7. **Tell them what the approval page asks.** A page from this computer opens. They check the name and tick what it may do. A new connector needs a one-time connect code, which lasts ten minutes: in the Tychicus side panel's Settings > Agents, under "Use Tychicus from Claude, ChatGPT and Grok", they press New code (on a hub, Get a connect code), or in their own terminal they run `tychicus token approval-code`. Later approvals of that connector take the code or their passcode.
+7. **Tell them what the approval page asks.** A page from this computer opens. They check the name and tick what it may do. A new connector needs a one-time connect code, which lasts ten minutes: in the Local Studio side panel's Settings > Agents, under "Use Tychicus from Claude, ChatGPT and Grok", they press New code (on a hub, Get a connect code), or in their own terminal they run `tychicus token approval-code`. Later approvals of that connector take the code or their passcode.
    - Browsing permissions are ticked to start with.
    - `computer.read` and `computer.act` are not ticked. They open the agent workspace and apps the person lends, never other windows, even with Full Access on. The apps run as the person, so only for an assistant they'd let sit at their keyboard.
 8. **Check it.** Run `tychicus remote status --json` again.
@@ -54,10 +54,10 @@ For driving the browser from an agent on this computer, use the `polycarp-browse
 | `cloudflare_tunnel` | The message names the command. Show it, and run it only with their yes: it deletes a tunnel. |
 | `port_busy` | Something else uses the port. Tell them what the message says. Nothing changed. |
 | `dns` | The address is new. Public DNS takes minutes. Check again later. |
-| `no_browser_connected` | The person opens their browser with Tychicus's extension. |
+| `no_browser_connected` | The person opens their browser with the Local Studio extension. |
 | `problem` | Read `message` and pass it on. |
 
-If an assistant says computer use isn't available, its `computer_status` tool explains why: Tychicus's computer-use helper, `tychicus-hands`, isn't installed on that computer, or isn't answering.
+If an assistant says computer use isn't available, its `computer_status` tool explains why: the computer use helper, `tychicus-hands`, isn't installed on that computer, or isn't answering.
 
 To stop everything: with their yes, `tychicus remote off`. To end one assistant: `tychicus token clients`, then `tychicus token revoke <client id>`.
 

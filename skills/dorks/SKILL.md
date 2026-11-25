@@ -47,7 +47,7 @@ in the left column.
    Use the table.
 3. **Start narrow.** Combine two or three operators, for example
    `site:auditor.state.tx.us filetype:pdf intitle:"annual report" after:2024-01-01`.
-4. **Run it in Tychicus:**
+4. **Run it in the browser:**
    `navigate {"url":"https://www.google.com/search?q=<url-encoded query>"}` then
    `get_page_text {"maxChars":4000}`.
 5. **Adjust one thing at a time.** No results: drop the most specific operator. Too

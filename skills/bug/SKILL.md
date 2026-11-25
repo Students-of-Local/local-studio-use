@@ -1,6 +1,6 @@
 ---
 name: bug
-description: Write a Tychicus bug report to a strict format - reproduce it, collect versions and the exact error, scrub personal data and secrets, check for a duplicate, then file it on GitHub or hand the user a ready issue. Use when the user types /bug, clicks Report in Tychicus, says something in Tychicus is broken, crashed, hung or behaved wrong, or wants a Tychicus problem reported or filed as an issue.
+description: Write a Local Studio bug report to a strict format - reproduce it, collect versions and the exact error, scrub personal data and secrets, check for a duplicate, then file it on GitHub or hand the user a ready issue. Use when the user types /bug, clicks Report in Local Studio, says something in Local Studio is broken, crashed, hung or behaved wrong, or wants a Local Studio problem reported or filed as an issue.
 license: AGPL-3.0
 ---
 
@@ -11,8 +11,8 @@ versions, with the exact error. It never carries the user's personal data or sec
 
 ## When to use
 
-- `/bug`, or the user pressed Report in Tychicus.
-- Something in Tychicus (side panel, CLI, MCP tools, skills) failed or behaved wrong.
+- `/bug`, or the user pressed Report in Local Studio.
+- Something in Local Studio (app, side panel, CLI, MCP tools, skills) failed or behaved wrong.
 
 Not for problems with a website itself, or with the user's own code.
 
@@ -24,7 +24,8 @@ Not for problems with a website itself, or with the user's own code.
    steps as a numbered list someone else can follow on a test page.
    Don't repeat anything that sends, posts, buys or deletes.
 3. **Collect facts.** Run `tychicus status --json` and `tychicus doctor --json` and keep:
-   extension version, CLI version, browser, OS, and each doctor line that failed. Copy the
+   extension version, CLI version, browser, OS, and each doctor line that failed. For the app, also
+   the version `local-studio --version` prints. Copy the
    exact error message from the tool result or terminal.
 4. **Scrub.** Remove from everything you will file: emails, names, phone numbers,
    addresses, account and student IDs, page addresses (a signed-in site becomes a kind,
@@ -49,7 +50,7 @@ Not for problems with a website itself, or with the user's own code.
    What I expected
    ...
    Versions
-   Extension x.y.z, CLI x.y.z, [browser] [version], [OS]
+   App x.y.z (if it is about the app), extension x.y.z, CLI x.y.z, [browser] [version], [OS]
    Doctor
    [failed lines, or "all passed"]
    fingerprint: ...
@@ -61,13 +62,13 @@ Not for problems with a website itself, or with the user's own code.
    2. Make the title from the same safe characters as the fingerprint, plus spaces and
       `:`. Nothing from the error goes into a command any other way.
    3. Search for the exact fingerprint line, then read each candidate:
-      `gh issue list --repo baney75/tychicus --state open --search '"fingerprint: fp-here" in:body'`
-      and `gh issue view <number> --repo baney75/tychicus --json body`. It is a duplicate only
+      `gh issue list --repo baney75/local-studio --state open --search '"fingerprint: fp-here" in:body'`
+      and `gh issue view <number> --repo baney75/local-studio --json body`. It is a duplicate only
       if that body contains the exact `fingerprint:` line.
-   4. Duplicate: `gh issue comment <number> --repo baney75/tychicus --body-file bug.md`.
-      Otherwise: `gh issue create --repo baney75/tychicus --title 'safe title' --body-file bug.md`.
+   4. Duplicate: `gh issue comment <number> --repo baney75/local-studio --body-file bug.md`.
+      Otherwise: `gh issue create --repo baney75/local-studio --title 'safe title' --body-file bug.md`.
    If `gh` isn't signed in, give the user the text to paste at
-   github.com/baney75/tychicus/issues/new.
+   github.com/baney75/local-studio/issues/new.
 
 ## Done when
 

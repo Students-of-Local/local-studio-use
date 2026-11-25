@@ -21,7 +21,7 @@ For a small lesson from your own work, use `rsi` instead.
 
 ## Steps
 
-1. **Check private mode.** If the user turned on private mode in Tychicus, every model this
+1. **Check private mode.** If the user turned on private mode in the Local Studio extension, every model this
    skill uses (author and tester) must be one private mode allows. If none is stronger
    than the model that failed, stop and tell the user. Never send the reference run, the
    recording or the conversation to a cloud model in private mode.
@@ -39,8 +39,12 @@ For a small lesson from your own work, use `rsi` instead.
 5. **Choose the author model.** It must be stronger than the model that failed. If you are
    the failing model, run the author through the harness: for example `claude -p --model
    opus` or `codex exec`. If no stronger model is available, stop and tell the user.
-6. **Draft the fix** in the folder `tychicus skill edit <name> --draft-only` makes. If it says
-   that draft holds unapplied changes, stop and ask the user. Write for the failing tier:
+6. **Draft the fix** in a new empty folder, as one reply file. Start from the exact SKILL.md at the
+   path `local-studio skills list` gives, whole, in a block opened by four backticks (one more than
+   the longest run inside) and the word `skill`. Its `asks.txt` and `where.txt` go unchanged in `asks`
+   and `where` blocks the same way, and each other file in a block labeled `file <path>`; if one isn't
+   text, show the user the edit to make by hand instead. Never edit `rsi`, and never remove a section,
+   a safety rule, a "Done when" check or an ask-first step. Write for the failing tier:
    - small: one action per step, exact calls with real parameters, a table instead of a
      judgment, nothing optional, and one worked example rebuilt from the reference run's tool
      calls in your own words, with placeholders for names, addresses and IDs;
@@ -51,22 +55,24 @@ For a small lesson from your own work, use `rsi` instead.
    skill `<name>-lite` for the small tier instead of editing the original.
 7. **Keep it short.** The skill must stay under 150 lines. Cut words before adding
    sections.
-8. **Lint and preview:** `tychicus skill apply ~/.config/tychicus/skill-drafts/<name>`
-   (no `--yes`). It must exit 3 and show the diff.
+8. **Check and preview:** `local-studio skills create <file>` (no `--save`). It must print the
+   skill, say "not saved" and call no line you wrote "may be private". Then diff every block against
+   its file: the fix is the only difference, no file is missing and nothing step 6 keeps is gone.
 9. **Prove it on the failing model.** Run the task again with the model that failed,
    loading the draft, but only in a way that changes nothing: a test page, a draft that
    isn't sent, a form that isn't submitted. Never repeat a send, post, purchase, booking or
    deletion to test a fix. Compare the result with "good" from step 2. If it falls
    short, go back to step 4 with the new run. After three failed tries, stop here: report
-   which step still fails, and don't apply, keep or submit the draft. The rest of the
+   which step still fails, and don't save or propose the draft. The rest of the
    steps are only for a draft that passed.
 10. **Get the user's yes.** Show the diff and the passing result.
-11. **Apply:** the same command with `--yes`.
+11. **Save:** the same command with `--save`. It says what the saved skill is used instead of.
+    With no shell, send the user the reply text and ask them to send `@create` in the thread.
 12. **Keep or share.** Read `submit` in `~/.config/tychicus/rsi.json`:
     - a skill holding personal data is never shared, whatever the setting;
     - `"never"`: keep it local;
     - anything else: ask whether to propose it to the skill library.
-    A proposal is a pull request to `baney75/tychicus` that changes `skills/<name>/SKILL.md`.
+    A proposal is a pull request to `baney75/local-studio` that changes `browser/skills/<name>/SKILL.md`.
     Its description names the failing tier and the cause, and describes the before and
     after results as patterns ("cited a paper that doesn't exist"), never as the user's
     content. Before opening it, scrub everything in it the way the `bug` skill's step 4
@@ -77,8 +83,8 @@ For a small lesson from your own work, use `rsi` instead.
 
 - The failing model produced a good result with the fixed skill, or three tries failed and
   the user knows which step still fails.
-- The fix was applied with `tychicus skill apply --yes` after the user's yes.
-- The skill is under 150 lines, lints clean and holds no page, mail or document text.
+- The fix was saved with `local-studio skills create --save` after the user's yes.
+- The skill is under 150 lines, has no line of yours marked private and holds no page, mail or document text.
 - It stayed local, or it was proposed according to `submit`, and never if it holds personal data.
 
 ## When something goes wrong
@@ -88,7 +94,7 @@ For a small lesson from your own work, use `rsi` instead.
 | No stronger model available | Stop; a model can't reliably write instructions for one stronger than itself |
 | The fix helps small models but hurts large ones | Make `<name>-lite` instead |
 | Recording has the user's private data in it | Describe the steps in your own words; leave names, emails and IDs out |
-| `skill apply` refuses the edit | Read why. A protected section must keep all its lines |
+| `create` refuses the text or says a line may be private | Fix the line it names. Keep every safety rule and ask-first step |
 
 ## Worked example
 
@@ -99,4 +105,4 @@ Haiku used `academic-research` and cited a paper that doesn't exist.
    example from the reference run, and removed the "prefer reviews" judgment.
 3. Haiku reran the task with the draft. All three sources resolved, none was retracted, and
    each claim pointed to a page.
-4. The user said yes. Applied. `submit` was `"ask"`; the user chose to share it.
+4. The user said yes. Saved. `submit` was `"ask"`; the user chose to share it.

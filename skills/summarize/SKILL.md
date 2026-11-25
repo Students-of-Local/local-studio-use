@@ -67,7 +67,7 @@ sources, use `news-research`. For a styled page or report as output, use `artifa
 | Symptom | Fix |
 | --- | --- |
 | Empty text | `wait`, `scroll`, then `get_page_text` again. Still empty: say you couldn't read it. |
-| "Not allowed to open" a site | Tell the user to allow it in the Tychicus side panel (Settings > Agents). Don't use another URL. |
+| "Not allowed to open" a site | Tell the user to allow it in the Local Studio side panel (Settings > Agents). Don't use another URL. |
 | Page is huge | Read it in parts by `selector`, note each part, then merge. |
 | Page is in another language | Summarize in the user's language and say the source is translated by you. |
 | Two pages disagree | Report both, with the link for each. |
