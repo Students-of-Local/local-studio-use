@@ -1892,7 +1892,8 @@ function lineOf(
  * under the frame's host. A frame is read only when its own line is listed as shown, by the
  * document around it, and frameState finds it shown too, so no other frame can stand in for
  * it. A frame on a host not allowed for agents keeps its line, which names the host, and nothing
- * of it is read. Frames of one level are read at once, all under one time limit.
+ * of it is read, also when it went there after it was found: the document read is checked as the
+ * frame was. Frames of one level are read at once, all under one time limit.
  */
 async function readFrames(
 	tabId: number,
@@ -1947,21 +1948,25 @@ async function readFrames(
 		});
 		const wanted = room > 0 ? picks.slice(0, Math.max(0, MAX_FRAMES - read)) : [];
 		const got = await Promise.all(
-			wanted.map(({ f }) =>
-				bounded(
+			wanted.map(async ({ f, own }) => {
+				const s = await bounded(
 					runInFrame<Snapshot & FramesAt>(tabId, f, code(room, textRoom)),
 					Math.max(0, Math.min(FRAME_READ_MS, end - Date.now())),
-				),
-			),
+				);
+				if (!s?.nodes) return s;
+				const bar = web(s.url) ? await rule(s.url) : "guarded";
+				if (bar === "blocked") own.states = [`not allowed for agents: ${frameHost(s.url)}`];
+				return bar ? undefined : s;
+			}),
 		);
 		wanted.forEach(({ f, own }, i) => {
 			const s = got[i];
-			// No answer (its document is being replaced), or one still being parsed.
+			// No answer or a barred one (its document was replaced), or one still being parsed.
 			if (!s?.nodes || s.parsing) whole = false;
 			if (s?.settling) settling = true;
 			if (!s?.nodes || room <= 0) return;
 			read++;
-			const label = frameHost(f.url);
+			const label = frameHost(s.url);
 			const nodes = s.nodes.slice(0, room).map((n) => {
 				const x = Math.round(f.offset.x + f.scale * n.x);
 				const y = Math.round(f.offset.y + f.scale * n.y);

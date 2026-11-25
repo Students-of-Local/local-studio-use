@@ -892,6 +892,35 @@ test("a frame the page lists as shown but the tab finds hidden or barred says wh
 	}
 });
 
+test("a frame that moved between being found and being read is read as the document it now holds, or not at all", async () => {
+	const { snapshot } = await import("../src/browser/page.ts");
+	const getTab = chrome.tabs.get;
+	chrome.tabs.get = async (id) => ({ id, url: "https://shop.example/" });
+	chrome.webNavigation.getAllFrames = async () => [{}, {}];
+	const rule = (url) => (url.startsWith("https://bank.") ? "blocked" : url.startsWith("https://approve.") ? "guarded" : undefined);
+	try {
+		for (const [at, says] of [
+			["https://bank.example/", /^not allowed for agents: bank\.example$/],
+			["https://approve.example/", /^cross-origin: read it/],
+			["chrome-error://chromewebdata/", /^cross-origin: read it/],
+			["https://other.example/", /its elements follow/],
+		]) {
+			fakeTab(80, {
+				trees: { "": node("TOP", "https://shop.example", [node("PAY", "https://pay.example")]) },
+				holds: { PAY: "TOP" },
+				owners: { PAY: 11 },
+				evaluate: (frameId) => (frameId === undefined ? pageWith([frameLine("e1", [100, 50, 400, 150])]) : { ...frameSnap("moved"), url: at }),
+			});
+			const { text, nodes } = await snapshot(80, { skip: rule });
+			assert.match(String(nodes.find((n) => n.ref === "e1").states), says, at);
+			if (at === "https://other.example/") assert.match(text, /\[frame other\.example\]\nmoved text/, "named by the host it was read from");
+			else assert.ok(!/moved/.test(text) && nodes.length === 1, `${at}: none of it is read`);
+		}
+	} finally {
+		chrome.tabs.get = getTab;
+	}
+});
+
 async function lookAfter(tabId, where, shown, { guarded = false } = {}) {
 	const { changeLook } = await import("../src/browser/page.ts");
 	const getTab = chrome.tabs.get;
