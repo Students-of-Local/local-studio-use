@@ -204,6 +204,45 @@ for (const group of [false, true]) {
 	});
 }
 
+test("a recording that dropped a chunk for size takes no later, smaller one", async (t) => {
+	const track = { requestFrame() {} };
+	let recorder;
+	const fakes = {
+		MediaRecorder: class {
+			static isTypeSupported = () => true;
+			state = "recording";
+			constructor() {
+				recorder = this;
+			}
+			start() {}
+			stop() {
+				this.state = "inactive";
+				this.ondataavailable({ data: new Blob(["x".repeat(10)]) });
+				this.onstop();
+			}
+		},
+		document: { createElement: () => ({ getContext: () => ({ drawImage() {} }), captureStream: () => ({ getVideoTracks: () => [track] }) }) },
+		createImageBitmap: async () => ({ width: 2, height: 2, close() {} }),
+		chrome: { runtime: { id: "x", onMessage: { addListener: (fn) => (listener = fn) } } },
+	};
+	let listener;
+	const old = Object.fromEntries(Object.keys(fakes).map((k) => [k, globalThis[k]]));
+	Object.assign(globalThis, fakes);
+	t.after(() => Object.assign(globalThis, old));
+	t.mock.timers.enable({ apis: ["setTimeout", "setInterval"] });
+	await import("../src/offscreen/recorder.ts");
+	const { RECORDER_MESSAGE } = await import("../src/offscreen/recorder-message.ts");
+	const ask = (msg) => new Promise((reply) => listener({ type: RECORDER_MESSAGE, id: "r", ...msg }, { id: "x" }, reply));
+	await ask({ op: "start", mode: "record", maxBytes: 100 });
+	await ask({ op: "frame", jpeg: "AAAA" });
+	recorder.ondataavailable({ data: new Blob(["x".repeat(80)]) });
+	recorder.ondataavailable({ data: new Blob(["x".repeat(50)]) });
+	await ask({ op: "halt" });
+	const status = await ask({ op: "status" });
+	assert.equal(status.bytes, 80, "the encoder's last chunk would follow a hole");
+	assert.match(status.truncated, /size limit/);
+});
+
 test("nothing to save before a header and a cluster have arrived", () => {
 	const ring = new WebmRing();
 	assert.equal(ring.snapshot(), undefined);
