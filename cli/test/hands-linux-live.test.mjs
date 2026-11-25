@@ -7,7 +7,7 @@
 // CI runs it the same way under Xvfb with openbox and under headless sway (.github/workflows/browser-hands-linux.yml).
 import assert from "node:assert/strict";
 import { spawn, spawnSync } from "node:child_process";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { after, before, test } from "node:test";
@@ -171,6 +171,21 @@ test("snapshot prints real rows; find and get read them", { skip }, async () => 
 	assert.match(data.matches[0].ref, /^@s\w+:e\d+$/);
 	const title = await ok("get", { ref: data.matches[0].ref, property: "role" });
 	assert.equal(title.data.value, "button");
+});
+
+test("accents, a dash and an emoji are typed whole into an entry", { skip }, async () => {
+	const ref = await refOf(/textfield "Note"/);
+	const text = "café – naïve 😀";
+	await ok("set_value", { ref, value: "" });
+	assert.equal((await ok("type", { ref: await refOf(/textfield "Note"/), text, wait: 0 })).data.evidence.value, text);
+	await ok("set_value", { ref: await refOf(/textfield "Note"/), value: "" });
+});
+
+test("an app started without Full Access can't read the person's files", { skip }, async () => {
+	const { pid } = (await ok("windows", {})).data.windows.find((w) => w.id === win);
+	assert.match(readFileSync(`/proc/${pid}/status`, "utf8"), /^NoNewPrivs:\t1$/m);
+	assert.equal(realpathSync(`/proc/${pid}/cwd`), realpathSync(join(root, "data", "local-studio-browser", "app-home")));
+	assert.match(readFileSync(`/proc/${pid}/environ`, "utf8"), new RegExp(`(^|\0)HOME=${root}/data/local-studio-browser/app-home\0`));
 });
 
 test("type and get: text lands in the field and reads back", { skip }, async () => {
@@ -426,7 +441,8 @@ test("on sway, an app whose window comes from a process it forked is placed (1.1
 	// A launcher that forks instead of exec: the window's pid is not the pid the helper started.
 	const forked = join(root, "forked-app");
 	writeFileSync(forked, `#!/bin/sh\npython3 '${fixture}' &\nwait\n`, { mode: 0o755 });
-	setAccess("default", [fixture, forked]);
+	// Under Full Access: without it an app has no file but its own program, and this launcher runs another's.
+	setAccess("full", [fixture, forked]);
 	try {
 		const had = new Set((await ok("windows", {})).data.windows.map((w) => w.id));
 		const call = await s.call("open", { app: forked });
