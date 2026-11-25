@@ -7,6 +7,7 @@
  */
 
 import type { Api } from "@mariozechner/pi-ai";
+import { SYNTHETIC_BASE_URL, SYNTHETIC_COMPAT, syntheticName } from "./synthetic.js";
 
 export interface DiscoveredModel {
 	id: string;
@@ -19,6 +20,7 @@ export interface DiscoveredModel {
 	maxTokens?: number;
 	cost?: { input: number; output: number; cacheRead: number; cacheWrite: number };
 	headers?: Record<string, string>;
+	compat?: Readonly<Record<string, unknown>>;
 }
 
 export interface DiscoveryCredential {
@@ -219,6 +221,47 @@ const mistral: Adapter = async ({ token }, signal) => {
 		}));
 };
 
+interface SyntheticListResponse {
+	data: Array<{
+		id: string;
+		display_name?: string;
+		alias_of?: string | null;
+		input_modalities?: string[];
+		context_length?: number;
+		max_output_length?: number;
+		pricing?: Record<string, string | undefined>;
+		supported_features?: string[];
+	}>;
+}
+
+/** The list is public, so the key isn't sent for it. Prices come as "$0.0000006" a token. */
+const synthetic: Adapter = async (_credential, signal) => {
+	const data = await getJson<SyntheticListResponse>(`${SYNTHETIC_BASE_URL}/models`, {}, signal);
+	const perMillion = (v?: string) => {
+		const price = Number.parseFloat((v ?? "").replace(/^\$/, "")) * 1_000_000;
+		return Number.isFinite(price) && price >= 0 ? price : 0;
+	};
+	return data.data
+		.filter((m) => m.supported_features?.includes("tools"))
+		.map((m) => ({
+			id: m.id,
+			name: syntheticName(m.id, m.display_name, m.alias_of),
+			api: "openai-completions",
+			baseUrl: SYNTHETIC_BASE_URL,
+			reasoning: m.supported_features?.includes("reasoning") ?? false,
+			input: m.input_modalities?.includes("image") ? ["text", "image"] : ["text"],
+			contextWindow: m.context_length,
+			maxTokens: m.max_output_length,
+			cost: {
+				input: perMillion(m.pricing?.prompt),
+				output: perMillion(m.pricing?.completion),
+				cacheRead: perMillion(m.pricing?.input_cache_reads),
+				cacheWrite: perMillion(m.pricing?.input_cache_writes),
+			},
+			compat: SYNTHETIC_COMPAT,
+		}));
+};
+
 /** Providers that can be listed at runtime, keyed by pi-ai provider id. */
 export const DISCOVERY_ADAPTERS: Record<string, Adapter> = {
 	anthropic,
@@ -226,6 +269,7 @@ export const DISCOVERY_ADAPTERS: Record<string, Adapter> = {
 	google,
 	openrouter,
 	mistral,
+	synthetic,
 	groq: openAiCompatible("https://api.groq.com/openai/v1", "openai-completions"),
 	xai: openAiCompatible("https://api.x.ai/v1", "openai-completions"),
 	cerebras: openAiCompatible("https://api.cerebras.ai/v1", "openai-completions"),

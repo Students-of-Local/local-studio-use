@@ -6,6 +6,7 @@ import { applyProxyIfNeeded, getAppStorage } from "@mariozechner/pi-web-ui";
 import { html, LitElement, nothing, type PropertyValues, type TemplateResult } from "lit";
 import { property, state } from "lit/decorators.js";
 import { Check } from "lucide";
+import { KEY_PAGES } from "../models/key-pages.js";
 import { type KeyFailure, keyFailure } from "../models/key-reason.js";
 import { Toast } from "./Toast.js";
 
@@ -18,6 +19,7 @@ const TEST_MODELS: Record<string, string> = {
 	openrouter: "z-ai/glm-4.6",
 	"vercel-ai-gateway": "anthropic/claude-opus-4.5",
 	cerebras: "gpt-oss-120b",
+	synthetic: "syn:small:text",
 	xai: "grok-4-fast-non-reasoning",
 	zai: "glm-4.5-air",
 };
@@ -275,6 +277,16 @@ export class ProviderKeyRow extends LitElement {
 							</div>`
 						: html`<p id=${`${id}-note`} class="text-xs text-muted-foreground">
 								${
+									KEY_PAGES[this.provider]
+										? html`<a
+												class="font-medium text-foreground underline underline-offset-2"
+												href=${KEY_PAGES[this.provider]}
+												target="_blank"
+												rel="noopener noreferrer"
+												>Get a ${this.label} key</a
+											>. `
+										: nothing
+								}${
 									canCheckKey(this.provider)
 										? "Local Studio sends the provider one short test message to check the key, then saves it in this browser."
 										: "Saved in this browser as is: Local Studio can't check this provider's keys first."

@@ -279,6 +279,7 @@ one adapter per provider. Verified list endpoints:
 | openai-codex (OAuth) | `GET https://chatgpt.com/backend-api/codex/models?client_version=<ver>` with the ChatGPT bearer (confirmed in `codex-rs/codex-api/src/endpoint/models.rs`); ETag supported | slug, display_name, reasoning levels, visibility |
 | google | `GET /v1beta/models?key=` | name, `inputTokenLimit`, `outputTokenLimit`, `supportedGenerationMethods` |
 | github-copilot | `GET https://api.individual.githubcopilot.com/models` with Copilot token | ids, capabilities and limits |
+| synthetic | `GET https://api.synthetic.new/openai/v1/models` (no key) | models with tools, pricing, context, modalities, aliases |
 | openrouter | `GET https://openrouter.ai/api/v1/models` (no key) | full metadata incl. pricing, context, modalities |
 | groq, xai, cerebras, mistral, huggingface | `GET <baseUrl>/models` | ids (Mistral adds capabilities) |
 | ollama, llama.cpp, vLLM, LM Studio | already in `pi-web-ui/src/utils/model-discovery.ts` | reuse |

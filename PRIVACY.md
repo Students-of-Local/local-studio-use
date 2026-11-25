@@ -33,7 +33,7 @@ Every host named below sees the computer's IP address, as any site does.
 | --- | --- | --- | --- |
 | Update check, with the helper's name and version. Automatic updates also download the release. | `api.github.com`, `github.com`, and `release-assets.githubusercontent.com` for the files | About daily. A source checkout runs `git fetch` instead. | Settings > Updates, or `LOCAL_STUDIO_BROWSER_NO_UPDATE_CHECK=1` |
 | Model details, with no key, chat or page | `models.dev` | Only with a key saved for a provider that lists its models, when the copy is a day old | Settings > Privacy > "Look up model details on models.dev" |
-| Model lists, with the user's key for that provider (none for OpenRouter) | `api.anthropic.com`, `api.openai.com`, `generativelanguage.googleapis.com`, `openrouter.ai`, `api.mistral.ai`, `api.groq.com`, `api.x.ai`, `api.cerebras.ai`, `router.huggingface.co` | When the panel opens and the list is an hour old, only for providers with a saved key | Remove the key |
+| Model lists, with the user's key for that provider (none for OpenRouter and Synthetic) | `api.anthropic.com`, `api.openai.com`, `generativelanguage.googleapis.com`, `openrouter.ai`, `api.mistral.ai`, `api.groq.com`, `api.x.ai`, `api.cerebras.ai`, `router.huggingface.co`, `api.synthetic.new` | When the panel opens and the list is an hour old, only for providers with a saved key | Remove the key |
 | Free model list, with no key | `openrouter.ai` | When the panel opens and the copy is a day old, also with Free mode off | No switch |
 | A page's own icon | The address that page gives, which can be another site's | When the panel shows that page | No switch |
 

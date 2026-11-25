@@ -91,6 +91,7 @@ import { FREE_KEY_NOTE, FREE_PRIVACY_NOTE, FREE_SHORT_NOTE } from "./models/free
 import { freeComposerText, installFreeMode, setFreeMode, streamFree } from "./models/free-panel.js";
 import { isFreeModeModel } from "./models/free-runtime.js";
 import { refreshDiscoveredModels } from "./models/registry.js";
+import { SYNTHETIC_DEFAULT_MODEL } from "./models/synthetic.js";
 import { watchStream } from "./models/stream-watchdog.js";
 import { installBugCapture } from "./privacy/capture.js";
 import { assertPrivateProxy, PRIVATE_MODE_KEY, privateModel, TRUSTED_HOSTS_KEY } from "./privacy/private-mode.js";
@@ -530,6 +531,7 @@ const DEFAULT_MODELS: Record<string, string> = {
 	opencode: "claude-opus-4-6",
 	"opencode-go": "kimi-k2.5",
 	openrouter: "openai/gpt-5.1-codex",
+	synthetic: SYNTHETIC_DEFAULT_MODEL,
 	"vercel-ai-gateway": "anthropic/claude-opus-4-6",
 	xai: "grok-4-fast-non-reasoning",
 	zai: "glm-4.6",

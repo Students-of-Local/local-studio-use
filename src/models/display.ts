@@ -24,6 +24,7 @@ const PROVIDER_NAMES: Record<string, string> = {
 	ollama: "Ollama",
 	openai: "OpenAI",
 	openrouter: "OpenRouter",
+	synthetic: "Synthetic",
 	"vercel-ai-gateway": "Vercel AI Gateway",
 	vllm: "vLLM",
 	xai: "xAI",

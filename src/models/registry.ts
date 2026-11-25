@@ -12,6 +12,7 @@ import { type Api, getGeneratedModels, type Model, registerModels, resetProvider
 import { REMOVED_SIGN_IN_PROVIDERS, resolveApiKey } from "../auth/policy.js";
 import type { LocalStudioAppStorage } from "../storage/app-storage.js";
 import { canDiscover, type DiscoveredModel, discoverProviderModels } from "./discovery.js";
+import { SYNTHETIC, SYNTHETIC_SEED } from "./synthetic.js";
 
 const STALE_MS = 60 * 60 * 1000;
 const METADATA_STALE_MS = 24 * 60 * 60 * 1000;
@@ -34,6 +35,15 @@ type ModelsDevData = Record<string, { models?: Record<string, ModelsDevModel> }>
 const MODELS_DEV_KEYS: Record<string, string[]> = {
 	huggingface: ["huggingface"],
 };
+
+/** A provider pi-ai has no table for starts from its own short list. */
+const SEEDS: Record<string, Model<Api>[]> = { [SYNTHETIC]: SYNTHETIC_SEED };
+for (const [provider, models] of Object.entries(SEEDS)) registerModels(provider, models);
+
+function resetModels(provider: string): void {
+	if (SEEDS[provider]) registerModels(provider, SEEDS[provider]);
+	else resetProviderModels(provider);
+}
 
 let metadataCache: ModelsDevData | undefined;
 const inFlight = new Map<string, Promise<void>>();
@@ -116,7 +126,8 @@ function merge(
 	};
 	const headers = generated?.headers ?? discovered.headers;
 	if (headers) model.headers = headers;
-	if (generated?.compat) (model as Model<Api> & { compat?: unknown }).compat = generated.compat;
+	const compat = generated?.compat ?? discovered.compat;
+	if (compat) (model as Model<Api> & { compat?: unknown }).compat = compat;
 	return model;
 }
 
@@ -146,7 +157,7 @@ export async function refreshProviderModels(storage: LocalStudioAppStorage, prov
 	const task = (async () => {
 		const credential = await credentialFor(storage, provider);
 		if (!credential) {
-			resetProviderModels(provider);
+			resetModels(provider);
 			await storage.discoveredModels.delete(provider);
 			return;
 		}
@@ -171,7 +182,7 @@ export async function refreshProviderModels(storage: LocalStudioAppStorage, prov
 				registerModels(provider, cached.models);
 				await storage.discoveredModels.set({ ...cached, error: message });
 			} else {
-				resetProviderModels(provider);
+				resetModels(provider);
 				await storage.discoveredModels.set({ provider, fetchedAt: Date.now(), models: [], error: message });
 			}
 		}

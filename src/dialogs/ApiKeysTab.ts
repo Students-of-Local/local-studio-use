@@ -29,11 +29,11 @@ const HIDDEN_PROVIDERS = new Set([
 
 /**
  * Settings > Providers: the connect list (the app, the plans), the API keys you have with the rest behind "Add an API
- * key" (a search, the common four, every other provider, custom endpoints), then Free mode. Each provider is one line
+ * key" (a search, the common ones, every other provider, custom endpoints), then Free mode. Each provider is one line
  * (its key field opens on Add key), and saving a key offers "Choose a model" right there.
  */
 /** Shown without asking. The rest wait behind "Show all providers" or a search. */
-const COMMON_PROVIDERS = new Set(["anthropic", "openai", "google", "openrouter"]);
+const COMMON_PROVIDERS = new Set(["anthropic", "openai", "google", "openrouter", "synthetic"]);
 /** The longest the tab stays hidden waiting on the helper's subscription answer. */
 export const PROVIDERS_SHOW_CAP_MS = 300;
 
@@ -141,7 +141,7 @@ export class ApiKeysTab extends SettingsTab {
 		return (
 			getProviders()
 				.filter((p) => !HIDDEN_PROVIDERS.has(p))
-				// Closed, what you have. Open, the common four too; everything else is a search or one click away.
+				// Closed, what you have. Open, the common ones too; everything else is a search or one click away.
 				.filter((p) => this.withKeys.has(p) || (this.adding && (q || this.showAll || COMMON_PROVIDERS.has(p))))
 				.filter((p) => !q || p.includes(q) || providerDisplayName(p).toLowerCase().includes(q))
 				.sort(
