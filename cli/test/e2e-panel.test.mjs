@@ -738,6 +738,36 @@ test("a 400-page PDF read on a small-window model ends with an answer, not a 400
 	}
 });
 
+// Spec A, cases 3 to 5: an answer's link is a button that acts on a real click; a script's click, a link of a shape we
+// don't make, and the same words in the person's own message do nothing.
+test("a link in an answer is a button a real click runs, and nowhere else does one act", async () => {
+	const answer = "Change it here: [Providers](localstudio://settings/Providers), [theirs](localstudio://thread/abc), [docs](https://example.com/docs).";
+	await context.route("https://llm.stub.test/**", (r) => r.fulfill({ status: 200, contentType: "text/event-stream", headers: { "access-control-allow-origin": "*" }, body: sse({ text: answer }) }));
+	const model = { id: "stub-small", name: "Stub small", api: "openai-completions", provider: "stub", baseUrl: "https://llm.stub.test/v1", reasoning: false, input: ["text"], cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 }, contextWindow: 65_536, maxTokens: 2048 };
+	const page = await context.newPage();
+	try {
+		await askPanel(page, model, "Say [mine](localstudio://settings/Skills) back.", { fresh: true });
+		const button = page.locator("local-studio-answer local-studio-link button");
+		await button.waitFor({ timeout: 30_000 });
+		assert.equal(await button.count(), 1, "one of the three links is ours");
+		assert.match(await button.innerText(), /Providers/);
+		assert.equal(await page.locator('local-studio-answer a[href^="localstudio"]').count(), 0, "a link of another shape is only its words");
+		assert.match(await page.locator("local-studio-answer").innerText(), /theirs/);
+		assert.equal(await page.locator('local-studio-answer a[href="https://example.com/docs"]').count(), 1);
+		assert.equal(await page.locator("user-message local-studio-link, .user-message-container local-studio-link").count(), 0, "the person's own words are no button");
+
+		await button.evaluate((b) => b.click());
+		await page.waitForTimeout(400);
+		assert.equal(await page.locator("local-studio-settings").count(), 0, "a script's click runs nothing");
+		await button.click();
+		await page.waitForSelector("local-studio-settings", { state: "attached" });
+		await page.getByRole("heading", { name: "Providers" }).first().waitFor({ timeout: 5000 });
+	} finally {
+		await context.unroute("https://llm.stub.test/**");
+		await page.close();
+	}
+});
+
 // The acceptance case for documents: "what does Aristotle say about friendship in Book VIII" on a 32k model, against a
 // 400-page Ethics. The stand-in model does what the tool description teaches: search, read the best pages, answer with
 // their numbers. The book never enters the context: each tool answer is bounded, and page 300 is never sent.

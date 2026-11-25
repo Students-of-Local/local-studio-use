@@ -27,6 +27,7 @@ import { PAGE_TOOL_NAMES } from "../bridge/page-tools.js";
 import { SkillPill } from "../components/SkillPill.js";
 import { getLocalStudioStorage } from "../storage/app-storage.js";
 import type { Skill } from "../storage/stores/skills-store.js";
+import "../links/LinkButton.js";
 import { escapeCurrency } from "./currency.js";
 import {
 	type Block,
@@ -268,7 +269,7 @@ function hideImg(e: Event) {
 /** The agent's own words, full size. Its step usage is a tooltip; the run total stays below the composer. */
 function textBlock(text: string, usage?: string): TemplateResult {
 	return html`<div class="px-4" title=${usage || nothing}>
-		<markdown-block .content=${escapeCurrency(text)}></markdown-block>
+		<local-studio-answer .text=${escapeCurrency(text)}></local-studio-answer>
 	</div>`;
 }
 

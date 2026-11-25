@@ -7,19 +7,25 @@
 interface Lists {
 	questions: ReadonlyArray<{ agentName?: string }>;
 	handbacks: ReadonlyArray<{ agent?: string; reason?: string }>;
+	/** Buttons an agent offered and a Settings section it opened while no panel was open (src/links/worker.ts). */
+	offers: ReadonlyArray<{ agentName?: string }>;
+	settings: ReadonlyArray<{ agentName?: string }>;
 }
 
-const lists: Lists = { questions: [], handbacks: [] };
+const lists: Lists = { questions: [], handbacks: [], offers: [], settings: [] };
 
 export async function showWaiting<K extends keyof Lists>(kind: K, list: Lists[K]): Promise<void> {
 	lists[kind] = list;
-	const { questions, handbacks } = lists;
-	const count = questions.length + handbacks.length;
+	const { questions, handbacks, offers, settings } = lists;
+	const count = questions.length + handbacks.length + offers.length + settings.length;
+	const shows = offers[0] ?? settings[0];
 	const title = handbacks.length
 		? `Local Studio: ${handbacks[0].agent ?? "An agent"} needs you (${handbacks[0].reason ?? "your turn"})`
 		: questions.length
 			? `Local Studio: ${questions[0].agentName ?? "An agent"} is asking you a question`
-			: "Open Local Studio";
+			: shows
+				? `Local Studio: ${shows.agentName ?? "An agent"} has something to show you`
+				: "Open Local Studio";
 	const action = chrome.action;
 	try {
 		await action.setBadgeBackgroundColor?.({ color: "#b8512a" });

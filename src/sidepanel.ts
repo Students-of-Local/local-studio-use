@@ -117,7 +117,7 @@ import { mergeTurns, type SessionMessage } from "./threads/merge.js";
 import { DebuggerTool } from "./tools/debugger.js";
 import { createExtractDocumentTool, type LoadedDocument } from "./tools/extract-document.js";
 import { ExtractImageTool, registerExtractImageRenderer } from "./tools/extract-image.js";
-import { AskUserTool, AskUserWhichElementTool, skillTool } from "./tools/index.js";
+import { AskUserTool, AskUserWhichElementTool, OpenSettingsTool, skillTool } from "./tools/index.js";
 import { NativeInputEventsRuntimeProvider } from "./tools/NativeInputEventsRuntimeProvider.js";
 import { isToolNavigating, NavigateTool } from "./tools/navigate.js";
 import { panelPageTools, registerPageToolRenderers } from "./tools/page-tools.js";
@@ -134,6 +134,8 @@ import { modeNotice, watchModeNotice } from "./components/ModeNotice.js";
 import { updateNotice, watchUpdateStatus } from "./components/UpdateNotice.js";
 import { handbackCards, watchHandbacks } from "./handback/panel.js";
 import { takeHandoff, watchChangeSite, watchHandoff } from "./handoff/panel.js";
+import { blockOtherLinks } from "./links/LinkButton.js";
+import { offerCards, watchLinks } from "./links/panel.js";
 import { RUNS_MESSAGE } from "./runs/log.js";
 import { runsView, runsWaiting, watchRuns } from "./runs/panel.js";
 import { siteChangeCards, watchSiteChanges } from "./site-edits/panel.js";
@@ -713,6 +715,12 @@ function refreshModelLabel(force = false) {
 	};
 }
 
+/** Links an agent gives: the buttons in answers, the ones agents offer, and Settings sections they open. */
+function startLinkButtons(): void {
+	blockOtherLinks();
+	void watchLinks(renderApp, (section) => void openApiKeysDialog({ tab: section })).catch(() => {});
+}
+
 /** Settings > Sites, where the page in front of the person comes first. */
 function openSites(): void {
 	void openApiKeysDialog({ tab: "Sites" });
@@ -1280,6 +1288,7 @@ const createAgent = async (initialState?: Partial<AgentState>, shouldSave = true
 				...panelPageTools(() => toolBudgetChars(agent?.state.model)),
 				selectElementTool,
 				new AskUserTool(),
+				new OpenSettingsTool(),
 				replTool,
 				skillTool,
 				extractDocumentTool,
@@ -1544,6 +1553,7 @@ const renderApp = () => {
 			${updateNotice()}
 			${modeNotice()}
 			${handbackCards()}
+			${offerCards()}
 			${siteChangeCards()}
 			${bridgeQuestions()}
 			${planBadge(agent?.state.model?.provider)}
@@ -1846,6 +1856,7 @@ async function initApp() {
 			void watchAgentAsks(renderApp).catch(() => {});
 			void watchBridgeQuestions(renderApp).catch(() => {});
 			void watchHandbacks(renderApp).catch(() => {});
+			startLinkButtons();
 			void watchSiteChanges(renderApp).catch(() => {});
 			void watchRuns(renderApp).catch(() => {});
 			return;
@@ -1877,6 +1888,7 @@ async function initApp() {
 	// External agents' questions (ask_user over the bridge) show above the chat.
 	void watchBridgeQuestions(renderApp).catch(() => {});
 	void watchHandbacks(renderApp).catch(() => {});
+	startLinkButtons();
 	void watchSiteChanges(renderApp).catch(() => {});
 	void watchRuns(renderApp).catch(() => {});
 }

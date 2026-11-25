@@ -17,6 +17,7 @@ import { saveSites, savedSites } from "./sites.ts";
 import { assertOwnDir, socketDir, socketPath } from "./paths.ts";
 import { ConnectService } from "./connect-host.ts";
 import { CHUNK_PIECE_BYTES, chunkFrame, MAX_CHUNKED_FRAME_BYTES } from "../../src/bridge/chunks.ts";
+import { answerOpen } from "./open-link.ts";
 import { ChatSync } from "./chat-sync.ts";
 import { EukheRelay } from "./eukhe.ts";
 import { extensionOrigins } from "./install.ts";
@@ -181,6 +182,10 @@ function onExtensionMessage(message: ExtToHost): void {
 			// Checked inside: only the panel commands in EUKHE_COMMANDS, on sessions the chat made itself.
 			eukhe ??= new EukheRelay(toExtension);
 			eukhe.handle(message);
+			return;
+		case "open":
+			// A link the person clicked in the panel; parsed again inside (cli/src/open-link.ts).
+			void answerOpen(message).then((answer) => answer && toExtension(answer));
 			return;
 		case "chats":
 			// Checked inside: ids, fields and sizes; it writes only this browser's own chats.

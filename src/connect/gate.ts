@@ -47,7 +47,11 @@ export class GestureGate {
 
 	/** Whether `method` may go on. A gesture method needs a fresh token it has not seen; the token is spent by asking. */
 	allows(method: string, gesture: Gesture | undefined): boolean {
-		if (!GESTURE_METHODS.includes(method)) return true;
+		return !GESTURE_METHODS.includes(method) || this.spend(gesture);
+	}
+
+	/** Whether this is a fresh token not seen before; it is spent by asking. */
+	spend(gesture: Gesture | undefined): boolean {
 		const now = this.now();
 		for (const [token, at] of this.used) if (now - at > GESTURE_MS * 2) this.used.delete(token);
 		if (!gesture || this.used.has(gesture.token)) return false;

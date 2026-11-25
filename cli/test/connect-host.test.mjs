@@ -70,7 +70,7 @@ const DEFAULT_SCOPE_ROWS = [
 	{ id: "library.read", what: "Search and cite the source library" },
 	{ id: "library.write", what: "Add sources to the library (fetches from doi.org, OpenAlex, Crossref)" },
 	{ id: "skills.read", what: "Find and read the skills that come with Local Studio (never your own)" },
-	{ id: "user.ask", what: "Ask the user multiple-choice questions in the Local Studio side panel and get their answers" },
+	{ id: "user.ask", what: "Ask the user multiple-choice questions in the Local Studio side panel and get their answers, open a settings page for them, and offer buttons they can click" },
 ];
 const sha = (v) => createHash("sha256").update(v).digest("hex");
 const CODE = /^TK-[0-9A-HJKMNP-TV-Z]{4}-[0-9A-HJKMNP-TV-Z]{4}$/;

@@ -8,6 +8,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
 import { ASK_USER_INSTRUCTION, registerAskUser } from "./ask.ts";
+import { registerLinks } from "./links.ts";
 import { waitForUser } from "./handback.ts";
 import { type FilesTool, registerFiles } from "./files-tool.ts";
 import { formatNodes, formatSnapshot, oneLine, type SnapNode } from "../../src/bridge/format.ts";
@@ -1353,6 +1354,8 @@ export function createMcpServer(options: McpServerOptions = {}): { server: McpSe
 
 	// ask_user (cli/src/ask.ts): questions for the user, answered in the side panel.
 	registerAskUser(server, client);
+	// open_settings, offer_buttons (cli/src/links.ts).
+	registerLinks(server, client);
 	// A scoped session is treated as remote too: it names no paths and is told none.
 	files = registerFiles(server, client, {
 		session: choice.name,

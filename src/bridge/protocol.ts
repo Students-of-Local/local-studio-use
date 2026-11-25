@@ -304,7 +304,25 @@ export interface HostChats {
 	title?: string;
 }
 
+/**
+ * Open something on this computer: a link of src/links/parse.ts that the person clicked in the panel, or the computer's
+ * own settings for an agent. The host parses it again (cli/src/open-link.ts).
+ */
+export interface ExtOpen {
+	type: "open";
+	id: number;
+	link: string;
+}
+
+export interface HostOpen {
+	type: "open";
+	id: number;
+	result?: { done: string };
+	error?: RpcError;
+}
+
 export type ExtToHost =
+	| ExtOpen
 	| ExtChats
 	| ExtEukhe
 	| ExtHello
@@ -499,6 +517,7 @@ export interface HostChunk {
 }
 
 export type HostToExt =
+	| HostOpen
 	| HostChats
 	| HostEukhe
 	| HostChunk
@@ -648,6 +667,8 @@ export const BRIDGE_METHODS = [
 	"ask_user.cancel",
 	"handback",
 	"handback.cancel",
+	"open_settings",
+	"offer_buttons",
 	"permission.respond",
 	"permission.allow",
 	"permission.setMode",

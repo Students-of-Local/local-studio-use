@@ -102,7 +102,8 @@ test("tools/list stays small: no schema dialect line, and a byte budget", async 
 	// tabs_show's username_ref and password_ref add 206 (35,173; D69): the user types a sign-in in the extension's own window and
 	// the agent never has it. On tabs_show and not in a tool of its own, and the description was cut to one clause first.
 	// skill_search and skill_read in place of the old matching and editing tools take 921 off (34,252).
-	assert.ok(bytes <= 34252, `tools/list is ${bytes} bytes, over the 34,252 budget`);
+	// open_settings and offer_buttons need 1,112 (35,364).
+	assert.ok(bytes <= 35364, `tools/list is ${bytes} bytes, over the 35,364 budget`);
 	// The loop line teaching `changes` (D43) adds 47 bytes; it saves a read_page after most actions.
 	// The password rule covering one the user gave, with its tabs_show handoff, adds 92 (evals/weak-model: Haiku typed
 	// the password a signup prompt supplied, and submitted, when the rule didn't say it covered that).

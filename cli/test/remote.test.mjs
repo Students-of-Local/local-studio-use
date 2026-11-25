@@ -272,20 +272,20 @@ test("only an initialize request opens a session; unknown sessions get 404; serv
 	assert.equal(readFileSync(file, "utf8"), before, "tokens.json is only written by token commands");
 });
 
-test("user.ask grants ask_user, and only that scope does", async () => {
+test("user.ask grants ask_user, open_settings and offer_buttons, and only that scope does", async () => {
 	const asker = await connect(token("asker", "user.ask"));
 	try {
 		const names = (await asker.listTools()).tools.map((t) => t.name);
-		assert.deepEqual(names, ["ask_user"]);
+		assert.deepEqual(names.sort(), ["ask_user", "offer_buttons", "open_settings"]);
 		assert.match(asker.getInstructions() ?? "", /call ask_user instead of guessing/);
 	} finally {
 		await asker.close();
 	}
-	assert.match(cliRun(["token", "scopes"]).out, /user\.ask\s+Ask the user multiple-choice questions[^\n]*\n\s+ask_user/);
+	assert.match(cliRun(["token", "scopes"]).out, /user\.ask\s+Ask the user multiple-choice questions[^\n]*\n\s+ask_user, open_settings, offer_buttons/);
 	const others = await connect(token("no-ask", "browser.read,browser.navigate,browser.act,browser.script,library.read,library.write,skills.read"));
 	try {
 		const names = (await others.listTools()).tools.map((t) => t.name);
-		assert.ok(!names.includes("ask_user"), names.join(","));
+		for (const tool of ["ask_user", "open_settings", "offer_buttons"]) assert.ok(!names.includes(tool), names.join(","));
 		assert.doesNotMatch(others.getInstructions() ?? "", /ask_user/);
 		const valid = { questions: [{ header: "Format", question: "Which format?", options: [{ label: "PDF", description: "" }, { label: "Markdown", description: "" }] }] };
 		const denied = await others.callTool({ name: "ask_user", arguments: valid }).catch((e) => ({ isError: true, content: [{ text: String(e) }] }));

@@ -349,6 +349,53 @@ agent-interface .overflow-y-auto:has(.welcome-container) {
 	transition-duration: var(--tk-motion-fast, 0.08s);
 }
 
+/* ---- A link that does something on this computer (src/links/LinkButton.ts) ---- */
+local-studio-link {
+	display: inline-block;
+	max-width: 100%;
+	vertical-align: middle;
+}
+
+.tk-link {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.375rem;
+	max-width: 100%;
+	min-height: 1.75rem;
+	padding: 0.1875rem 0.625rem;
+	font-size: 0.8125rem;
+	font-weight: 500;
+	color: var(--color-foreground);
+	background: var(--color-card);
+	border: 1px solid var(--color-border);
+	border-radius: calc(var(--radius) - 2px);
+	cursor: pointer;
+}
+
+.tk-link:hover:not(:disabled) {
+	background: var(--color-secondary);
+}
+
+.tk-link:focus-visible {
+	outline: 2px solid var(--color-ring);
+	outline-offset: 1px;
+}
+
+.tk-link:disabled {
+	cursor: default;
+	opacity: 0.6;
+}
+
+.tk-link[data-state="confirm"] {
+	border-color: var(--tk-accent);
+}
+
+.tk-link-icon {
+	display: inline-flex;
+	flex-shrink: 0;
+	color: var(--color-muted-foreground);
+}
+
 /* ---- Side panel header (src/sidepanel.ts, src/components/HeaderMenu.ts) ---- */
 .tk-icon-btn {
 	position: relative;

@@ -10,6 +10,7 @@ registerToolRenderer("bash", new BashRenderer());
 
 export { AskUserTool } from "./ask-user.js";
 export { AskUserWhichElementTool, askUserWhichElementTool } from "./ask-user-which-element.js";
+export { OpenSettingsTool } from "./open-settings.js";
 // Export local-studio-specific REPL tool instead of web-ui default
 export { createReplTool, javascriptReplTool } from "./repl/repl.js";
 export { requestUserScriptsPermission } from "./repl/userscripts-helpers.js";

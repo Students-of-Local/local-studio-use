@@ -75,7 +75,10 @@ export const SCOPES: Record<string, { tools: string[]; what: string }> = {
 		what: "Read your past Local Studio side panel chats (never private-mode ones)",
 	},
 	"skills.read": { tools: ["skill_search", "skill_read"], what: "Find and read the skills that come with Local Studio (never your own)" },
-	"user.ask": { tools: ["ask_user"], what: "Ask the user multiple-choice questions in the Local Studio side panel and get their answers" },
+	"user.ask": {
+		tools: ["ask_user", "open_settings", "offer_buttons"],
+		what: "Ask the user multiple-choice questions in the Local Studio side panel and get their answers, open a settings page for them, and offer buttons they can click",
+	},
 	"web.search": { tools: ["search"], what: "Search the web through the user's self-hosted SearXNG (SEARXNG_URL)" },
 	"web.scrape": {
 		tools: ["page_markdown", "map", "crawl"],

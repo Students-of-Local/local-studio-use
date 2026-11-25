@@ -300,6 +300,8 @@ export function stepLabel(call: TToolCall, result?: TMessage): { label: string; 
 			return { label: "Read image" };
 		case "ask_user_which_element":
 			return { label: "Ask you to pick an element" };
+		case "open_settings":
+			return { label: `Open ${str(a.place)?.split("/").pop() ?? ""} settings`.replace(/\s+/g, " ") };
 		case "read_page":
 		case "get_page_text": {
 			const url = (result?.details as { url?: unknown } | undefined)?.url;

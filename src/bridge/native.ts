@@ -31,6 +31,7 @@ import { probeUserScripts } from "../browser/userscripts-status.js";
 import { veilBegin, veilEnd, veilSessionGone } from "../browser/veil.js";
 import { veilViewFor } from "../browser/veil-state.js";
 import { cancelHandback, cancelHandbacksFor, handleHandback, startHandback } from "../handback/worker.js";
+import { offerButtons, onOpen, openPlace, startLinks } from "../links/worker.js";
 import { isRunStep, runName } from "../runs/log.js";
 import { recordStep, runEnded, runWaiting } from "../runs/worker.js";
 import { onHostSites, startSiteKeeper } from "../site-edits/keeper.js";
@@ -835,6 +836,27 @@ async function runAsk(state: ClientState, req: HostForwardedRequest): Promise<vo
 	}
 }
 
+/** open_settings and offer_buttons (src/links/worker.ts): nothing here touches a page, so no session is opened. */
+async function runLinks(state: ClientState, req: HostForwardedRequest): Promise<void> {
+	const respond = (r: { result?: unknown; error?: { code: string; message: string } }) =>
+		send({ type: "response", clientId: req.clientId, id: req.id, ...r });
+	try {
+		await gateReady;
+		if (!(await isBridgeEnabled()))
+			return respond({
+				error: { code: ERR.DISABLED, message: "The Local Studio bridge is disabled in Settings > Agents." },
+			});
+		if (clients.get(state.clientId) !== state) return;
+		const answer =
+			req.method === "open_settings"
+				? await openPlace(state, req.params?.place)
+				: await offerButtons(state, req.params ?? {});
+		respond("error" in answer ? answer : { result: answer });
+	} catch (err) {
+		respond({ error: { code: ERR.INTERNAL, message: err instanceof Error ? err.message : String(err) } });
+	}
+}
+
 /**
  * handback and handback.cancel (src/handback/worker.ts): the agent waits for the user's Continue on one of its tabs.
  * Like ask_user it runs beside the client's queue, so the agent's other calls are not held up behind a person.
@@ -929,6 +951,9 @@ function onHostMessage(message: HostToExt): void {
 		}
 		case "eukhe":
 			eukheHandler?.(message);
+			return;
+		case "open":
+			onOpen(message);
 			return;
 		case "chats":
 			onChats(message);
@@ -1235,6 +1260,10 @@ function onHostMessage(message: HostToExt): void {
 				void runHandback(state, message);
 				return;
 			}
+			if (message.method === "open_settings" || message.method === "offer_buttons") {
+				void runLinks(state, message);
+				return;
+			}
 			const current = state;
 			// A handle_dialog holds its box's Cancel from here, queued behind other calls included (dialog-guard.ts).
 			const answer =
@@ -1312,6 +1341,7 @@ function connect(): void {
 		connectHandler?.("disconnected");
 		eukheHandler?.("disconnected");
 		onChats("disconnected");
+		onOpen("disconnected");
 		assembler = new ChunkAssembler();
 		// The host answered these "interrupted: it may have run" and the agent may repeat them
 		// after checking the page: the running handlers must send no more input.
@@ -1495,6 +1525,11 @@ export function startBridge(): void {
 		return true;
 	});
 	startChatSync((message) => {
+		if (!port || !helloSent) return false;
+		send(message);
+		return true;
+	});
+	startLinks((message) => {
 		if (!port || !helloSent) return false;
 		send(message);
 		return true;
