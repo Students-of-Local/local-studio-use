@@ -1,4 +1,4 @@
-// `tychicus doctor`'s user-scripts row against a fake native host that answers bridge.debug
+// `local-studio-browser doctor`'s user-scripts row against a fake native host that answers bridge.debug
 // with each status the extension can report. The row must name the real cause and its fix:
 // a missing permission is not "the toggle is off", and an old extension still gets a row.
 import assert from "node:assert/strict";
@@ -26,7 +26,7 @@ let answers = [];
 let debugCalls = 0;
 
 before(async () => {
-	root = mkdtempSync(join(tmpdir(), "tabkyra-doctor-us-"));
+	root = mkdtempSync(join(tmpdir(), "local-studio-doctor-us-"));
 	mkdirSync(join(root, "sock"), { mode: 0o700 });
 	mkdirSync(join(root, "home"));
 	mkdirSync(join(root, "bin"));
@@ -70,8 +70,8 @@ async function userScriptsRow(...debugAnswers) {
 		env: {
 			HOME: join(root, "home"),
 			PATH: join(root, "bin"),
-			TABKYRA_SOCKET_DIR: join(root, "sock"),
-			TABKYRA_EXTENSION_DIR: join(root, "no-build"),
+			LOCAL_STUDIO_BROWSER_SOCKET_DIR: join(root, "sock"),
+			LOCAL_STUDIO_BROWSER_EXTENSION_DIR: join(root, "no-build"),
 		},
 		stdio: ["ignore", "pipe", "pipe"],
 	});
@@ -118,7 +118,7 @@ test("granted but hidden: names both causes and the restart, not just the toggle
 	const row = await userScriptsRow(status("toggle_off", { apiPresent: false }));
 	assert.match(row.label, /granted but the browser hides/);
 	assert.match(row.detail, /hasn't restarted/);
-	assert.match(row.fix, /tychicus reload/);
+	assert.match(row.fix, /local-studio-browser reload/);
 });
 
 test("probe_error: shows the error text", async () => {

@@ -1,0 +1,34 @@
+{
+	"tool": "local-studio-browser",
+	"at": "2026-11-24T06:04:26.987Z",
+	"version": "1.4.0 (41e9beffee6a)",
+	"machine": {
+		"os": "macOS 27.2",
+		"arch": "arm64",
+		"cpu": "Apple M5",
+		"cores": 10,
+		"memGB": 32
+	},
+	"node": "v24.15.0",
+	"chromium": "Google Chrome for Testing 156.0.8078.4",
+	"load1": {
+		"start": 41.5,
+		"end": 50.1
+	},
+	"repeat": 3,
+	"speedN": 9,
+	"tasks": {
+		"pass": 28,
+		"of": 30,
+		"failed": {
+			"t05-iframe": 2
+		}
+	},
+	"startMs": 3409,
+	"speed_ms": {
+		"click": 40,
+		"fill": 16,
+		"firstText": 74
+	},
+	"errors": {}
+}

@@ -152,7 +152,7 @@ test("veil tags are random custom element names, and only those reach page code"
 	const seen = new Set(Array.from({ length: 200 }, () => newVeilTag()));
 	assert.ok(seen.size > 190);
 	for (const tag of seen) assert.ok(isVeilTag(tag), tag);
-	for (const bad of ["", "polycarp-veil", "abc", 'abcde-fghijk"); alert(1', "ABCDE-FGHIJK", 3]) assert.equal(isVeilTag(bad), false);
+	for (const bad of ["", "local-studio-veil", "abc", 'abcde-fghijk"); alert(1', "ABCDE-FGHIJK", 3]) assert.equal(isVeilTag(bad), false);
 });
 
 test("the page side is self-contained, uses a closed shadow root, sets no attribute on its host and no page global", () => {

@@ -1,0 +1,12 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Redeem a voucher</title><script src="/common.js"></script></head><body>
+<main><h1>Redeem a voucher</h1>
+<p>Your voucher code is on the voucher page. <a href="voucher.html" target="_blank" rel="opener">Open voucher (new tab)</a></p>
+<p><label for="c">Voucher code</label> <input id="c"> <button id="r">Redeem</button></p>
+<p id="out" role="status"></p></main>
+<script>
+document.getElementById("r").onclick = () => {
+  const code = document.getElementById("c").value.trim();
+  report("t03-multitab", { code });
+  document.getElementById("out").textContent = "Submitted " + code;
+};
+</script></body></html>

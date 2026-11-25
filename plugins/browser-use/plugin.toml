@@ -1,0 +1,14 @@
+# Local Studio plugin (v0): skills, a prompt and the /browse command. The tools come from the `local-studio` MCP server,
+# which `local-studio-browser install --local-studio` registers in Eukhe's mcpServers setting. No capabilities yet: Local
+# Studio refuses any until its consent sheet exists. The version is the release's (scripts/plugin-version.mjs).
+id = "browser-use"
+version = "1.4.1"
+description = "Work in Chromium tabs in the background through the Local Studio extension."
+skills = "skills"
+prompts = "prompts"
+capabilities = []
+
+[[commands]]
+name = "browse"
+description = "Do a task in a browser tab"
+skill = "browser-use"

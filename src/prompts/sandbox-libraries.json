@@ -1,0 +1,70 @@
+{
+	"modules": [
+		{
+			"specifier": "xlsx",
+			"package": "xlsx",
+			"version": "0.20.3",
+			"file": "xlsx.js",
+			"what": "Excel and CSV (SheetJS)",
+			"use": "const XLSX = await import('xlsx');"
+		},
+		{
+			"specifier": "papaparse",
+			"package": "papaparse",
+			"version": "5.7.1",
+			"file": "papaparse.js",
+			"what": "CSV",
+			"use": "const Papa = (await import('papaparse')).default;"
+		},
+		{
+			"specifier": "chart.js/auto",
+			"package": "chart.js",
+			"version": "4.5.1",
+			"file": "chart-auto.js",
+			"what": "Charts",
+			"use": "const Chart = (await import('chart.js/auto')).default;"
+		},
+		{
+			"specifier": "chart.js",
+			"package": "chart.js",
+			"version": "4.5.1",
+			"file": "chart.js",
+			"what": "Charts, registering only the parts you name",
+			"use": "const { Chart, BarController } = await import('chart.js');"
+		},
+		{
+			"specifier": "three",
+			"package": "three",
+			"version": "0.187.0",
+			"file": "three.js",
+			"what": "3D (Three.js)",
+			"use": "const THREE = await import('three');"
+		},
+		{
+			"specifier": "pdf-lib",
+			"package": "pdf-lib",
+			"version": "1.17.1",
+			"file": "pdf-lib.js",
+			"what": "PDF",
+			"use": "const { PDFDocument } = await import('pdf-lib');"
+		},
+		{
+			"specifier": "docx",
+			"package": "docx",
+			"version": "9.16.0",
+			"file": "docx.js",
+			"what": "Word",
+			"use": "const docx = await import('docx');"
+		}
+	],
+	"scripts": [
+		{
+			"package": "@tailwindcss/browser",
+			"version": "4.3.5",
+			"source": "dist/index.global.js",
+			"file": "tailwind.js",
+			"what": "Tailwind CSS utility classes",
+			"use": "<script src=\"/sandbox-lib/tailwind.js\"></script>"
+		}
+	]
+}

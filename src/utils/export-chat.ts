@@ -3,7 +3,7 @@
  *
  * Messages come straight from `agent.state.messages`, which is a mix of the
  * pi-agent-core message roles (user / assistant / toolResult) plus the custom
- * tabkyra roles (navigation / welcome / user-with-attachments).
+ * local-studio-browser roles (navigation / welcome / user-with-attachments).
  */
 
 import type { AgentMessage } from "@mariozechner/pi-agent-core";

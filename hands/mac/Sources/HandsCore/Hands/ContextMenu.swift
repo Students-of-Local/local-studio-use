@@ -212,32 +212,32 @@ public enum ContextMenu {
 
     public static func elsewhere(_ app: String, cancelled: Bool) -> HandsError {
         HandsError(.outsideAgentWorkspace, "\(app)'s context menu opened where the person can see it, outside the agent workspace; "
-                   + (cancelled ? "it was cancelled" : "Tychicus couldn't cancel it, so it may still be open"),
+                   + (cancelled ? "it was cancelled" : "Local Studio couldn't cancel it, so it may still be open"),
                    suggestion: "Use `click` on a ref for the element's own action.", retry: .never, nextCall: .null)
     }
 
     /// The menu was left open: its cancel didn't take. Said first, over whatever else went wrong.
     public static func stillOpen(_ app: String) -> HandsError {
-        HandsError(.actionFailed, "\(app)'s context menu is still open on the agent workspace: Tychicus couldn't cancel it",
+        HandsError(.actionFailed, "\(app)'s context menu is still open on the agent workspace: Local Studio couldn't cancel it",
                    suggestion: "Press Escape with `press` on the window, then take a shot to check.", retry: .never, nextCall: .null)
     }
 
     /// The cancel's key permit couldn't be planned, so nothing is posted: a menu that couldn't be cancelled would hold
     /// Donovan's keyboard (210 r1 first-F1).
     public static func noCancel(_ app: String) -> HandsError {
-        HandsError(.notSupported, "a right click in \(app) would open a menu Tychicus couldn't cancel: Escape can't be sent to this window now, so nothing was posted",
+        HandsError(.notSupported, "a right click in \(app) would open a menu Local Studio couldn't cancel: Escape can't be sent to this window now, so nothing was posted",
                    suggestion: "Use `click` on a ref for the element's own action, or `menu` for the app's menu bar.", retry: .never, nextCall: .null)
     }
 
     /// A menu that came after the wait (210 r1 first-F2): cancelled, and said.
     public static func late(_ app: String) -> HandsError {
-        HandsError(.unverified, "\(app)'s context menu came late, after Tychicus stopped waiting, so it was cancelled",
+        HandsError(.unverified, "\(app)'s context menu came late, after Local Studio stopped waiting, so it was cancelled",
                    suggestion: "Try the right click again once the app is idle.", retry: .afterSnapshot, nextCall: .null)
     }
 
     /// The item was pressed but its menu stayed open and wouldn't cancel. Never retried: the command may have run (210 r1 second-S1).
     public static func pressedOpen(_ app: String, item: String) -> HandsError {
-        HandsError(.actionFailed, "context menu > \(item) was pressed in \(app), but its menu is still open: Tychicus couldn't cancel it",
+        HandsError(.actionFailed, "context menu > \(item) was pressed in \(app), but its menu is still open: Local Studio couldn't cancel it",
                    suggestion: "Take a shot to see whether the command ran before doing anything else.", retry: .never, nextCall: .null)
     }
 
@@ -278,7 +278,7 @@ public enum ContextMenu {
 
     /// The menu's items couldn't be read (a busy app times out), so none is pressed and the menu is cancelled.
     public static func unread(_ app: String, cancelled: Bool) -> HandsError {
-        HandsError(.engineError, "\(app)'s context menu couldn't be read" + (cancelled ? ", so it was cancelled" : ", and Tychicus couldn't cancel it"),
+        HandsError(.engineError, "\(app)'s context menu couldn't be read" + (cancelled ? ", so it was cancelled" : ", and Local Studio couldn't cancel it"),
                    suggestion: "Try the right click again.", retry: .safe, nextCall: .null)
     }
 }

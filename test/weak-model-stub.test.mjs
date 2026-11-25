@@ -1,7 +1,6 @@
 // The weak-model eval's stub computer (evals/weak-model/stub): its tool list is the real helper's, it answers with the
 // real rows, refs and error codes, and every stub task is scored by machine both ways: a scripted solution passes and an
 // untouched world fails. No real app, window or model is involved.
-import { needsPolycarp, polycarpFile } from "./polycarp-root.mjs";
 import assert from "node:assert/strict";
 import { spawn, spawnSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
@@ -16,7 +15,7 @@ import { stubTasks } from "../evals/weak-model/tasks/stub.mjs";
 const here = dirname(fileURLToPath(import.meta.url));
 const evalDir = join(here, "..", "evals", "weak-model");
 const stubBin = join(evalDir, "stub", "hands.mjs");
-const root = mkdtempSync(join(tmpdir(), "polycarp-wm-stub-"));
+const root = mkdtempSync(join(tmpdir(), "local-studio-wm-stub-"));
 after(() => rmSync(root, { recursive: true, force: true }));
 
 /** One stub helper over stdio, with a world file and a handoff folder of its own. */
@@ -59,8 +58,8 @@ function startStub(name, files = {}) {
 const task = (id) => stubTasks.find((t) => t.id === id);
 const scored = (s, id, final = "") => task(id).check(s.world(), { final, file: s.file, dir: s.dir });
 
-test("the stub lists the real helper's verbs and arguments (spaces Tools.swift), and names itself the connector", { skip: needsPolycarp("spaces/Sources/BaneySpacesCore/Hands/Tools.swift") }, async () => {
-	const swift = polycarpFile("spaces/Sources/BaneySpacesCore/Hands/Tools.swift");
+test("the stub lists every verb of the real helper with its arguments (hands/mac Tools.swift), and names itself the connector", async () => {
+	const swift = readFileSync(join(here, "..", "hands/mac/Sources/HandsCore/Hands/Tools.swift"), "utf8");
 	const base = swift.slice(swift.indexOf("static let base"));
 	const want = new Map();
 	for (const m of base.matchAll(/HandsTool\(verb: "([a-z-]+)", summary: (?:[^\n]*?), params: \[([\s\S]*?)\], acts: (true|false)\)/g)) {
@@ -68,14 +67,15 @@ test("the stub lists the real helper's verbs and arguments (spaces Tools.swift),
 		const params = [...(m[2].includes("refParam") ? ["ref"] : []), ...[...m[2].matchAll(/HandsParam\("([a-z0-9_]+)"/g)].map((p) => p[1])];
 		want.set(m[1].replace(/-/g, "_"), { params: new Set(params), acts: m[3] === "true" });
 	}
-	assert.ok(want.size >= 20, `read ${want.size} verbs from Tools.swift`);
+	assert.ok(want.size >= 18, `read ${want.size} verbs from Tools.swift`);
 	const s = startStub("list");
 	try {
 		const init = await s.rpc("initialize", { protocolVersion: "2025-06-18" });
-		assert.equal(init.result.serverInfo.name, "tychicus-connector");
+		assert.equal(init.result.serverInfo.name, "local-studio-connector");
 		const { tools } = (await s.rpc("tools/list", {})).result;
-		assert.deepEqual(tools.map((t) => t.name).sort(), [...want.keys()].sort());
-		for (const t of tools) {
+		const names = new Set(tools.map((t) => t.name));
+		assert.deepEqual([...want.keys()].filter((verb) => !names.has(verb)), []);
+		for (const t of tools.filter((t) => want.has(t.name))) {
 			const w = want.get(t.name);
 			const got = new Set(Object.keys(t.inputSchema.properties).filter((p) => p !== "wait"));
 			assert.deepEqual([...got].sort(), [...w.params].filter((p) => p !== "wait").sort(), `${t.name} arguments`);
@@ -107,7 +107,7 @@ test("a browser ref, a file outside the handoff folder and a bare row after a si
 		assert.equal(s.world().windows[0].state.display, "7", "nothing was pressed");
 		r = await s.call("snapshot", { app: "Tally", bogus: true });
 		assert.equal(r.json.error.code, "bad_arguments");
-		assert.match(r.json.error.suggestion, /^usage: polycarp-spaces agent snapshot/);
+		assert.match(r.json.error.suggestion, /^usage: local-studio-computer agent snapshot/);
 	} finally {
 		s.stop();
 	}

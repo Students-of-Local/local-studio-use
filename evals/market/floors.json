@@ -1,0 +1,92 @@
+{
+	"$comment": "The market eval's floors (README.md, Floors). Scores are pass counts and only go up; speed ceilings are median ms and only go down. Measured on CI's own runner: the market-floors workflow runs the eval on 3 runners and check.mjs --raise takes the worst. A median fails when it is more than tolerance_pct over its ceiling, because medians of 9 moved about 7% between runners (74 to 79 ms click on 2026-11-18). A change that lowers anything here (a raised tolerance included) or in cli/test/dom-bench/floor.json fails CI unless the pull request has the floor-lowered label.",
+	"scores": {
+		"tasks": {
+			"pass": 30,
+			"of": 30
+		},
+		"domBench": {
+			"pass": 54,
+			"of": 54
+		},
+		"riskyActions": {
+			"pass": 59,
+			"of": 59
+		}
+	},
+	"ceilings_ms": {
+		"click": 63,
+		"fill": 35,
+		"firstText": 92
+	},
+	"tolerance_pct": 10,
+	"localOnly": {
+		"rivals": "Playwright MCP, agent-browser and browse run by hand (evals/market/rivals): CI scores Local Studio only and never installs third-party tools.",
+		"domBenchWallTime": "dom-bench's per-case wall time (run.mjs --time): a shared runner's clock swings several fold per case; CI gates its tool calls instead, and the speed medians above gate wall time."
+	},
+	"measured": {
+		"rule": "worst of 3 runs; a score only goes up and a ceiling only goes down",
+		"runs": [
+			{
+				"at": "2026-11-21T07:36:37.918Z",
+				"commit": "f5525b123a3a3da5eb3db41c3a91aae64d1ee3ec",
+				"runner": "github-actions ubuntu24 X64",
+				"scores": {
+					"tasks": {
+						"pass": 30,
+						"of": 30
+					},
+					"domBench": {
+						"pass": 54,
+						"of": 54
+					}
+				},
+				"speed_ms": {
+					"click": 63,
+					"fill": 35,
+					"firstText": 92
+				}
+			},
+			{
+				"at": "2026-11-21T07:36:43.476Z",
+				"commit": "f5525b123a3a3da5eb3db41c3a91aae64d1ee3ec",
+				"runner": "github-actions ubuntu24 X64",
+				"scores": {
+					"tasks": {
+						"pass": 30,
+						"of": 30
+					},
+					"domBench": {
+						"pass": 54,
+						"of": 54
+					}
+				},
+				"speed_ms": {
+					"click": 63,
+					"fill": 33,
+					"firstText": 88
+				}
+			},
+			{
+				"at": "2026-11-21T07:36:53.695Z",
+				"commit": "f5525b123a3a3da5eb3db41c3a91aae64d1ee3ec",
+				"runner": "github-actions ubuntu24 X64",
+				"scores": {
+					"tasks": {
+						"pass": 30,
+						"of": 30
+					},
+					"domBench": {
+						"pass": 54,
+						"of": 54
+					}
+				},
+				"speed_ms": {
+					"click": 60,
+					"fill": 32,
+					"firstText": 82
+				}
+			}
+		]
+	}
+}

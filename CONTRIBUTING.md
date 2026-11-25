@@ -12,15 +12,15 @@ You need Node 20+, git and a Chromium 141+ browser. Clone into a folder of its o
 because the build puts two sibling repositories beside the clone:
 
 ```bash
-mkdir tychicus-src && cd tychicus-src
-git clone https://github.com/baney75/tychicus && cd tychicus
+mkdir local-studio-src && cd local-studio-src
+git clone https://github.com/baney75/local-studio && cd local-studio/browser
 ./scripts/setup-siblings.sh               # clones pi-mono and mini-lit, pins and patches them, installs
 (cd cli && npm install && npm run build && npm link)
-tychicus setup                    # builds the extension, registers the host, connects
+local-studio-browser setup                    # builds the extension, registers the host, connects
 ```
 
 `./dev.sh` starts the watchers. After a change in `src/`, rebuild and reload with
-`npm run build && tychicus reload`. Set `TABKYRA_NO_BUMP=1` to stop a build from bumping
+`npm run build && local-studio-browser reload`. Set `LOCAL_STUDIO_BROWSER_NO_BUMP=1` to stop a build from bumping
 the version in `static/manifest.chrome.json`.
 
 Upstream code lives in the siblings. A change to pi-mono that Local Studio needs goes in
@@ -35,8 +35,6 @@ npx biome check .
 npx tsc --noEmit
 node --import tsx --test test/*.test.mjs
 (cd cli && npx tsc --noEmit && npm test)
-node cli/dist/index.js skill lint skills
-(cd cli && node --test test/skill-lint.test.mjs)
 ```
 
 `./check.sh` runs the first three (formatting with `--write`), and the
@@ -68,36 +66,24 @@ the pull request how you checked it by hand, or that you didn't.
 
 ## Contributing a skill
 
-A skill is text an agent follows with the user's sign-in, in every session that loads it.
-A bad one is a prompt injection that never expires, so skills get the strictest review in
-this repository.
+The app's skills are in `skills/`, and come with Local Studio. A skill is text
+an agent follows with the user's sign-in, in every session that reads it. A bad one is a prompt
+injection that never expires, so skills get the strictest review in this repository
+([docs/skill-security.md](docs/skill-security.md)). To share one without adding it to the app, publish
+a plugin.
 
-1. **Write it to the standard.** Follow `skills/kyraskillmaker/SKILL.md`: frontmatter with
-   `name` (the folder name), a one-line `description` with "Use when", then
-   `## When to use`, numbered `## Steps` and `## Done when`. Keep it under 150 lines and
-   1,500 tokens ([D12](docs/decisions.md)); split longer material into its own skill.
-2. **One file.** The folder `skills/<name>/` holds `SKILL.md` and an optional license.
-   Scripts, extra files and symbolic links are refused.
-3. **Pass the lint.** `node cli/dist/index.js skill lint skills/<name>`. Fix the skill,
-   never the lint. Every rule and its reason is in
-   [docs/skill-security.md](docs/skill-security.md).
-4. **Register it.** Add an import and a map entry in `cli/src/skills-catalog.ts`. A test
-   fails when a folder under `skills/` isn't listed.
-5. **Try it on a small model.** Give the skill and two realistic tasks to the cheapest model
+1. **Write it.** A folder with a `SKILL.md`: `name` (the folder name) and a one-line `description`
+   in its front matter, then when to use it, numbered steps and how to know it is done. Keep it under
+   150 lines and 8,000 characters ([D12](docs/decisions.md)); split longer material into its own skill.
+   `@create` in Local Studio's chat, or `local-studio skills create`, writes one for yourself first.
+2. **Say how it is found.** `asks.txt` beside it holds what a person would type, one per line. A skill
+   for certain sites or apps also has a `where.txt`.
+3. **Check the store takes it.** `LOCAL_STUDIO_SKILLS_DIR=$PWD/skills local-studio skills list --shipped --json`
+   from the repository root shows no `problem`, and `scripts/tests/skills-text-test.sh` and `scripts/tests/skills-recall-test.sh` pass.
+4. **Try it on a small model.** Give the skill and two realistic tasks to the cheapest model
    you have, and fix every place it went wrong. Say in the pull request which model you used.
-6. **Write original text.** Don't paste another project's skill. A source under a license
+5. **Write original text.** Don't paste another project's skill. A source under a license
    that isn't compatible with AGPL-3.0 can't be used at all.
-
-### How CI and CODEOWNERS gate it
-
-- The `skills` CI job lints every skill and runs the lint's red-team tests, without running
-  any install scripts. On a pull request it also lints with the base branch's lint, so a
-  pull request that weakens the lint still has to pass the old one.
-- [.github/CODEOWNERS](.github/CODEOWNERS) asks for the maintainer's review on `skills/`,
-  the lint and its tests, the skills catalog, `.github/`, the CLI's build and package files,
-  the setup prompt and `docs/skill-security.md`.
-- A pull request that changes the lint, its tests, CI or CODEOWNERS must say why in its
-  description, and shouldn't do anything else.
 
 ### Personal skills are never submitted
 

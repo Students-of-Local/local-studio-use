@@ -80,8 +80,7 @@ test("the guard recounts from runs.jsonl: an edited summary.json can't hide a fa
 });
 
 // Steps are held too: the System Settings tasks took 4.3 and 7.3 calls on Haiku before click by text, 3.3 and 6.3
-// after. The newest round run like the one a ceiling was set on must stay under it (spaces/bench/ratchet.py holds the
-// live bench the same way once System Settings can run there).
+// after. The newest round run like the one a ceiling was set on must stay under it.
 test("step ceilings hold in the newest round of those tasks", { skip: !baseline.steps && "no step ceilings yet" }, () => {
 	for (const [label, tasks] of Object.entries(baseline.steps)) {
 		const now = newest(label);

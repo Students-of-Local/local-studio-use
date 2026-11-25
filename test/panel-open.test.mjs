@@ -152,7 +152,7 @@ test("the update worker sees a panel that is opening until it connects", async (
 test("a panel that never connects stops counting as opening after a few seconds", async () => {
 	const { fake } = setup();
 	const tab = fake.addTab({ active: true });
-	globalThis.__TABKYRA_OPENING_MS = 100;
+	globalThis.__LOCAL_STUDIO_BROWSER_OPENING_MS = 100;
 	try {
 		const worker = await import("../src/update/worker.ts");
 		await import(`../src/background.ts?ctx=worker-opening-timeout-${Math.random()}`);
@@ -162,7 +162,7 @@ test("a panel that never connects stops counting as opening after a few seconds"
 		await settle(250);
 		assert.equal(worker.panelsOpeningNow(), 0);
 	} finally {
-		delete globalThis.__TABKYRA_OPENING_MS;
+		delete globalThis.__LOCAL_STUDIO_BROWSER_OPENING_MS;
 	}
 });
 

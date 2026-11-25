@@ -1,0 +1,21 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Profile settings</title><script src="/common.js"></script></head><body>
+<main><h1>Profile settings</h1><settings-panel></settings-panel></main>
+<script>
+customElements.define("name-row", class extends HTMLElement {
+  connectedCallback() {
+    const r = this.attachShadow({ mode: "open" });
+    r.innerHTML = `<label for="dn">Display name</label> <input id="dn" value="user-2231"> <button id="sv">Save name</button> <span role="status" id="st"></span>`;
+    r.getElementById("sv").onclick = () => {
+      const v = r.getElementById("dn").value;
+      report("t06-shadow", { displayName: v });
+      r.getElementById("st").textContent = "Saved";
+    };
+  }
+});
+customElements.define("settings-panel", class extends HTMLElement {
+  connectedCallback() {
+    const r = this.attachShadow({ mode: "open" });
+    r.innerHTML = `<section aria-label="Account"><h2>Account</h2><name-row></name-row></section>`;
+  }
+});
+</script></body></html>

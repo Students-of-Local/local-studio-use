@@ -1,0 +1,82 @@
+{
+	"at": "2026-11-24T06:10:22.962Z",
+	"reps": 3,
+	"tools": {
+		"local-studio-browser": {
+			"installed": "install.sh, the one command that release had",
+			"release": "1.4.0",
+			"ms": 18913,
+			"runs_ms": [
+				18913,
+				13322,
+				25036
+			],
+			"steps": 3,
+			"stepList": [
+				"run the one install command",
+				"load the unpacked extension",
+				"add the MCP server to the agent"
+			],
+			"source": "https://github.com/baney75/local-studio#install"
+		},
+		"playwright-mcp": {
+			"installed": "@playwright/mcp@0.0.85",
+			"ms": 3780,
+			"runs_ms": [
+				3780,
+				3994,
+				3120
+			],
+			"steps": 1,
+			"stepList": [
+				"add the MCP server to the agent with npx"
+			],
+			"source": "https://github.com/microsoft/playwright-mcp#getting-started"
+		},
+		"chrome-devtools-mcp": {
+			"installed": "chrome-devtools-mcp@1.13.0",
+			"ms": 2034,
+			"runs_ms": [
+				2034,
+				2198,
+				1984
+			],
+			"steps": 1,
+			"stepList": [
+				"add the MCP server to the agent with npx"
+			],
+			"source": "https://github.com/ChromeDevTools/chrome-devtools-mcp#getting-started"
+		},
+		"agent-browser": {
+			"installed": "agent-browser@0.43.0",
+			"ms": 3254,
+			"runs_ms": [
+				3472,
+				3254,
+				2433
+			],
+			"steps": 3,
+			"stepList": [
+				"npm install -g agent-browser",
+				"agent-browser install, which downloads Chrome for Testing",
+				"add its skill or an AGENTS.md line to the agent"
+			],
+			"source": "https://github.com/vercel-labs/agent-browser#install"
+		},
+		"browse": {
+			"installed": "@opencode/browse@0.1.5",
+			"ms": 2250,
+			"runs_ms": [
+				2578,
+				1866,
+				2250
+			],
+			"steps": 2,
+			"stepList": [
+				"run the install script, which adds the MCP server to the agent",
+				"add the extension from the Chrome Web Store"
+			],
+			"source": "https://github.com/anomalyco/browse#install"
+		}
+	}
+}

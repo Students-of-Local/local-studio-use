@@ -1,12 +1,12 @@
-// "Use Polycarp from Claude, ChatGPT and Grok" in a real Chromium, at the panel's narrowest width (320 px), light and dark.
+// "Use Local Studio from Claude, ChatGPT and Grok" in a real Chromium, at the panel's narrowest width (320 px), light and dark.
 // A stand-in plays the helper behind the Connect relay, one scenario per page, so each screen is drawn from the same JSON
 // the helper sends: choose a way, the relay, sign in (which moves on by itself), Turn on, Funnel not allowed (retried by itself), the
 // result with its code and checks, Repair only when `remote fix` exists and what it says when it stops, Tailnet Lock, the
 // Cloudflare form and its name refusal.
 //
 // Needs the extension built into dist-chrome without a version bump, as e2e-panel.test.mjs does:
-//   TABKYRA_NO_BUMP=1 TABKYRA_OUT_DIR=$PWD/dist-chrome npm run build   (repo root)
-// Set TABKYRA_SHOTS_DIR to keep a screenshot of every screen.
+//   LOCAL_STUDIO_BROWSER_NO_BUMP=1 LOCAL_STUDIO_BROWSER_OUT_DIR=$PWD/dist-chrome npm run build   (repo root)
+// Set LOCAL_STUDIO_BROWSER_SHOTS_DIR to keep a screenshot of every screen.
 import extensionId from "../../src/bridge/extension-id.json" with { type: "json" };
 import assert from "node:assert/strict";
 import { existsSync, mkdirSync, mkdtempSync, rmSync } from "node:fs";
@@ -20,7 +20,7 @@ const EXTENSION_ID = extensionId.id;
 const here = dirname(fileURLToPath(import.meta.url));
 const extensionDir = join(here, "..", "..", "dist-chrome");
 const PANEL = `chrome-extension://${EXTENSION_ID}/sidepanel.html`;
-const SHOTS = process.env.TABKYRA_SHOTS_DIR;
+const SHOTS = process.env.LOCAL_STUDIO_BROWSER_SHOTS_DIR;
 const CODE = "TK-7QF3-K2MD";
 
 let profile;
@@ -29,7 +29,7 @@ let context;
 before(async () => {
 	assert.ok(existsSync(join(extensionDir, "sidepanel.html")), `build the extension into ${extensionDir} first (see the top of this file)`);
 	if (SHOTS) mkdirSync(SHOTS, { recursive: true });
-	profile = mkdtempSync(join(tmpdir(), "tabkyra-e2e-remote-"));
+	profile = mkdtempSync(join(tmpdir(), "local-studio-e2e-remote-"));
 	context = await chromium.launchPersistentContext(profile, {
 		channel: "chromium",
 		headless: true,
@@ -42,10 +42,10 @@ before(async () => {
 		({ CODE }) => {
 			if (!globalThis.chrome?.runtime?.connect) return;
 			const original = chrome.runtime.connect.bind(chrome.runtime);
-			const theme = { preset: "tabkyra" };
+			const theme = { preset: "standard" };
 			const routes = { tailscale: { installed: true, signedIn: false }, cloudflare: { installed: false, signedIn: false } };
 			const publicUrl = "https://laptop.tail1a2b.ts.net:8443";
-			const relayUrl = "https://tychicus-relay.sam.workers.dev";
+			const relayUrl = "https://local-studio-browser-relay.sam.workers.dev";
 			const okChecks = ["dns", "tls", "resource_metadata", "auth_metadata", "auth_challenge", "streaming"].map((name) => ({ name, status: "ok", detail: "fine" }));
 			const dnsPending = [{ name: "dns", status: "fail", detail: "laptop.tail1a2b.ts.net has no public address yet.", pending: true }];
 			const st = { route: "none", stateCalls: 0, funnelCalls: 0, testCalls: 0, relayCalls: 0, ranSetup: false, phase: "funnel", calls: [] };
@@ -120,7 +120,7 @@ before(async () => {
 					}
 					case "setupTunnel":
 						// Cloudflare refuses the name (round 2, first-F1): setup's own state, with no code.
-						return { publicUrl: "https://polycarp.example.com", connectorUrl: "https://polycarp.example.com/mcp", problem: { state: "problem", code: "cloudflare_dns", message: "A DNS record for polycarp.example.com already exists.", next: { kind: "choose_name" } } };
+						return { publicUrl: "https://local-studio.example.com", connectorUrl: "https://local-studio.example.com/mcp", problem: { state: "problem", code: "cloudflare_dns", message: "A DNS record for local-studio.example.com already exists.", next: { kind: "choose_name" } } };
 					case "approvalCode":
 						return { code: "TK-9PQM-4RTX", expiresAt: Date.now() + 10 * 60_000, connectorUrl: `${publicUrl}/mcp` };
 					default:
@@ -128,7 +128,7 @@ before(async () => {
 				}
 			};
 			chrome.runtime.connect = (info) => {
-				if (info?.name !== "tabkyra-connect") return original(info);
+				if (info?.name !== "local-studio-connect") return original(info);
 				const listeners = [];
 				return {
 					name: info.name,
@@ -161,7 +161,7 @@ after(async () => {
 	}
 });
 
-/** Settings > Agents in `theme`, at 320 px, with the helper playing `scenario`. */
+/** Settings > Connections in `theme`, at 320 px, with the helper playing `scenario`. */
 async function connect(scenario, theme) {
 	const page = await context.newPage();
 	await page.addInitScript((s) => {
@@ -172,11 +172,11 @@ async function connect(scenario, theme) {
 	await page.setViewportSize({ width: 320, height: 1700 });
 	await page.goto(PANEL);
 	await page.evaluate((t) => localStorage.setItem("theme", t), theme);
-	await page.evaluate(() => chrome.storage.local.set({ "tk-welcome-seen": true }));
 	await page.reload();
 	await page.getByPlaceholder(/Ask about this page/).waitFor({ timeout: 20_000 });
-	await page.getByRole("button", { name: "Settings", exact: true }).click();
-	await page.getByRole("tab", { name: "Agents", exact: true }).click();
+	await page.getByRole("button", { name: "More", exact: true }).click();
+	await page.getByRole("menuitem", { name: "Settings", exact: true }).click();
+	await page.locator('[data-section="Connections"]').click();
 	await page.locator("[data-remote-flow]").waitFor({ timeout: 10_000 });
 	return page;
 }
@@ -227,7 +227,7 @@ for (const theme of ["light", "dark"]) {
 			await page.locator('[data-route="relay"]').click();
 			await page.locator("[data-relay-step]").waitFor();
 			assert.match(await page.locator("[data-flow-step]").textContent(), /Step 2 of 3/);
-			assert.match(await page.locator('[data-copy="relay-command"] code').textContent(), /^tychicus remote setup$/);
+			assert.match(await page.locator('[data-copy="relay-command"] code').textContent(), /^local-studio-browser remote setup$/);
 			await shot(page, `11-relay-command-${theme}`);
 			// The person runs it in a terminal: from here on the helper says the route is saved.
 			await page.evaluate(() => {
@@ -235,7 +235,7 @@ for (const theme of ["light", "dark"]) {
 			});
 			await page.locator('[data-relay-state="connecting"]').waitFor({ timeout: 20_000 });
 			assert.match(await page.locator("[data-flow-step]").textContent(), /Step 3 of 3/);
-			assert.match(await page.locator('[data-copy="address"] code').textContent(), /^https:\/\/tychicus-relay\.sam\.workers\.dev\/mcp$/);
+			assert.match(await page.locator('[data-copy="address"] code').textContent(), /^https:\/\/local-studio-browser-relay\.sam\.workers\.dev\/mcp$/);
 			assert.equal(await page.locator('[data-copy="relay-command"]').count(), 0, "a command for a state that fixes itself");
 			await shot(page, `12-relay-connecting-${theme}`);
 			await page.locator("[data-remote-result]").waitFor({ timeout: 30_000 });
@@ -389,7 +389,7 @@ for (const theme of ["light", "dark"]) {
 			await shot(page, `07-tailnet-lock-${theme}`);
 			await page.getByRole("button", { name: "Use Cloudflare", exact: true }).click();
 			await page.locator("[data-tunnel-form]").waitFor();
-			await page.getByPlaceholder("tychicus.yourdomain.com").fill("polycarp.example.com");
+			await page.getByPlaceholder("local-studio.yourdomain.com").fill("local-studio.example.com");
 			await shot(page, `08-cloudflare-${theme}`);
 			// A taken name is its own step with its own button, which goes back to the form.
 			await page.locator("[data-tunnel-form]").getByRole("button", { name: "Turn on", exact: true }).click();

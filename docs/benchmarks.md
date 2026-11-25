@@ -86,7 +86,7 @@ the MCP server, the bridge or the session model is compared with the same number
 
 Both use `cli/eval/fixture-browser.mjs`, which turns on developer mode in the throwaway
 profile: without it this Chromium disables an unpacked extension the moment it reloads, so a
-forced reload would unload Polycarp for good.
+forced reload would unload Local Studio for good.
 
 ```bash
 npm run build && (cd cli && npm run build)
@@ -130,12 +130,12 @@ parallel counts cross-talk only when one agent's tool results show the other's f
 | --- | --- | --- |
 | Tools / tools/list + instructions bytes | 31 / 26,460 + 2,709 | 31 / 26,460 + 2,709 (no MCP change) |
 | Input tokens per turn (Haiku) | 11,471 | 11,471 |
-| `polycarp browser mcp` start through the launcher, interleaved medians | 140 / 131 ms (both arms identical on main) | 119 ms without the compile cache, 108 ms with it |
+| `local-studio-browser mcp` start through the launcher, interleaved medians | 140 / 131 ms (both arms identical on main) | 119 ms without the compile cache, 108 ms with it |
 | Duplicate clicks across reloads | 3 of 3 cycles | 3 of 3 |
 | Tab group behaviors | 5 of 13 | 5 of 13 |
 | Session tasks | 6/10 | 6/10 |
 | Skill suite, without / with the skill | 6/6 / 6/6 | 6/6 / 6/6 |
-| `polycarp browser --version` | 0.1.0 | 1.1.9 |
+| `local-studio-browser --version` | 0.1.0 | 1.1.9 |
 
 An earlier baseline on 9e37df3 (before ask_user) measured 30 tools and 10,473 tokens, with
 the same task and group results.
@@ -169,7 +169,7 @@ window the growth is 3.6%; in 16k, 7.2%. On the first-review prompt, separate to
 
 ### The benchmarks on the panel's tools
 
-`polycarp mcp --profile panel` (`cli/src/panel-profile.ts`) serves the panel's exact tool list, descriptions and
+`local-studio-browser mcp --profile panel` (`cli/src/panel-profile.ts`) serves the panel's exact tool list, descriptions and
 result text over MCP, plus navigate, so the same evals run against it:
 
 - Perception, no model: `node cli/eval/perception.mjs --extension <build> --stack panel`. Input calls go through `act`;
@@ -290,7 +290,7 @@ audio length: under 1 is faster than speech.
 | Moonshine tiny (English) | processor | 28 MB | 10.0% | 0.08 |
 | Whisper tiny | processor | 41 MB | 14.8% | 0.32 |
 
-The strong models missed one word, the name "Tabkyra" ("TabKara", "Tabgira"). Clean synthetic
+The strong models missed one word, the name "Local Studio" ("TabKara", "Tabgira"). Clean synthetic
 speech doesn't separate them; turbo's lead (large-v3 accuracy) shows on accents, noise and other
 languages, which these clips don't test. Turbo's first load took 177 s, almost all of it the
 download.
@@ -307,5 +307,5 @@ turbo 4.1%, small 4.1%, base 4.1%, Moonshine base 6.3%, Moonshine tiny 8.5%, Whi
 Most of the added errors are numbers written as digits ("10", "8%") against a reference that
 spells them out.
 
-Reproduce: `TABKYRA_NO_BUMP=1 node scripts/build.mjs` (a plain production build bumps the version),
+Reproduce: `LOCAL_STUDIO_BROWSER_NO_BUMP=1 node scripts/build.mjs` (a plain production build bumps the version),
 then `node cli/eval/dictation.mjs --extension dist-chrome --clips <dir of name.wav + name.txt> [--models a,b|none]`.

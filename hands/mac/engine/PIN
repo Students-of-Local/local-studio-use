@@ -1,4 +1,4 @@
-# The hands engine tychicus-hands links: agent-desktop (Apache-2.0), built from this commit's source.
+# The hands engine local-studio-computer links: agent-desktop (Apache-2.0), built from this commit's source.
 # scripts/build-engine.sh fetches the tarball, refuses anything whose sha256 or embedded commit
 # id differs from what is written here, applies engine/patches/*.patch, and builds only the
 # agent-desktop-ffi crate with the upstream Cargo.lock (--locked). npm and its postinstall

@@ -14,7 +14,7 @@ index aea6431..946e5eb 100644
      }
  }
  
-+/// Tychicus addition (engine/patches/0003-select-refuses-pasteboard-items.patch). The general pasteboard is the
++/// Local Studio addition (engine/patches/0003-select-refuses-pasteboard-items.patch). The general pasteboard is the
 +/// user's: a cut, copy or paste item is refused once its menu is open and the item is found, before it is pressed. A
 +/// closed popup's items are not in any snapshot, so only this read sees them. By the AppKit action the item is wired
 +/// to (its AX identifier, in any language), and by English title for an item with no identifier shaped like an action:

@@ -7,10 +7,10 @@ import PackageDescription
 let root = URL(fileURLWithPath: #filePath).deletingLastPathComponent().path
 
 let package = Package(
-    name: "TychicusHands",
+    name: "LocalStudioComputer",
     platforms: [.macOS(.v13)],
     products: [
-        .executable(name: "tychicus-hands", targets: ["TychicusHands"]),
+        .executable(name: "local-studio-computer", targets: ["LocalStudioComputer"]),
     ],
     targets: [
         // The protocol: tools, arguments, envelopes, policies. Foundation only.
@@ -18,12 +18,12 @@ let package = Package(
         .testTarget(name: "HandsCoreTests", dependencies: ["HandsCore"]),
         // agent-desktop's C header, for the hands engine.
         .systemLibrary(name: "CAgentDesktop", path: "Sources/CAgentDesktop"),
-        // `tychicus-hands mcp [--connector]`: the hands over stdio. The engine is linked in statically
+        // `local-studio-computer mcp [--connector]`: the hands over stdio. The engine is linked in statically
         // (engine/lib/libagent_desktop_ffi.a, by path so a stray dylib there is never picked), so the helper is one
         // file that signs with the hardened runtime ad hoc. The frameworks are the ones rustc lists for the crate
         // (`--print native-static-libs`).
         .executableTarget(
-            name: "TychicusHands",
+            name: "LocalStudioComputer",
             dependencies: ["HandsCore", "CAgentDesktop"],
             linkerSettings: [
                 .unsafeFlags([

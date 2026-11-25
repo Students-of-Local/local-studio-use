@@ -1,2 +1,2 @@
 /** The message type between the service worker and the hidden page that encodes recordings (recorder.ts). */
-export const RECORDER_MESSAGE = "polycarp:rec";
+export const RECORDER_MESSAGE = "local-studio:rec";

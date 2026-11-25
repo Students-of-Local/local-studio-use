@@ -15,7 +15,7 @@ index f1296b1..5b97cd9 100644
      Ok(())
  }
  
-+/// Tychicus addition (engine/patches/0002-activation-settles.patch). A flat two seconds cost every first look at
++/// Local Studio addition (engine/patches/0002-activation-settles.patch). A flat two seconds cost every first look at
 +/// every app, for a tree that a native app has complete at once. Only a web engine builds its tree after being asked, so
 +/// this watches the windows' trees: a native tree that holds still is done, a web area with content must hold still for
 +/// longer, and a window with next to nothing in it, or an empty web area, gets the old two seconds as its cap.

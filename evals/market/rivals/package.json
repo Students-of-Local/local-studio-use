@@ -1,0 +1,13 @@
+{
+	"name": "local-studio-market-rivals",
+	"private": true,
+	"type": "module",
+	"description": "The market eval's rival runner, run by hand (README.md). Its own install, so rival code never joins the extension's or the CLI's.",
+	"scripts": {
+		"install-rivals": "./install.sh"
+	},
+	"dependencies": {
+		"@modelcontextprotocol/sdk": "^1.32.2",
+		"playwright-core": "^1.64.1"
+	}
+}

@@ -9,7 +9,7 @@ index 0fb7bed..6158323 100644
 +/**
 + * Like `ad_snapshot`, but for one exact window: `window_id` is the engine window id
 + * (`w-<CGWindowID>`). Never falls back to the app focused window.
-+ * Tychicus addition (engine/patches/0001-ffi-snapshot-window.patch).
++ * Local Studio addition (engine/patches/0001-ffi-snapshot-window.patch).
 + */
 +AdResult ad_snapshot_window(const struct AdAdapter *adapter,
 +                            const char *app,
@@ -23,7 +23,7 @@ index 0fb7bed..6158323 100644
 +/**
 + * Reads one property (`text`, `value`, `title`, `bounds`, `role`, `states`) of a
 + * snapshot-qualified ref from the live element. `*out` is a JSON envelope; free it
-+ * with `ad_free_string`. Tychicus addition (engine/patches/0001-ffi-snapshot-window.patch).
++ * with `ad_free_string`. Local Studio addition (engine/patches/0001-ffi-snapshot-window.patch).
 + */
 +AdResult ad_get_ref(const struct AdAdapter *adapter,
 +                    const char *ref_id,
@@ -55,7 +55,7 @@ index 0000000..a362df6
 +/// fails, it never reads a neighbor), and `value`, `bounds` and `states` come from the element
 +/// as it is now, not from the snapshot.
 +///
-+/// Tychicus addition (engine/patches/0001-ffi-snapshot-window.patch): upstream exposes `get`
++/// Local Studio addition (engine/patches/0001-ffi-snapshot-window.patch): upstream exposes `get`
 +/// only on its CLI. `*out` is a JSON envelope (command `"get"`), freed with `ad_free_string`.
 +///
 +/// # Safety
@@ -157,7 +157,7 @@ index 0000000..07cc22c
 +/// snapshot never falls back to the app's focused window, and a window that is gone
 +/// fails with WINDOW_NOT_FOUND. `app` may be null or narrow the lookup to one app.
 +///
-+/// Tychicus addition (patches/0001-ffi-snapshot-window.patch): upstream exposes
++/// Local Studio addition (patches/0001-ffi-snapshot-window.patch): upstream exposes
 +/// `window_id` only on its CLI.
 +///
 +/// # Safety

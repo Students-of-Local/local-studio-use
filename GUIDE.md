@@ -1,22 +1,12 @@
-> **Note.** This is the full user guide carried over from Polycarp's `browser/` folder. Where it describes
-> `polycarp update`, Polycarp.app or `polycarp-spaces`, it means the Polycarp app, which Local Studio works beside.
-> Start with [README.md](README.md).
-
-<p align="center">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="media/brand/hero.png">
-    <source media="(prefers-color-scheme: light)" srcset="media/brand/hero-light.png">
-    <img src="media/brand/hero.png" alt="Local Studio: you steer, your agents work the tabs" width="760">
-  </picture>
-</p>
+> **Note.** This is the full user guide. Start with [README.md](README.md).
 
 <p align="center">
   <b>Let Claude Code, Codex, pi or any MCP agent drive your real browser, in its own tab group, while you keep working.</b>
 </p>
 
 <p align="center">
-  <a href="https://github.com/baney75/tychicus/actions/workflows/ci.yml"><img src="https://github.com/baney75/tychicus/actions/workflows/ci.yml/badge.svg?branch=main" alt="CI"></a>
-  <a href="LICENSE"><img src="https://img.shields.io/github/license/baney75/tychicus" alt="License: AGPL-3.0"></a>
+  <a href="https://github.com/baney75/local-studio/actions/workflows/browser-ci.yml"><img src="https://github.com/baney75/local-studio/actions/workflows/browser-ci.yml/badge.svg?branch=main" alt="CI"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-AGPL--3.0-blue" alt="License: AGPL-3.0"></a>
 </p>
 
 <p align="center">
@@ -29,8 +19,8 @@
 
 Local Studio's browser use is a Chromium extension and a small CLI. Your coding agent gets a browser that is
 already signed in where you are signed in. It works in background tabs it owns, and you
-pick when it asks before it opens a site. Local Studio also ships agent skills that pass
-a security lint, a verified source library, and a side panel agent of its own for when you
+pick when it asks before it opens a site. Local Studio also ships agent
+skills, a verified source library, and a side panel agent of its own for when you
 want to chat with a page directly.
 
 You send the work, and it carries it out in your browser.
@@ -54,27 +44,28 @@ with one-command setup, a doctor, skills, a library and a new brand.
 ## Quick start
 
 You need Node 20+, git, and a Chromium 141+ browser such as Helium, Chrome or Brave (see
-[Which browsers?](#faq) for what has been tested). There is no store listing or published
-release yet, so the extension and its helper (the `tychicus` CLI and native host) install from source.
+[Which browsers?](#faq) for what has been tested). There is no store listing yet. The
+extension and its helper (the `local-studio-browser` CLI and native host) come with the Local Studio app;
+[README.md](README.md#install) has the steps. Or from source:
 
 ```bash
-mkdir tychicus-src && cd tychicus-src        # setup puts two build dependencies beside the clone
-git clone https://github.com/baney75/tychicus && cd tychicus
+mkdir local-studio-src && cd local-studio-src        # setup puts two build dependencies beside the clone
+git clone https://github.com/baney75/local-studio && cd local-studio/browser
 (cd cli && npm install && npm run build && npm link)
-tychicus setup
+local-studio-browser setup
 ```
 
 If `npm link` fails with a permissions error, skip it and run `node cli/dist/index.js setup`.
 
 The first build clones [pi-mono](https://github.com/badlogic/pi-mono) (pinned and patched)
-and [mini-lit](https://github.com/badlogic/mini-lit) next to the `tychicus` folder, which is
+and [mini-lit](https://github.com/badlogic/mini-lit) next to the `local-studio-browser` folder, which is
 why the clone goes in a folder of its own.
 
 On a Mac with a warm npm cache, a fresh clone reached "Connected" in 45 seconds with
-`tychicus setup --yes`. A first install with a cold cache downloads more and can take a few
+`local-studio-browser setup --yes`. A first install with a cold cache downloads more and can take a few
 minutes.
 
-`tychicus setup` builds the extension, registers the native host with every Chromium
+`local-studio-browser setup` builds the extension, registers the native host with every Chromium
 browser it finds, and offers to add Local Studio to Claude Code and Codex and to install the
 skills. For OpenCode, Cursor and OMP it prints the config block to paste. Then it shows
 the one step the browser makes you do by hand:
@@ -84,7 +75,7 @@ the one step the browser makes you do by hand:
 │ 1  Open chrome://extensions, turn on Developer mode,           │
 │    and click Load unpacked.                                    │
 │ 2  Pick this folder:                                           │
-│    /path/to/tychicus/dist-chrome                                │
+│    /path/to/local-studio/browser/dist-chrome                  │
 │ 3  Optional: click Details on Local Studio and turn on         │
 │    Allow user scripts (faster page scripts).                   │
 ╰────────────────────────────────────────────────────────────────╯
@@ -93,63 +84,62 @@ the one step the browser makes you do by hand:
 
 Then ask your agent something like:
 
-> Use the tychicus tools to open news.ycombinator.com and list the top five stories.
+> Use the local-studio-browser tools to open news.ycombinator.com and list the top five stories.
 
-If anything is off, `tychicus doctor` checks each piece and prints the exact command
-that fixes it. For the side panel agent, press `Cmd+Shift+S` (`Ctrl+Shift+S`) and add a
-provider's API key, or pick [Free mode](#free-mode) with a free OpenRouter key.
+If anything is off, `local-studio-browser doctor` checks each piece and prints the exact command
+that fixes it. For the side panel agent, press `Cmd+Shift+S` (`Ctrl+Shift+S`). With the Local Studio
+app open it needs nothing more; else its home screen connects a ChatGPT or GitHub Copilot plan or an API key. Or pick [Free mode](#free-mode) with a free OpenRouter key.
 
 ### Let your agent do the rest
 
-Once the extension is loaded, open the side panel's **Settings > Agents** (the welcome
-dialog and Settings > Providers have the same button) and click
-**Copy setup prompt for your agent**. Paste it into Claude Code, Codex, pi, OMP or any
+Once the extension is loaded, open the side panel and click
+**Copy setup prompt for your agent** (on the home screen until a model is connected, and under **Settings > Agents**). Paste it into Claude Code, Codex, pi, OMP or any
 agent with a shell. The agent reuses a working CLI or installs one from the tag that
 matches your extension's version (the default branch when no such tag exists, and it
-says so), connects itself, installs the skills, runs `tychicus doctor` and calls `status`. The prompt has no piped installers, and it tells the agent not to ask you
+says so), connects itself, runs `local-studio-browser doctor` and calls `status`. The prompt has no piped installers, and it tells the agent not to ask you
 for keys or passwords. A test lints it like a skill
 ([test/agent-setup-prompt.test.mjs](test/agent-setup-prompt.test.mjs)).
 
 ## Connect your agent
 
-`tychicus setup` does this for you and prints the exact paths for your machine.
-`tychicus install` writes a launcher at `~/.config/tychicus/tychicus` that pins Node by
+`local-studio-browser setup` does this for you and prints the exact paths for your machine.
+`local-studio-browser install` writes a launcher at `~/.local-studio/browser/local-studio-browser` that pins Node by
 absolute path, so an agent started from a GUI app doesn't need `node` on its PATH. Point
 your harness at it (JSON configs need the full path, not `~`):
 
 **Claude Code**
 
 ```bash
-claude mcp add --scope user tychicus -- ~/.config/tychicus/tychicus mcp
+claude mcp add --scope user local-studio -- ~/.local-studio/browser/local-studio-browser mcp
 ```
 
 **Codex**
 
 ```bash
-codex mcp add tychicus -- ~/.config/tychicus/tychicus mcp
+codex mcp add local-studio -- ~/.local-studio/browser/local-studio-browser mcp
 ```
 
 **OpenCode** (`~/.config/opencode/opencode.json`)
 
 ```json
-{ "mcp": { "tychicus": { "type": "local", "command": ["/Users/you/.config/tychicus/tychicus", "mcp"], "enabled": true } } }
+{ "mcp": { "local-studio": { "type": "local", "command": ["/Users/you/.local-studio/browser/local-studio-browser", "mcp"], "enabled": true } } }
 ```
 
 **Cursor** (`~/.cursor/mcp.json`)
 
 ```json
-{ "mcpServers": { "tychicus": { "command": "/Users/you/.config/tychicus/tychicus", "args": ["mcp"] } } }
+{ "mcpServers": { "local-studio": { "command": "/Users/you/.local-studio/browser/local-studio-browser", "args": ["mcp"] } } }
 ```
 
 **OMP** (`~/.omp/agent/mcp.json`)
 
 ```json
-{ "mcpServers": { "tychicus": { "type": "stdio", "command": "/Users/you/.config/tychicus/tychicus", "args": ["mcp"], "enabled": true } } }
+{ "mcpServers": { "local-studio": { "type": "stdio", "command": "/Users/you/.local-studio/browser/local-studio-browser", "args": ["mcp"], "enabled": true } } }
 ```
 
-**pi** has no MCP client, so `tychicus pi-extension` writes a native pi extension instead, `~/.pi/agent/extensions/tychicus.ts`.
+**pi** has no MCP client, so `local-studio-browser pi-extension` writes a native pi extension instead, `~/.pi/agent/extensions/local-studio-browser.ts`.
 
-Any other MCP client can run the stdio server with `~/.config/tychicus/tychicus mcp`. For an
+Any other MCP client can run the stdio server with `~/.local-studio/browser/local-studio-browser mcp`. For an
 agent on another machine, or to add Local Studio to claude.ai, ChatGPT or grok.com as a
 connector, see [Remote MCP and tunnels](#remote-mcp-and-tunnels).
 
@@ -165,13 +155,13 @@ connector, see [Remote MCP and tunnels](#remote-mcp-and-tunnels).
 | `click`, `type`, `fill`, `press`, `hover`, `scroll`, `drag`, `actions` | Act with real input events, by ref or by screenshot pixel. All but `hover` return what changed: new refs, changed or gone controls, new text |
 | `run_js`, `wait`, `read_console`, `read_network` | Scripts, waits (for text, a selector, or the page to settle) and debugging. Input tools wait up to 2.5 s for the page to settle on their own |
 | `handle_dialog` | Answer an alert, confirm or prompt box. While one is open, other calls fail at once with its text |
-| `capture` | Evidence from its own tab, saved as files on your computer in `~/.config/tychicus/captures` (0700, files 0600): `network_start`/`network_stop` a HAR with credentials left out, `record_start`/`record_stop` a WebM video with no sound, `flight_start`/`flight_save` the last minute of video. Works on a tab in the background; stops itself after 10 minutes (30 for the flight recorder). The agent is told the path and size, never the content. Remote sessions need the `browser.capture` scope |
-| `files` | Files between your computer and a page: `upload` puts local files (absolute `paths`, or `ids` of saved files) on a file input or drops them on a drop area, `download` saves a URL or a link, image or media element by ref (fetched in the page, with its sign-in; 50 MB at most), `save_pdf` saves the page as a PDF, and `list`, `read`, `remove` manage what the session saved in `~/.config/tychicus/files/<session>` (0700, files 0600). A file outside the agent's project folders asks you each time and the answer is never remembered; credential files, browser profiles and Local Studio's own settings are always refused; 10 files and 10 MB per upload, and only to a site you have allowed for agents. The session's saved files are removed at `session_end`. Remote sessions need the `browser.files` scope (off by default) and can only upload files their own session saved; for them `download` also needs `browser.navigate`, and a `url` needs `browser.script` |
+| `capture` | Evidence from its own tab, saved as files on your computer in `~/.local-studio/browser/captures` (0700, files 0600): `network_start`/`network_stop` a HAR with credentials left out, `record_start`/`record_stop` a WebM video with no sound, `flight_start`/`flight_save` the last minute of video. Works on a tab in the background; stops itself after 10 minutes (30 for the flight recorder). The agent is told the path and size, never the content. Remote sessions need the `browser.capture` scope |
+| `files` | Files between your computer and a page: `upload` puts local files (absolute `paths`, or `ids` of saved files) on a file input or drops them on a drop area, `download` saves a URL or a link, image or media element by ref (fetched in the page, with its sign-in; 50 MB at most), `save_pdf` saves the page as a PDF, and `list`, `read`, `remove` manage what the session saved in `~/.local-studio/browser/files/<session>` (0700, files 0600). A file outside the agent's project folders asks you each time and the answer is never remembered; credential files, browser profiles and Local Studio's own settings are always refused; 10 files and 10 MB per upload, and only to a site you have allowed for agents. The session's saved files are removed at `session_end`. Remote sessions need the `browser.files` scope (off by default) and can only upload files their own session saved; for them `download` also needs `browser.navigate`, and a `url` needs `browser.script` |
 | `tabs_show` | Bring a tab in front of you, when you need to sign in or see it. With `username_ref` and `password_ref`, a small window asks you for the sign-in and puts it into the page; the agent isn't given it, though a script it runs in the page (`run_js`) could read the fields |
 | `ask_user` | Ask you 1 to 4 multiple-choice questions in the side panel and wait for your answer (you can always type your own). The toolbar icon shows a badge while one waits; it gives up after 5 minutes, or sooner if your harness's tool timeout is shorter (Claude Code: `MCP_TOOL_TIMEOUT`, in ms; Codex: `tool_timeout_sec` on the server). Giving up takes the question off the panel |
 | `library_add`, `library_search`, `library_cite` | Save verified sources and cite them (see [Library](#library)) |
 | `site_edit`, `site_filter`, `site_script` | Change a site for you on every visit: hide parts of it, block its requests, turn on ad blocking, filter its feed by topic or account, or propose a script you turn on yourself (see [Site edits and feed filters](#site-edits-and-feed-filters)) |
-| `computer_status`, `computer_*` | Where `tychicus-hands` is installed: native apps on the agent workspace, in the background, never taking focus (below) |
+| `computer_status`, `computer_*` | Where `local-studio-computer` is installed: native apps on the agent workspace, in the background, never taking focus (below) |
 
 **How much a read returns.** Each read tool answers with a bounded part and says when it cut, with the call that reads on, so one page can't fill an agent's context: `get_page_text` and `get_page_html` 50,000 characters (a PDF tab by pages), `run_js` values 50,000 (an `offset` reads on from the value kept, without running the code again) and `page_markdown` 40,000, all with `offset`; `read_page` 300 elements and 3,000 characters of text; `read_console` and `read_network` the newest 100 entries at 2,000 characters each, older ones by `offset` (after `clear` they are gone, and the note says so); `crawl` 3,000 characters a page; `files` `read` 50 KB of text (up to 200 KB with `max_bytes`) and `offset`, cut on a character boundary. No tool result is longer than 100,000 characters.
 
@@ -179,9 +169,9 @@ Every tool's description documents its parameters and includes an example. `acti
 batches up to 40 input steps (keys, clicks, drags, typing) in one call, which is what
 canvas apps need.
 
-**Computer use.** When Local Studio's computer-use helper, `tychicus-hands`, is installed, the same stdio server also offers
+**Computer use.** When Local Studio's computer-use helper, `local-studio-computer`, is installed, the same stdio server also offers
 `computer_windows`, `computer_snapshot`, `computer_click`, `computer_shot`, `computer_open` and the rest of
-the helper's tools, with the helper's own descriptions: it runs `tychicus-hands mcp` (without
+the helper's tools, with the helper's own descriptions: it runs `local-studio-computer mcp` (without
 `--connector`) the first time the agent lists its tools, so one MCP entry gives an agent the browser and the
 computer. They act on the agent workspace and apps you lend, or more if you chose Full Access, and never take focus. Browser tools are for web pages; computer tools are for native apps.
 A helper that is missing, slow (over 2 seconds) or stopped never holds up the browser tools, and
@@ -190,13 +180,29 @@ A helper that is missing, slow (over 2 seconds) or stopped never holds up the br
 
 ## Site edits and feed filters
 
-An agent can change how a site looks for you, and the change stays on every visit. Each one is listed in the side panel
-under **Settings > Sites**, with a switch and a Remove button.
+An agent, or you, can change how a site looks, and the change is saved and stays on every visit. Ask in plain words
+("make x.com dark", "bigger text on Reddit", "hide the sidebar here"). The side panel then shows one card: what changed,
+with **Undo** and **Keep**.
 
-- `site_edit` hides a fixed part of a page by CSS selector (a sidebar, a banner), blocks a request pattern on one site,
-  or turns ad blocking on. Its `list`, `off` and `remove` actions cover every kind of edit, filters included.
-- `site_script` saves JavaScript for a site. It stays off until you turn it on in Settings > Sites, because it runs signed
-  in as you.
+To do it yourself, open **Change this site** (on an empty chat, under More, or on a page's right-click menu). It opens
+**Settings > Sites** on the page in front of you:
+
+- Switches for **Dark** and for that site's ready-made changes (Shorts, comments and related videos on YouTube, the right
+  column on X and Reddit).
+- **Hide something**: click it on the page. **Ask for a change** starts a message about this site.
+- Every saved change on this site with a switch. Its name opens what it does, and Remove. Other sites are one row each.
+- **Move or share**: Export and Import every change as one file. An imported script stays off.
+
+Changes are also kept in `~/.local-studio/browser/sites.json`, so a new browser profile starts with them (scripts off), and
+`local-studio-browser sites` lists them, turns one off or removes it. The agent's tools, from the panel, from the Local
+Studio app's threads with Browser use on, and from any agent on this MCP server:
+
+- `site_edit` hides a fixed part of a page by CSS selector, restyles it (colors, fonts, sizes, spacing, or `dark`), blocks a
+  request pattern on one site, or turns ad blocking on. `update` changes a saved one in place, and `list`, `off` and
+  `remove` cover every kind, filters included. A style can't load anything, add text, move over the page or make things
+  invisible, so it can't send data or fake a button.
+- `site_script` saves JavaScript for a site. It stays off until you turn it on, on its card or in Settings > Sites, because
+  it runs signed in as you. The first one asks the browser for its permission in the same click.
 - `site_filter` hides feed posts by what they say or who posted them. Ask in plain words:
 
 | You say | The agent calls |
@@ -244,8 +250,8 @@ doing, and what you do to it means something:
 Groups an agent hasn't touched for 30 minutes after it disconnected collapse on their own,
 and blank tabs left by an abandoned session are closed.
 
-**Which session an agent gets.** `tychicus mcp` picks the session from, in order:
-`tychicus mcp --session <name>`, `TYCHICUS_SESSION` (the older `POLYCARP_SESSION` and `TABKYRA_SESSION` still work), then the project: the git root of the
+**Which session an agent gets.** `local-studio-browser mcp` picks the session from, in order:
+`local-studio-browser mcp --session <name>`, `LOCAL_STUDIO_BROWSER_SESSION` (the older `LOCAL_STUDIO_BROWSER_SESSION` and `LOCAL_STUDIO_BROWSER_SESSION` still work), then the project: the git root of the
 folder the agent runs in (or the folder), as `<folder>-<4 hex>`. Restart Claude Code in the
 same repository and it finds the tabs it left; a different folder gets its own session. The
 harness is part of the session, so Claude Code and Codex in one project don't share tabs.
@@ -260,18 +266,18 @@ every client that gives it drives the same tabs (an agent and a recorder, say).
 **From the terminal.**
 
 ```bash
-tychicus sessions               # every agent session: group, tabs, connected or idle
-tychicus sessions show shop-1a2b  # its tabs, times, and how to resume it
-tychicus sessions rename shop-1a2b checkout
-tychicus sessions focus checkout  # bring its group in front of you
-tychicus sessions collapse checkout  # or expand
-tychicus sessions release checkout  # its tabs are yours now; the session ends
-tychicus sessions end checkout --close  # end it and close its tabs
-tychicus tabs                   # every agent tab, by session
+local-studio-browser sessions               # every agent session: group, tabs, connected or idle
+local-studio-browser sessions show shop-1a2b  # its tabs, times, and how to resume it
+local-studio-browser sessions rename shop-1a2b checkout
+local-studio-browser sessions focus checkout  # bring its group in front of you
+local-studio-browser sessions collapse checkout  # or expand
+local-studio-browser sessions release checkout  # its tabs are yours now; the session ends
+local-studio-browser sessions end checkout --close  # end it and close its tabs
+local-studio-browser tabs                   # every agent tab, by session
 ```
 
 Each takes `--json`. A renamed session keeps its connected agent, which reconnects under the
-new name; start an agent on it later with `tychicus mcp --session checkout`.
+new name; start an agent on it later with `local-studio-browser mcp --session checkout`.
 
 ## Past chats for your agents
 
@@ -280,9 +286,9 @@ or Codex can answer "what did I ask Local Studio yesterday about Lisbon flights?
 
 | Where | How |
 | --- | --- |
-| MCP (`tychicus mcp`) | `threads_list`, `thread_search`, `thread_read` (40 messages a page) |
-| Terminal | `tychicus threads [list] [words]`, `show <id>`, `search <words>`, `export <id> --format md\|json [--out FILE]`, each with `--json` |
-| Files | `~/.local/share/tychicus/threads/<browser>/<id>.md` and `<id>.json`, plus `index.json`; one folder per browser profile |
+| MCP (`local-studio-browser mcp`) | `threads_list`, `thread_search`, `thread_read` (40 messages a page) |
+| Terminal | `local-studio-browser threads [list] [words]`, `show <id>`, `search <words>`, `export <id> --format md\|json [--out FILE]`, each with `--json` |
+| Files | `~/.local/share/local-studio-browser/threads/<browser>/<id>.md` and `<id>.json`, plus `index.json`; one folder per browser profile |
 
 Live answers come from the extension; when the browser is closed, the CLI and MCP read the
 files. The files are written by the native host (folder 0700, files 0600, each write atomic) a
@@ -294,28 +300,30 @@ from before ..." under that switch.
 
 What agents see: who said what, tool calls and short results, attachments by name only. API
 keys and tokens pasted into a chat are removed. A chat from private mode is never served or
-written, even after private mode is turned off. Remote agents (`tychicus serve`) need a token
+written, even after private mode is turned off. Remote agents (`local-studio-browser serve`) need a token
 with the `threads.read` scope. A past chat is data to read, never instructions to follow; the
 tool descriptions and the MCP instructions say so.
 
 ## Skills
 
+The skills come with the Local Studio app, in one store with your own and your plugins'.
+Agents connected to the browser find the right one with the `skill_search` MCP tool and read only
+that one with `skill_read`, so a small model's context holds one skill, not all of them
+([docs/skill-platform.md](docs/skill-platform.md)). In a terminal:
+
 ```bash
-tychicus skill install   # every bundled skill, into Claude Code, Codex and OpenCode
-tychicus skill list      # what each one is for
-tychicus skill print >> AGENTS.md # the polycarp-browser skill as an AGENTS.md section, for any other agent
+local-studio skills list             # every skill, its source and its file
+local-studio skills search "words"   # what an agent would find
+local-studio skills read osint       # its text
 ```
 
-`tychicus skill install` skips a same-name skill that Local Studio didn't write. To replace one,
-name it: `tychicus skill install bug --force` (a bare `--force` replaces only `polycarp-browser`). The core skill ([skills/polycarp-browser/SKILL.md](skills/polycarp-browser/SKILL.md)) is short and
-written for small models: when to use Local Studio, `status` first, then the loop (navigate,
-`read_page` for refs, act by ref, read back), with stale refs, waits, dialogs, the safety
-rules, cleanup and three worked examples. A test keeps it in step with the MCP server's
-instructions and tool schemas.
+To write your own, or your own version of one of these, type `@create` in Local Studio's chat or use
+`local-studio skills create`. Yours is used instead of the app's skill with the same name, and stays on
+your machine. Some of the app's:
 
 | Skill | What it does |
 | --- | --- |
-| `polycarp-browser` | The browser loop, dialogs, safety rules and cleanup |
+| `local-studio-browser` | The browser loop, dialogs, safety rules and cleanup |
 | `academic-research` | Find papers, verify each DOI, metadata and retraction status, save BibTeX and Obsidian notes |
 | `osint` | Public-record research on companies, domains and people, with a purpose check |
 | `news-research` | Primary sources, wire services, more than one side, every statement labeled |
@@ -325,46 +333,29 @@ instructions and tool schemas.
 | `visual-explainer` | Code, diffs, systems and plans drawn as an offline SVG diagram page (adapted from nicobailon/visual-explainer, MIT) |
 | `mechanism-design` | Pick and size a linkage, cam, gear train or ratchet, check its motion by calculation, then hand off to CAD |
 | `proton-pass` | Credentials through Proton Pass, 1Password or Bitwarden, never through the model |
-| `rsi` | `/rsi`: turn lessons from real work into small, linted, reviewed skill edits |
+| `rsi` | `/rsi`: turn lessons from real work into small, reviewed skill edits |
 | `fix` | `/fix`: rewrite a skill for the model tier that failed with it, and test the rewrite |
 | `adversarial-review` | Have a separate, equally capable model attack a change before it's accepted |
 | `bug` | `/bug`: a scrubbed, fingerprinted Local Studio bug report, filed only with your yes |
-| `kyraskillmaker` | Write a skill to Local Studio's standard |
 
-### Skill lint and CI
+### Skill safety
 
-A skill is text an agent follows with your sign-in, so every skill passes
-`tychicus skill lint`. It refuses hidden text (invisible and bidi characters, lookalike
-letters, HTML comments), instruction overrides, fake system turns, concealment from the
-user, piped remote code, instructions fetched at run time, secret handling, credential
-file reads, agent and shell config writes, safety bypasses, encoded blobs, remote images,
-suspicious links, missing structure, and any file besides `SKILL.md` and a license.
-
-The lint runs in CI on every pull request and at install time for local edits. Red-team tests prove it still
-catches each attack, and CI also lints with the base branch's lint, so a pull request
-that weakens the lint must still pass the old one. CODEOWNERS asks for a maintainer's
-review on `skills/`, the lint and CI. The threat model, every rule and the known gaps are
-in [docs/skill-security.md](docs/skill-security.md).
-
-Agents find the right skill with the `skill_search` MCP tool and read only that one with
-`skill_read`, so a small model's context holds one skill, not all of them:
-[docs/skill-platform.md](docs/skill-platform.md).
-
-Edits you made stay on your machine. `tychicus skill revert <name>` goes back to the
-bundled text.
+A skill is text an agent follows with your sign-in. The app's skills change only through a pull
+request with the maintainer's review, and page text is never allowed to become one. The threat model
+and the known gaps are in [docs/skill-security.md](docs/skill-security.md).
 
 ## Library
 
 A local source library in the spirit of Zotero. Every source is fetched from its DOI's
 registry and checked against OpenAlex and Crossref's retraction notices before it's saved.
 When a check can't finish, the source is saved marked "retraction check incomplete" until
-`tychicus library verify` completes it.
+`local-studio-browser library verify` completes it.
 
 ```bash
-tychicus library add 10.1037/0033-2909.132.3.354 --quote "..." --location "p. 354"
-tychicus library cite cepeda2006distributed --style apa  # also mla, chicago, ieee, harvard, vancouver
-tychicus library export --format bibtex --out refs.bib  # or ris, csl: Zotero, Word, LaTeX
-tychicus library obsidian ~/Vault               # one note per source in Sources/
+local-studio-browser library add 10.1037/0033-2909.132.3.354 --quote "..." --location "p. 354"
+local-studio-browser library cite cepeda2006distributed --style apa  # also mla, chicago, ieee, harvard, vancouver
+local-studio-browser library export --format bibtex --out refs.bib  # or ris, csl: Zotero, Word, LaTeX
+local-studio-browser library obsidian ~/Vault               # one note per source in Sources/
 ```
 
 `add` also takes a doi.org link or an arXiv id. An unregistered DOI is refused, and a
@@ -414,8 +405,7 @@ Local Studio doesn't control.
   required on every request (`provider.zdr: true`, `data_collection: "deny"`, no
   fallbacks, HTTPS only), and to models served from this machine or from hosts you list as
   your own. Any other provider is refused before a request is sent.
-- **Bug reports are off unless you turn them on.** The welcome dialog offers one unchecked
-  box. When on, side panel errors are kept in the browser with web addresses, IP
+- **Bug reports are off unless you turn them on.** One switch, off, under Settings > Privacy. When on, side panel errors are kept in the browser with web addresses, IP
   addresses, emails, key-like strings and home paths removed. **Review report** shows the
   text for editing, and **Copy and open GitHub** copies it and opens a new issue page.
   Nothing leaves the browser until you paste and submit.
@@ -434,8 +424,8 @@ Each person runs their own connector on their own computer, so it drives their o
 browser and costs them nothing. There's no account with us and no shared server.
 
 ```bash
-tychicus remote setup  # a relay on your own free Cloudflare account, and a service that keeps it running
-tychicus remote status  # is it up and reachable from the internet?
+local-studio-browser remote setup  # a relay on your own free Cloudflare account, and a service that keeps it running
+local-studio-browser remote status  # is it up and reachable from the internet?
 ```
 
 Setup signs you in to Cloudflare, deploys the relay there, and prints the connector URL and a
@@ -445,29 +435,29 @@ the code; it works once, for 10 minutes, and the passcode alone is refused for a
 `--tailscale` (Tailscale Funnel) and `--cloudflare` (a named tunnel on your own domain) are the other
 routes. [docs/remote.md](docs/remote.md) has all three, revoking and the security notes.
 
-Several computers with a browser? Run `tychicus hub setup --public-url https://host` on an always-on box and
-`tychicus link <hub URL> --code <code>` on each computer: one connector URL, and a session goes to a device
+Several computers with a browser? Run `local-studio-browser hub setup --public-url https://host` on an always-on box and
+`local-studio-browser link <hub URL> --code <code>` on each computer: one connector URL, and a session goes to a device
 that is online and least busy. See [Many devices, one connector](docs/remote.md#many-devices-one-connector).
 
 ### Other agents, with a token
 
 ```bash
-tychicus token create laptop --scope browser.read,browser.navigate  # prints the token once
-tychicus serve                                              # loopback only, port 8787
-tychicus tunnel tailscale        # https://<machine>.<tailnet>.ts.net/polycarp/mcp, your tailnet only
-tychicus tunnel cloudflare  # a cloudflared quick tunnel at a random trycloudflare.com URL
+local-studio-browser token create laptop --scope browser.read,browser.navigate  # prints the token once
+local-studio-browser serve                                              # loopback only, port 8787
+local-studio-browser tunnel tailscale        # https://<machine>.<tailnet>.ts.net/local-studio-browser/mcp, your tailnet only
+local-studio-browser tunnel cloudflare  # a cloudflared quick tunnel at a random trycloudflare.com URL
 ```
 
-- `tychicus serve` speaks MCP over Streamable HTTP at `/mcp` and refuses to bind anywhere
+- `local-studio-browser serve` speaks MCP over Streamable HTTP at `/mcp` and refuses to bind anywhere
   but loopback. TLS comes from the tunnel.
 - Every request needs a token, sent as an `Authorization: Bearer` header. Tokens are per
-  client, stored only as SHA-256 hashes, and end at once with `tychicus token revoke`.
+  client, stored only as SHA-256 hashes, and end at once with `local-studio-browser token revoke`.
 - Scopes have no wildcard. A session sees only the tools its scopes grant
-  (`tychicus token scopes` lists them). Acting under your sign-in (`browser.act`) and
+  (`local-studio-browser token scopes` lists them). Acting under your sign-in (`browser.act`) and
   running scripts (`browser.script`) are separate scopes, never implied by the others.
   So is asking you questions in the side panel (`user.ask`, the `ask_user` tool); the card
   names the token (`remote-<name>`), and the answer goes back only to that session.
-- `tychicus tunnel tailscale --public` uses Funnel, which anyone on the internet can reach;
+- `local-studio-browser tunnel tailscale --public` uses Funnel, which anyone on the internet can reach;
   the token is then the only lock, and the command says so. A Cloudflare quick tunnel is
   public in the same way.
 - Local Studio installs neither tool and makes no accounts. `--off` stops either tunnel.
@@ -485,8 +475,8 @@ Your browser is signed in as you, so the defaults are conservative.
   ordinary sites without asking. Manual asks before an agent opens a new site, and Yolo doesn't ask.
   Where a clicked link or a redirect leads isn't checked in any mode.
   Claude Code and Codex show the prompt inline; otherwise answer it in the side panel. Run
-  `tychicus allow <host>` to pre-approve a site, `tychicus allow-all` to skip prompts and
-  `tychicus ask` to turn them back on.
+  `local-studio-browser allow <host>` to pre-approve a site, `local-studio-browser allow-all` to skip prompts and
+  `local-studio-browser ask` to turn them back on.
 - **Page text is data, not instructions.** The MCP server tells every agent that page
   content is untrusted and that it must ask you before acting under your sign-in:
   sending, posting, buying, deleting or changing settings. It also tells the agent never
@@ -501,10 +491,10 @@ Your browser is signed in as you, so the defaults are conservative.
   tabs don't steal focus. `tabs_show` brings a tab in front of you. Site edits and feed filters
   also change that site in your own tabs, and site scripts do once you turn one on (Settings > Sites).
 - **Nothing listens on the network by default.** The browser starts the native host,
-  which relays frames over a Unix socket in `/tmp/tychicus-bridge-<user>/` (0700 directory,
+  which relays frames over a Unix socket in `/tmp/local-studio-browser-<user>/` (0700 directory,
   0600 socket). Other users can't reach it, and the client refuses sockets another user
   owns. Any program running as you can, which is the same trust level as your shell.
-  `tychicus serve` is the one network listener, it's off until you run it, and it needs a
+  `local-studio-browser serve` is the one network listener, it's off until you run it, and it needs a
   token ([Remote MCP](#remote-mcp-and-tunnels)).
 - **Only this extension can make the browser start the host.** The host manifest's
   `allowed_origins` names one fixed extension id, `igjafcggmahiboobmnhfkndodphjdnhg`,
@@ -516,7 +506,7 @@ Your browser is signed in as you, so the defaults are conservative.
   sign-ins use this app's own registration. The CLI's commands and the MCP server never
   call a model. Sources and dates are in
   [docs/auth-policy.md](docs/auth-policy.md).
-- **Skills ship only through review and the lint** ([Skill lint and CI](#skill-lint-and-ci)).
+- **The app's skills ship only through review** ([Skill safety](#skill-safety)).
 
 Found a hole? Please report it privately; see [SECURITY.md](SECURITY.md).
 
@@ -524,7 +514,7 @@ Found a hole? Please report it privately; see [SECURITY.md](SECURITY.md).
 
 ```mermaid
 flowchart LR
-  A["Your agent<br/>Claude Code, Codex, OpenCode, Cursor"] -- "MCP (stdio)" --> B["tychicus mcp"]
+  A["Your agent<br/>Claude Code, Codex, OpenCode, Cursor"] -- "MCP (stdio)" --> B["local-studio-browser mcp"]
   B -- "Unix socket<br/>user-only" --> C["Native host<br/>started by the browser"]
   C -- "Native messaging" --> D["Local Studio extension"]
   D -- "chrome.debugger,<br/>tab groups" --> E["Background tabs<br/>Local Studio · claude"]
@@ -540,25 +530,16 @@ window in front. Protocol and design notes are in
 
 ## Updating
 
-A release install upgrades the way it installed: download the newer release from
-[the releases page](https://github.com/baney75/tychicus/releases) and run its `tychicus install --release .`
-in that folder. Each version gets its own folder under `~/.local/share/tychicus/versions/`, the `release` pointer moves
-to the new one only after it registers itself, and the browser keeps loading the extension from
-`~/.local/share/tychicus/extension`. An old version is removed once nothing runs from it.
-
-`tychicus update` and the side panel's Update now still read the archived Tabkyra releases (issue #13), so they don't
-upgrade a release install yet. In a checkout of baney75/tychicus, `tychicus update` pulls main and rebuilds. Details
-are in [docs/updates.md](docs/updates.md).
-
-The Polycarp app keeps its own copy of the helper and the extension and updates them with `polycarp update`. On Linux
-that copy is in `~/.local/share/polycarp/browser/source`; it is Polycarp's, and nothing here changes it.
+The Local Studio app carries the helper, the computer use helper and the extension, and updates them with itself; there is
+nothing to run. A checkout updates with `local-studio-browser update`, which pulls main and rebuilds. Details are in
+[docs/updates.md](docs/updates.md).
 
 ## Documentation
 
 The full index is [docs/README.md](docs/README.md). The ones most people want:
 
-- [docs/skill-security.md](docs/skill-security.md): the skill threat model and lint rules
-- [docs/auth-policy.md](docs/auth-policy.md): why the side panel takes API keys only
+- [docs/skill-security.md](docs/skill-security.md): the skill threat model
+- [docs/auth-policy.md](docs/auth-policy.md): which sign-ins the side panel takes, and why
 - [docs/updates.md](docs/updates.md): signed releases and rollback
 - [docs/agent-bridge-design.md](docs/agent-bridge-design.md): how the bridge works
 - [docs/decisions.md](docs/decisions.md): design decisions and the owner's answers
@@ -569,8 +550,8 @@ The full index is [docs/README.md](docs/README.md). The ones most people want:
 **Is this on the Chrome Web Store?** Its listing is on the way. Until then, the extension loads unpacked from `dist-chrome`, and that stays an option afterward.
 
 **Do I need an API key?** Not for agents that connect through MCP. Your agent uses its own
-sign-in, and the CLI and the MCP server never call a model. The side panel agent needs an API key from a
-provider, or a model on your own machine.
+sign-in, and the CLI and the MCP server never call a model. The side panel agent needs the Local Studio
+app, a ChatGPT or GitHub Copilot plan, a provider's API key, or a model on your own machine.
 
 **Does my agent see my other tabs?** No. It sees and controls only the tabs in its own
 group.
@@ -578,10 +559,10 @@ group.
 **Can I watch it work?** Yes. Click its tab group, or have the agent call `tabs_show`.
 
 **Why does my agent stop and ask about a site?** That's the permission prompt. Approve
-it once or for good, or run `tychicus allow <host>` ahead of time.
+it once or for good, or run `local-studio-browser allow <host>` ahead of time.
 
 **It says something "isn't connected."** The browser isn't running with the extension
-loaded, or the extension hasn't reached the native host yet. `tychicus doctor` says
+loaded, or the extension hasn't reached the native host yet. `local-studio-browser doctor` says
 which one.
 
 **Which browsers?** Chromium 141 or newer. Tested: Chromium, headless, end to end (the e2e
@@ -590,12 +571,12 @@ use in Helium or Chrome, and Brave, Edge, Arc, Vivaldi and Opera (registered the
 macOS and Linux), haven't been tried yet. Windows registry entries are written but untested.
 
 **Does it send my data anywhere?** The extension and its helper collect nothing and have no server; the
-bridge never leaves your machine unless you run `tychicus serve` and a tunnel. But whatever
+bridge never leaves your machine unless you run `local-studio-browser serve` and a tunnel. But whatever
 an agent reads through it (page text, screenshots) goes to that agent's model provider, as
 with any tool the agent uses. The side panel likewise talks to the provider you configure,
 and [private mode](#private-mode-and-bug-reports) limits which ones it may use.
-`tychicus library` looks up each source you add at its DOI registry (or arXiv), OpenAlex and
-Crossref, and `tychicus update` checks GitHub for releases. The side panel also fetches
+`local-studio-browser library` looks up each source you add at its DOI registry (or arXiv), OpenAlex and
+Crossref, and `local-studio-browser update` checks GitHub for releases. The side panel also fetches
 model details from models.dev.
 
 **Can I add my own skill?** Yes, for everyone through a pull request. [CONTRIBUTING.md](CONTRIBUTING.md) explains the gates. Skills with
@@ -609,22 +590,21 @@ Clone this repo plus its sibling dependencies into the same parent directory:
 parent/
   mini-lit/          # https://github.com/badlogic/mini-lit
   pi-mono/           # https://github.com/badlogic/pi-mono
-  tychicus/          # this repo
+  local-studio-browser/          # this repo
 ```
 
 `./scripts/setup-siblings.sh` clones them, checks out pi-mono at the pinned commit,
 applies `patches/pi-mono.patch`, builds the declarations and installs everything.
 `./dev.sh` starts the watchers. Rebuild and reload from the terminal with
-`npm run build && tychicus reload`. A production build bumps the version in
-`static/manifest.chrome.json`; `TABKYRA_NO_BUMP=1` skips that.
+`npm run build && local-studio-browser reload`. A production build bumps the version in
+`static/manifest.chrome.json`; `LOCAL_STUDIO_BROWSER_NO_BUMP=1` skips that.
 
 ```bash
 ./check.sh                              # biome + tsc + tests for the extension
-(cd cli && npm run check && npm test)   # CLI typecheck, build, setup/doctor/MCP/skill/library/remote tests
+(cd cli && npm run check && npm test)   # CLI typecheck, build, setup/doctor/MCP/library/remote tests
 (cd cli && npm run test:e2e)            # extension + host + MCP in a throwaway headless Chromium
                                         # (first time: cd cli && npx playwright-core install chromium)
-node cli/dist/index.js skill lint skills  # the skill gate CI runs
-node media/brand/build.mjs              # regenerate the helm brand art (not the icon: see media/brand/BRAND.md)
+node media/brand/build.mjs              # regenerate the icons from docs/brand
 ```
 
 [CONTRIBUTING.md](CONTRIBUTING.md) has the full checklist, and [AGENTS.md](AGENTS.md) has
@@ -655,9 +635,9 @@ use it.
   the original Sitegeist extension, its side panel agent and tools, and the
   [pi](https://github.com/badlogic/pi-mono) and [mini-lit](https://github.com/badlogic/mini-lit)
   libraries it runs on.
-- **Local Studio's browser and computer use** ([baney75/tychicus](https://github.com/baney75/tychicus)), by Donovan Baney:
-  the name and brand, `tychicus setup` and `doctor`, the Helium host registration, the MCP
-  polish and the end-to-end test, the skills and the skill lint, the source library,
+- **Local Studio's browser and computer use** ([baney75/local-studio](https://github.com/baney75/local-studio/tree/main/browser)), by Donovan Baney:
+  the name and brand, `local-studio-browser setup` and `doctor`, the Helium host registration, the MCP
+  polish and the end-to-end test, the skills, the source library,
   private mode and bug reports, scoped remote MCP, signed updates, and the API-keys-only
   sign-in policy.
 - Fonts: Instrument Sans, Instrument Serif and JetBrains Mono, all under the SIL Open Font

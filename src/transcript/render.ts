@@ -25,7 +25,7 @@ import {
 } from "lucide";
 import { PAGE_TOOL_NAMES } from "../bridge/page-tools.js";
 import { SkillPill } from "../components/SkillPill.js";
-import { getTabkyraStorage } from "../storage/app-storage.js";
+import { getLocalStudioStorage } from "../storage/app-storage.js";
 import type { Skill } from "../storage/stores/skills-store.js";
 import { escapeCurrency } from "./currency.js";
 import {
@@ -71,7 +71,7 @@ export class SiteSkills extends LitElement {
 		const url = this.url;
 		this.skills = [];
 		if (!url) return;
-		void getTabkyraStorage()
+		void getLocalStudioStorage()
 			.skills.getSkillsForUrl(url)
 			.then((skills) => {
 				if (this.url === url) this.skills = skills;
@@ -307,11 +307,11 @@ function renderBlock(
 	}
 }
 
-/** The transcript renderer Polycarp installs with setTranscriptRenderer. */
+/** The transcript renderer Local Studio installs with setTranscriptRenderer. */
 /** The site of the last page change in the stable list, so the live message continues the count. */
 let stableLastSite: string | undefined;
 
-export const tabkyraTranscript: TranscriptRenderer = {
+export const localStudioTranscript: TranscriptRenderer = {
 	items(messages, ctx) {
 		const { blocks, lastSite } = groupTranscript(messages as unknown as TMessage[], {
 			results: ctx.toolResultsById as unknown as Map<string, TMessage>,

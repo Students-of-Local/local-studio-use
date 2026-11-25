@@ -1,4 +1,4 @@
-// The Connect panel's "Set up with Cloudflare": Polycarp's own cloudflared (pinned, hash-checked), the host's strict
+// The Connect panel's "Set up with Cloudflare": Local Studio's own cloudflared (pinned, hash-checked), the host's strict
 // setupTunnel frame, the sign-in address extractor, and the five-step flow with stand-ins. Nothing here talks to
 // Cloudflare, runs a real cloudflared, or touches the real config, HOME, Tailscale or remote.json.
 import assert from "node:assert/strict";
@@ -11,7 +11,7 @@ import { spawnSync } from "node:child_process";
 import { after, test } from "node:test";
 import { loadTs } from "./helpers/bundle-ts.mjs";
 
-const root = mkdtempSync(join(tmpdir(), "polycarp-cftunnel-"));
+const root = mkdtempSync(join(tmpdir(), "local-studio-cftunnel-"));
 after(() => rmSync(root, { recursive: true, force: true }));
 
 const mod = await loadTs(`
@@ -33,9 +33,9 @@ const sha = (buf) => createHash("sha256").update(buf).digest("hex");
 async function inConfig(name, fn) {
 	const dir = join(root, name);
 	mkdirSync(dir, { recursive: true, mode: 0o700 });
-	const keys = ["TABKYRA_CONFIG_DIR", "PATH", "TABKYRA_APPLICATIONS_DIR", "HOME", "USERPROFILE"];
+	const keys = ["LOCAL_STUDIO_BROWSER_DIR", "PATH", "LOCAL_STUDIO_BROWSER_APPLICATIONS_DIR", "HOME", "USERPROFILE"];
 	const before = Object.fromEntries(keys.map((k) => [k, process.env[k]]));
-	process.env.TABKYRA_CONFIG_DIR = join(dir, "config");
+	process.env.LOCAL_STUDIO_BROWSER_DIR = join(dir, "config");
 	// A PATH with tar and nothing else, so a real cloudflared on this machine cannot be found.
 	mkdirSync(join(dir, "nopath"), { recursive: true });
 	const tar = onWindows ? "" : spawnSync("sh", ["-c", "command -v tar"], { encoding: "utf8" }).stdout.trim();
@@ -44,7 +44,7 @@ async function inConfig(name, fn) {
 	const gzip = onWindows ? "" : spawnSync("sh", ["-c", "command -v gzip"], { encoding: "utf8" }).stdout.trim();
 	if (gzip) symlinkSync(gzip, join(dir, "nopath", "gzip"));
 	process.env.PATH = join(dir, "nopath");
-	process.env.TABKYRA_APPLICATIONS_DIR = join(dir, "apps");
+	process.env.LOCAL_STUDIO_BROWSER_APPLICATIONS_DIR = join(dir, "apps");
 	process.env.HOME = join(dir, "home");
 	process.env.USERPROFILE = process.env.HOME; // homedir() on Windows
 	mkdirSync(process.env.HOME, { recursive: true });
@@ -161,10 +161,10 @@ test("the host refuses setupTunnel without a host, with a bad host, and with ext
 	assert.equal(frame(undefined).ok, false);
 	assert.equal(frame({}).ok, false);
 	for (const host of [5, "", "nodots", "bad host.example.com", "a..b.com", "x".repeat(300), null]) assert.equal(frame({ host }).ok, false, String(host));
-	assert.equal(frame({ host: "polycarp.example.com", extra: 1 }).ok, false);
-	const good = frame({ host: " https://Polycarp.Example.com/path " });
+	assert.equal(frame({ host: "local-studio.example.com", extra: 1 }).ok, false);
+	const good = frame({ host: " https://Local-Studio.Example.com/path " });
 	assert.equal(good.ok, true);
-	assert.deepEqual(good.call, { method: "setupTunnel", host: "polycarp.example.com" });
+	assert.deepEqual(good.call, { method: "setupTunnel", host: "local-studio.example.com" });
 });
 
 test("the sign-in address extractor accepts only https dash.cloudflare.com", () => {
@@ -249,9 +249,9 @@ test("setupTunnel runs the five steps in order and reports the sign-in address",
 	await inConfig("flow", async () => {
 		const h = hooks();
 		const seen = [];
-		const done = await setupTunnel("polycarp.example.com", (p) => seen.push(p), h, { checkTotalMs: 100, checkEveryMs: 10 });
-		assert.deepEqual(done, { publicUrl: "https://polycarp.example.com" });
-		assert.deepEqual(h.calls, ["cloudflared", "login", "setup polycarp.example.com service=true passcode=false replaceFunnel=false", "check"]);
+		const done = await setupTunnel("local-studio.example.com", (p) => seen.push(p), h, { checkTotalMs: 100, checkEveryMs: 10 });
+		assert.deepEqual(done, { publicUrl: "https://local-studio.example.com" });
+		assert.deepEqual(h.calls, ["cloudflared", "login", "setup local-studio.example.com service=true passcode=false replaceFunnel=false", "check"]);
 		assert.deepEqual(seen.filter((p) => p.state === "done").map((p) => p.step), ["cloudflared", "signin", "route", "tunnel", "check"]);
 		assert.ok(seen.some((p) => p.step === "signin" && p.state === "waiting" && p.url === "https://dash.cloudflare.com/argotunnel?aud=1"));
 	});
@@ -259,32 +259,32 @@ test("setupTunnel runs the five steps in order and reports the sign-in address",
 
 test("setupTunnel skips the sign-in when already signed in, and asks setup to replace Funnel when the route is Funnel", async () => {
 	await inConfig("funnel", async (dir) => {
-		mkdirSync(process.env.TABKYRA_CONFIG_DIR, { recursive: true });
-		writeFileSync(join(process.env.TABKYRA_CONFIG_DIR, "remote.json"), JSON.stringify({ publicUrl: "https://mac.tail.ts.net:8443", port: 8787, route: "funnel" }));
+		mkdirSync(process.env.LOCAL_STUDIO_BROWSER_DIR, { recursive: true });
+		writeFileSync(join(process.env.LOCAL_STUDIO_BROWSER_DIR, "remote.json"), JSON.stringify({ publicUrl: "https://mac.tail.ts.net:8443", port: 8787, route: "funnel" }));
 		const h = hooks({ signedIn: () => true });
-		await setupTunnel("polycarp.example.com", () => {}, h, { checkTotalMs: 100, checkEveryMs: 10 });
+		await setupTunnel("local-studio.example.com", () => {}, h, { checkTotalMs: 100, checkEveryMs: 10 });
 		// Funnel is closed inside setup, after the tunnel is made; the flow itself never touches it.
-		assert.deepEqual(h.calls, ["cloudflared", "setup polycarp.example.com service=true passcode=false replaceFunnel=true", "check"]);
+		assert.deepEqual(h.calls, ["cloudflared", "setup local-studio.example.com service=true passcode=false replaceFunnel=true", "check"]);
 	});
 });
 
 test("setupTunnel runs setup again for the same Cloudflare name, refuses another name before setup, and refuses a custom route first", async () => {
 	await inConfig("same", async () => {
-		mkdirSync(process.env.TABKYRA_CONFIG_DIR, { recursive: true });
-		const file = join(process.env.TABKYRA_CONFIG_DIR, "remote.json");
-		writeFileSync(file, JSON.stringify({ publicUrl: "https://polycarp.example.com", port: 8787, route: "cloudflare" }));
+		mkdirSync(process.env.LOCAL_STUDIO_BROWSER_DIR, { recursive: true });
+		const file = join(process.env.LOCAL_STUDIO_BROWSER_DIR, "remote.json");
+		writeFileSync(file, JSON.stringify({ publicUrl: "https://local-studio.example.com", port: 8787, route: "cloudflare" }));
 		const h = hooks({ signedIn: () => true });
-		await setupTunnel("polycarp.example.com", () => {}, h, { checkTotalMs: 100, checkEveryMs: 10 });
+		await setupTunnel("local-studio.example.com", () => {}, h, { checkTotalMs: 100, checkEveryMs: 10 });
 		// A rerun resumes a half-finished setup, so setup runs again.
-		assert.deepEqual(h.calls, ["cloudflared", "setup polycarp.example.com service=true passcode=false replaceFunnel=false", "check"]);
+		assert.deepEqual(h.calls, ["cloudflared", "setup local-studio.example.com service=true passcode=false replaceFunnel=false", "check"]);
 		const other = hooks({ signedIn: () => true });
 		const seen = [];
-		await assert.rejects(setupTunnel("other.example.com", (p) => seen.push(p), other), /already has a Cloudflare tunnel on https:\/\/polycarp\.example\.com/);
+		await assert.rejects(setupTunnel("other.example.com", (p) => seen.push(p), other), /already has a Cloudflare tunnel on https:\/\/local-studio\.example\.com/);
 		assert.equal(other.calls.some((c) => c.startsWith("setup")), false, "refused in the route step, before setup");
 		assert.equal(seen.find((p) => p.state === "failed").step, "route");
 		writeFileSync(file, JSON.stringify({ publicUrl: "https://front.example.com", port: 8787, route: "custom" }));
 		const none = hooks();
-		await assert.rejects(setupTunnel("polycarp.example.com", () => {}, none), TunnelError);
+		await assert.rejects(setupTunnel("local-studio.example.com", () => {}, none), TunnelError);
 		assert.deepEqual(none.calls, [], "nothing is downloaded or opened before the refusal");
 	});
 });
@@ -294,11 +294,11 @@ test("a failing step reports failed with its text and stops the steps after it",
 		const h = hooks({
 			signedIn: () => true,
 			setup: async () => {
-				throw new Error("Cloudflare wouldn't give this tunnel polycarp.example.com.");
+				throw new Error("Cloudflare wouldn't give this tunnel local-studio.example.com.");
 			},
 		});
 		const seen = [];
-		await assert.rejects(setupTunnel("polycarp.example.com", (p) => seen.push(p), h), /wouldn't give this tunnel/);
+		await assert.rejects(setupTunnel("local-studio.example.com", (p) => seen.push(p), h), /wouldn't give this tunnel/);
 		const failed = seen.find((p) => p.state === "failed");
 		assert.equal(failed.step, "tunnel");
 		assert.match(failed.detail, /wouldn't give/);
@@ -310,13 +310,13 @@ test("the check retries while DNS settles, then leaves it waiting with the reaso
 	await inConfig("retry", async () => {
 		let n = 0;
 		const h = hooks({ signedIn: () => true, check: async () => (++n < 3 ? { ok: false, detail: "no answer" } : { ok: true, detail: "ok" }) });
-		await setupTunnel("polycarp.example.com", () => {}, h, { checkTotalMs: 5_000, checkEveryMs: 5 });
+		await setupTunnel("local-studio.example.com", () => {}, h, { checkTotalMs: 5_000, checkEveryMs: 5 });
 		assert.equal(n, 3);
 		const never = hooks({ signedIn: () => true, check: async () => ({ ok: false, detail: "no answer" }) });
 		// The tunnel was made, so a name that isn't answering yet is on with a lagging check (second-N3), never a failed setup.
 		const seen = [];
-		const done = await setupTunnel("polycarp.example.com", (p) => seen.push(p), never, { checkTotalMs: 50, checkEveryMs: 10 });
-		assert.equal(done.publicUrl, "https://polycarp.example.com");
+		const done = await setupTunnel("local-studio.example.com", (p) => seen.push(p), never, { checkTotalMs: 50, checkEveryMs: 10 });
+		assert.equal(done.publicUrl, "https://local-studio.example.com");
 		assert.deepEqual(done.checks, [{ name: "resource_metadata", status: "fail", detail: "no answer", pending: true }]);
 		assert.deepEqual(seen.at(-1), { step: "check", state: "waiting", detail: "no answer" });
 	});

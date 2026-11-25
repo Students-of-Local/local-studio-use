@@ -1,0 +1,13 @@
+# Local Studio plugin (v0): a skill and the /computer command. The tools come from the `local-studio` MCP server, which
+# `local-studio-browser install --local-studio` registers in Eukhe's mcpServers setting. No capabilities yet. The version is
+# the release's (scripts/plugin-version.mjs).
+id = "computer-use"
+version = "1.4.1"
+description = "Read and operate desktop apps through accessibility APIs."
+skills = "skills"
+capabilities = []
+
+[[commands]]
+name = "computer"
+description = "Do a task in a desktop app"
+skill = "computer-use"

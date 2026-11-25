@@ -43,7 +43,7 @@ The best value in each row is in bold.
 
 ### Install
 
-- Local Studio: `curl -fsSL https://github.com/baney75/tychicus/releases/latest/download/install.sh | sh` (release 1.4.0), 3 steps (run the one install command; load the unpacked extension; add the MCP server to the agent). Source: https://github.com/baney75/tychicus#install
+- Local Studio: `install.sh, the one command that release had` (release 1.4.0), 3 steps (run the one install command; load the unpacked extension; add the MCP server to the agent). Source: https://github.com/baney75/local-studio#install
 - agent-browser: `agent-browser@0.43.0`, 3 steps (npm install -g agent-browser; agent-browser install, which downloads Chrome for Testing; add its skill or an AGENTS.md line to the agent). Source: https://github.com/vercel-labs/agent-browser#install
 - browse: `@opencode/browse@0.1.5`, 2 steps (run the install script, which adds the MCP server to the agent; add the extension from the Chrome Web Store). Source: https://github.com/anomalyco/browse#install
 - Chrome DevTools MCP: `chrome-devtools-mcp@1.13.0`, 1 step (add the MCP server to the agent with npx). Source: https://github.com/ChromeDevTools/chrome-devtools-mcp#getting-started
@@ -59,8 +59,9 @@ the tool's.
 - Task success: passes out of 10 tasks times the repeat count.
 - Cold start to first page text: from nothing running to the first page's text, in a session of its own.
 - First page text, click and fill: medians on t02's form (`measureSpeed` in `evals/market/tasks/loop.mjs`).
-- Install from nothing: `evals/market/rivals/install-time.mjs`, each rep in a new folder with an empty npm cache;
-  Local Studio runs its release's one install command with a throwaway home folder. No browser download is timed.
+- Install from nothing: `evals/market/rivals/install-time.mjs`, each rep in a new folder with an empty npm cache.
+  No browser download is timed. Local Studio's browser tools come with its app, so there is no install of their own to
+  time; a run from before that shows the time of the installer it had.
 - Install steps: the steps from nothing to an agent driving a page, as each tool's README writes them.
 
 To add a run: `evals/market/rivals/install.sh`, `node evals/market/rivals/run.mjs --tool <tool> --repeat 3` for each

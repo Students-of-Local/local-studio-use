@@ -23,7 +23,7 @@ Not for problems with a website itself, or with the user's own code.
 2. **Reproduce it once,** if it's safe to repeat: the same tool call or command. Write the
    steps as a numbered list someone else can follow on a test page.
    Don't repeat anything that sends, posts, buys or deletes.
-3. **Collect facts.** Run `tychicus status --json` and `tychicus doctor --json` and keep:
+3. **Collect facts.** Run `local-studio-browser status --json` and `local-studio-browser doctor --json` and keep:
    extension version, CLI version, browser, OS, and each doctor line that failed. For the app, also
    the version `local-studio --version` prints. Copy the
    exact error message from the tool result or terminal.
@@ -80,6 +80,6 @@ Not for problems with a website itself, or with the user's own code.
 
 | Symptom | Fix |
 | --- | --- |
-| `tychicus` isn't installed | Report the versions you can see in the side panel's About tab |
+| `local-studio-browser` isn't installed | Report the versions you can see in the side panel's About tab |
 | The bug only happens on a private page | Describe the page type, not its content, and reproduce on a public page if you can |
 | `gh` asks to sign in | Don't sign in for the user; hand them the text |

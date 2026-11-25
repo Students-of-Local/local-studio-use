@@ -81,7 +81,7 @@ test("a prepared build passes, keeps the app, and names its source and credits",
 	assert.equal(readFileSync(join(dir, "sidepanel.js"), "utf8"), "x");
 	const notice = readFileSync(join(dir, "NOTICE"), "utf8");
 	assert.match(notice, /^Local Studio browser extension/);
-	assert.match(notice, /github\.com\/baney75\/tychicus/);
+	assert.match(notice, /github\.com\/baney75\/local-studio\/tree\/main\/browser/);
 	assert.match(notice, /Mario Zechner/);
 	assert.match(notice, /0xSero/);
 });
@@ -134,7 +134,7 @@ function preparedWith(change) {
 }
 
 test("the zip's manifest must be named Local Studio", () => {
-	assert.match(problems(preparedWith((m) => (m.name = "Polycarp"))).join(), /manifest name is "Polycarp", not "Local Studio"/);
+	assert.match(problems(preparedWith((m) => (m.name = "Another name"))).join(), /manifest name is "Another name", not "Local Studio"/);
 });
 
 test("every icon the manifest names must be in the zip", () => {
@@ -164,10 +164,9 @@ test("the listing's summary is the manifest description, word for word", () => {
 	assert.equal(summary, manifest.description);
 });
 
-test("store/ names only Tychicus", () => {
+test("store/ has no en or em dash", () => {
 	for (const name of readdirSync(join(root, "store")).filter((n) => n.endsWith(".md"))) {
 		const text = readFileSync(join(root, "store", name), "utf8");
-		assert.doesNotMatch(text, /Polycarp|Tabkyra/i, `store/${name} names another product`);
 		assert.doesNotMatch(text, /[\u2013\u2014]/, `store/${name} has an en or em dash`);
 	}
 });

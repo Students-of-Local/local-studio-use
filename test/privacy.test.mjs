@@ -135,7 +135,7 @@ test("bug reports drop web addresses, emails, keys and home paths, and never tra
 	assert.equal(log.length, 20, "the log is a short ring buffer");
 	assert.match(reportText("1.2.3", log, "Mozilla/5.0"), /e29/);
 	assert.equal(new URL(NEW_ISSUE_URL).origin + new URL(NEW_ISSUE_URL).pathname, "https://github.com/baney75/local-studio/issues/new", "reports go to a repository that takes issues");
-	assert.equal(new URL(NEW_ISSUE_URL).search, "?labels=bug-report", "the issue page URL carries no report text");
+	assert.equal(new URL(NEW_ISSUE_URL).search, "?labels=bug", "the issue page URL carries no report text");
 });
 
 test("bug reports are off by default; turning them off clears the log through the same queue as captures", () => {
@@ -146,8 +146,8 @@ test("bug reports are off by default; turning them off clears the log through th
 	for (const file of ["src/privacy/capture.ts", "src/privacy/bug-reports.ts", "src/dialogs/PrivacyTab.ts"]) {
 		assert.doesNotMatch(readFileSync(join(repo, file), "utf8"), /\bfetch\(|sendBeacon|XMLHttpRequest/, `${file} sends data`);
 	}
-	const welcome = readFileSync(join(repo, "src", "dialogs", "WelcomeSetupDialog.ts"), "utf8");
-	assert.doesNotMatch(welcome, /<input|setBugReports/, "the first screen asks one question; reports stay off until Settings > Privacy");
+	const welcome = readFileSync(join(repo, "src", "messages", "WelcomeMessage.ts"), "utf8");
+	assert.doesNotMatch(welcome, /<input|setBugReports/, "the first screen only connects a model; reports stay off until Settings > Privacy");
 });
 
 test("the stream gate applies private mode, the trusted hosts and the proxy check to every side panel request", () => {
@@ -155,8 +155,11 @@ test("the stream gate applies private mode, the trusted hosts and the proxy chec
 	assert.match(sidepanel, /assertPrivateProxy\(/);
 	assert.match(sidepanel, /model = privateModel\(model, trusted\);/);
 	// Every way into Settings (header button, first run, no key) goes through one page that has the Privacy tab.
-	assert.equal((sidepanel.match(/SettingsPage\.open\(/g) ?? []).length, 1, "one settings entry point");
-	assert.equal((sidepanel.match(/new PrivacyTab\(\)/g) ?? []).length, 1, "the settings page shows the Privacy tab");
+	assert.equal((sidepanel.match(/\.openSettings\(/g) ?? []).length, 1, "one settings entry point");
+	assert.doesNotMatch(sidepanel, /SettingsPage/);
+	const sections = readFileSync(join(repo, "src", "dialogs", "settings-sections.ts"), "utf8");
+	assert.equal((sections.match(/SettingsPage\.open\(/g) ?? []).length, 1);
+	assert.equal((sections.match(/new PrivacyTab\(\)/g) ?? []).length, 1, "the settings page shows the Privacy tab");
 });
 
 test("what read_network shows of bodies: request shapes without values, JSON responses masked in place", async () => {

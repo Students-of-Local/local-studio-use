@@ -1,8 +1,8 @@
 #!/bin/bash
 # Builds the hands engine: agent-desktop's C library (the agent-desktop-ffi crate only), from the
 # commit pinned in engine/PIN, into engine/lib/libagent_desktop_ffi.a (universal unless
-# TYCHICUS_HANDS_ARM64_ONLY=1). Nothing else of agent-desktop is built, and npm is never run.
-# A static library, linked into tychicus-hands: the helper ships as one file, so it can be signed with
+# LOCAL_STUDIO_COMPUTER_ARM64_ONLY=1). Nothing else of agent-desktop is built, and npm is never run.
+# A static library, linked into local-studio-computer: the helper ships as one file, so it can be signed with
 # the hardened runtime ad hoc (an ad hoc dylib beside it would fail library validation: no Team ID)
 # and no library beside it can be swapped under the Accessibility grant.
 #
@@ -19,7 +19,7 @@ ROOT=$PWD
 # shellcheck source=../engine/PIN
 . engine/PIN
 OUT=engine/lib
-STAMP="$ENGINE_COMMIT $ENGINE_SHA256 $(cat engine/patches/*.patch | shasum -a 256 | cut -c1-64) $(shasum -a 256 scripts/build-engine.sh | cut -c1-16) ${TYCHICUS_HANDS_ARM64_ONLY:-0}"
+STAMP="$ENGINE_COMMIT $ENGINE_SHA256 $(cat engine/patches/*.patch | shasum -a 256 | cut -c1-64) $(shasum -a 256 scripts/build-engine.sh | cut -c1-16) ${LOCAL_STUDIO_COMPUTER_ARM64_ONLY:-0}"
 
 if [ "${1:-}" != "--force" ] && [ -f "$OUT/libagent_desktop_ffi.a" ] && [ "$(cat "$OUT/STAMP" 2>/dev/null)" = "$STAMP" ]; then
   echo "engine: up to date ($ENGINE_COMMIT)"
@@ -55,7 +55,7 @@ done
 cmp -s engine/.src/LICENSE LICENSES/agent-desktop-Apache-2.0.txt || { echo "engine: LICENSES/agent-desktop-Apache-2.0.txt differs from upstream's LICENSE" >&2; exit 1; }
 
 TARGETS=(aarch64-apple-darwin)
-[ "${TYCHICUS_HANDS_ARM64_ONLY:-}" = 1 ] || TARGETS+=(x86_64-apple-darwin)
+[ "${LOCAL_STUDIO_COMPUTER_ARM64_ONLY:-}" = 1 ] || TARGETS+=(x86_64-apple-darwin)
 
 cd engine/.src
 # The toolchain the engine pins (rust-toolchain.toml); its macOS targets are added if missing.

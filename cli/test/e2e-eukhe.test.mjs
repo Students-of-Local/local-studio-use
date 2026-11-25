@@ -1,12 +1,12 @@
-// The first run of the side panel on Local Studio, end to end, from an empty HOME: `tychicus install` and
-// `tychicus install --local-studio` into a throwaway HOME, the built extension in a throwaway headless Chromium, a
-// stand-in Eukhe daemon on its socket, and the panel opened with nothing set up. The welcome shows no key field, the
+// The first run of the side panel on Local Studio, end to end, from an empty HOME: `local-studio-browser install` and
+// `local-studio-browser install --local-studio` into a throwaway HOME, the built extension in a throwaway headless Chromium, a
+// stand-in Eukhe daemon on its socket, and the panel opened with nothing set up. The home screen shows no key field, the
 // default model is Local Studio's, and "read this page" runs as a Eukhe session: the stand-in's turn starts the
-// `tychicus` MCP entry the install wrote (as Eukhe would), reads the current tab through it, and answers with what the
+// `local-studio-browser` MCP entry the install wrote (as Eukhe would), reads the current tab through it, and answers with what the
 // page says. Any key prompt, any password field, any pairing code, or a wrong answer fails the run.
 //
 // Needs `npm run build` in cli/ and the extension in dist-chrome without a version bump:
-//   TABKYRA_NO_BUMP=1 TABKYRA_OUT_DIR=$PWD/dist-chrome npm run build   (repo root)
+//   LOCAL_STUDIO_BROWSER_NO_BUMP=1 LOCAL_STUDIO_BROWSER_OUT_DIR=$PWD/dist-chrome npm run build   (repo root)
 // and a Playwright Chromium (`npx playwright-core install chromium`).
 import extensionId from "../../src/bridge/extension-id.json" with { type: "json" };
 import assert from "node:assert/strict";
@@ -21,7 +21,7 @@ import { sleep, startHarness } from "./e2e-harness.mjs";
 import { startFakeEukhe } from "./helpers/fake-eukhe.mjs";
 
 const PANEL = `chrome-extension://${extensionId.id}/sidepanel.html`;
-const SECRET = "The heron flies at dawn over Lake Tychicus";
+const SECRET = "The heron flies at dawn over Lake Local Studio";
 const PAGE = `<!doctype html><title>Heron notes</title><main><h1>Field notes</h1><p>${SECRET}.</p></main>`;
 
 /** Wait for `fn` to return something truthy; an assertion it throws fails the run at once (the harness's until retries). */
@@ -74,12 +74,12 @@ test("first run on Local Studio: no key asked, and 'read this page' answers from
 	const toolCalls = [];
 	const daemon = await startFakeEukhe({
 		path: socketPath,
-		// The stand-in model: it does what a model given the `tychicus` tools would do with "read this page".
+		// The stand-in model: it does what a model given the `local-studio` tools would do with "read this page".
 		turn: async (turn) => {
 			prompts.push(turn.message);
 			const settings = JSON.parse(readFileSync(join(h.home, ".eukhe", "settings.json"), "utf8"));
-			const entry = settings.mcpServers?.tychicus;
-			assert.ok(entry, "install --local-studio wrote the tychicus entry");
+			const entry = settings.mcpServers?.["local-studio"];
+			assert.ok(entry, "install --local-studio wrote the local-studio entry");
 			const mcp = new Client({ name: "eukhe-standin", version: "0.0.0" });
 			await mcp.connect(new StdioClientTransport({ command: entry.command, args: entry.args, env: h.env(), stderr: "inherit" }));
 			try {
@@ -115,8 +115,8 @@ test("first run on Local Studio: no key asked, and 'read this page' answers from
 	// The empty HOME gets what a person's would: the host (startHarness ran `install`) and the Local Studio entry.
 	execFileSync(process.execPath, [h.cli, "install", "--local-studio"], { env: h.env(), stdio: ["ignore", "inherit", "inherit"] });
 	const settings = JSON.parse(readFileSync(join(h.home, ".eukhe", "settings.json"), "utf8"));
-	assert.deepEqual(settings.mcpServers.tychicus.args.slice(-2), ["--profile", "small"]);
-	assert.deepEqual(readdirSync(join(h.home, ".local-studio", "plugins")).sort(), ["tychicus-browser", "tychicus-computer"]);
+	assert.deepEqual(settings.mcpServers["local-studio"].args.slice(-2), ["--profile", "small"]);
+	assert.deepEqual(readdirSync(join(h.home, ".local-studio", "plugins")).sort(), ["browser-use", "computer-use"]);
 
 	// The page to read, open in a tab.
 	const page = h.mount("heron", PAGE);
@@ -141,13 +141,9 @@ test("first run on Local Studio: no key asked, and 'read this page' answers from
 		if (asks.length) throw new assert.AssertionError({ message: `the panel asked for a key or a pairing code: ${JSON.stringify(asks)}` });
 	};
 
-	// The welcome, in its Local Studio form: chat now, keys one link away.
-	await waitFor(async () => (await watch(), panel(`!!document.querySelector("welcome-setup-dialog")`)), 30_000, "the welcome");
-	const welcome = await panel(`document.querySelector("welcome-setup-dialog").innerText`);
-	assert.match(welcome, /Runs on the Local Studio app/);
-	assert.match(welcome, /Use an API key instead/);
-	await panel(`[...document.querySelector("welcome-setup-dialog").querySelectorAll("button")].find((b) => b.innerText.trim() === "Chat here").click(), true`);
-	await waitFor(async () => (await watch(), panel(`!document.querySelector("welcome-setup-dialog")`)), 10_000, "the welcome to close");
+	// Nothing to set up: the home screen offers starters, never the connect list.
+	await waitFor(async () => (await watch(), panel(`!!document.querySelector(".welcome-container .tutorial-pill")`)), 30_000, "the starters");
+	assert.equal(await panel(`!!document.querySelector("[data-welcome-connect]")`), false);
 
 	// The model button names a Local Studio model, local first.
 	await waitFor(async () => (await watch(), panel(`!!document.querySelector("textarea")?.placeholder?.includes("Ask about this page")`)), 20_000, "the composer");
@@ -188,12 +184,12 @@ test("first run on Local Studio: no key asked, and 'read this page' answers from
 	assert.equal(prompts.length, 1, "one turn");
 	assert.match(prompts[0], /read this page/);
 	assert.match(prompts[0], new RegExp(`Current tab: Heron notes .*${page.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`), "the tab the person is on went with the prompt");
-	assert.ok(toolCalls.includes("get_page_text"), "the page was read through the installed tychicus entry");
+	assert.ok(toolCalls.includes("get_page_text"), "the page was read through the installed local-studio-browser entry");
 	// One Eukhe session for the chat, attached before the prompt, never a gateway client.
 	const kinds = daemon.commands.map((c) => c.type);
 	const chat = daemon.commands.filter((c) => c.type === "create" && c.config?.provider === "llamacpp");
 	assert.equal(chat.length, 1, `one chat session: ${JSON.stringify(kinds)}`);
-	assert.deepEqual(chat[0].env, { TYCHICUS_PROFILE: "small" }, "a local model's session asks for the small tool profile");
+	assert.deepEqual(chat[0].env, { LOCAL_STUDIO_BROWSER_PROFILE: "small" }, "a local model's session asks for the small tool profile");
 	const attach = daemon.commands.findIndex((c) => c.type === "attach");
 	assert.ok(attach >= 0 && attach < daemon.commands.findIndex((c) => c.type === "prompt"), "attached before the prompt");
 	assert.ok(daemon.commands.filter((c) => c.type === "attach").every((c) => c.clientKind === "interactive"));

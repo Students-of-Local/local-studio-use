@@ -1,26 +1,26 @@
-# tychicus-hands for macOS
+# local-studio-computer for macOS
 
-Tychicus's computer-use helper: `tychicus-hands mcp [--connector]`, a stdio MCP server that speaks the hands protocol
-(`docs/hands-protocol.md`). Tychicus's `computer_*` tools find it on PATH, in `~/.local/bin`, or through
-`TYCHICUS_HANDS_BIN`.
+Local Studio's computer-use helper: `local-studio-computer mcp [--connector]`, a stdio MCP server that speaks the hands protocol
+(`docs/hands-protocol.md`). Local Studio's `computer_*` tools find it on PATH, in `~/.local/bin`, or through
+`LOCAL_STUDIO_COMPUTER_BIN`.
 
 How it is built:
 
-- The router runs in this process; `TychicusHost` gives it windows from Accessibility and the window server.
+- The router runs in this process; `ComputerHost` gives it windows from Accessibility and the window server.
 - No window manager keeps an agent workspace for it: the windows of apps this helper started count as the agent's, and
   nothing moves (`AgentWorkspace.swift`).
 - No window-manager verbs (workspaces, query, events, arrange, move, switch, focus, frame). `close` stays. A connector
   still gets `permission_denied` for every managing verb.
 - No consent sheets yet, so nothing widens access: the mode is Default, or Read Only with
-  `defaults write tychicus-hands agentAccessMode read_only`. Lending answers `needs_lend`.
+  `defaults write local-studio-computer agentAccessMode read_only`. Lending answers `needs_lend`.
 
 ## Install
 
-A release installs it. The darwin archive (`tychicus-<version>-darwin-arm64.tar.gz`) carries it as
-`bin/tychicus-hands`, covered by `SHA256SUMS` and the build attestation like everything else in the archive, and
-`tychicus install --release <folder>` (which the one-command installer runs) copies it to `~/.local/bin/tychicus-hands`.
+A release installs it. The darwin archive (`local-studio-browser-<version>-darwin-arm64.tar.gz`) carries it as
+`bin/local-studio-computer`, covered by `SHA256SUMS` and the build attestation like everything else in the archive, and
+`local-studio-browser install --release <folder>` (which the one-command installer runs) copies it to `~/.local/bin/local-studio-computer`.
 It is copied, not linked, so it keeps one path across versions; a reinstall of the same bytes leaves the file alone.
-`tychicus doctor` then names it (`Computer use: tychicus-hands (~/.local/bin/tychicus-hands), answered as ...`).
+`local-studio-browser doctor` then names it (`Computer use: local-studio-computer (~/.local/bin/local-studio-computer), answered as ...`).
 
 It is one file: the engine (agent-desktop's C library) is linked in, so nothing sits beside it.
 
@@ -32,7 +32,7 @@ app an agent runs in) when an agent starts it from there, or the program a backg
 asks macOS which program that is, and when the grant is missing:
 
 - `computer_status` says so and names the program and its path: "macOS hasn't allowed Terminal to use Accessibility,
-  so tychicus-hands can't read or act on windows. Ask the person to open System Settings > Privacy & Security >
+  so local-studio-computer can't read or act on windows. Ask the person to open System Settings > Privacy & Security >
   Accessibility and turn on Terminal (/System/Applications/Utilities/Terminal.app)...".
 - every window verb, `windows` and `open` included, answers `permission_denied` with the same words.
 
@@ -46,12 +46,12 @@ everything else works.
 ## Signing
 
 Release builds are signed ad hoc with the hardened runtime: `codesign --force --sign - --options runtime --identifier
-com.tychicus.hands` (`scripts/package.sh`). There is no Developer ID yet, so it isn't notarized either. The trade-off:
+com.localstudio.computer` (`scripts/package.sh`). There is no Developer ID yet, so it isn't notarized either. The trade-off:
 
 - macOS matches a program signed ad hoc by its hash, and every build has a new one. A person who allowed
-  `tychicus-hands` itself in Accessibility (or the `tychicus` program, for a background service) has to allow it again
-  after each update: select it in the list, click -, then + and add `~/.local/bin/tychicus-hands` again. A grant to an
-  app such as Terminal is not affected. `tychicus install --release` says this whenever it puts a new helper in place.
+  `local-studio-computer` itself in Accessibility (or the `local-studio-browser` program, for a background service) has to allow it again
+  after each update: select it in the list, click -, then + and add `~/.local/bin/local-studio-computer` again. A grant to an
+  app such as Terminal is not affected. `local-studio-browser install --release` says this whenever it puts a new helper in place.
 - The engine is linked in statically because the hardened runtime's library validation refuses a library signed ad
   hoc ("mapping process and mapped file (non-platform) have different Team IDs"). One file also means no library
   beside it can be swapped while its grant stays.
@@ -62,19 +62,19 @@ com.tychicus.hands` (`scripts/package.sh`). There is no Developer ID yet, so it 
 ## Build
 
 ```sh
-scripts/build-engine.sh          # agent-desktop's static library, pinned in engine/PIN (needs cargo); TYCHICUS_HANDS_ARM64_ONLY=1 for arm64 only
-swift build -c release           # .build/release/tychicus-hands
+scripts/build-engine.sh          # agent-desktop's static library, pinned in engine/PIN (needs cargo); LOCAL_STUDIO_COMPUTER_ARM64_ONLY=1 for arm64 only
+swift build -c release           # .build/release/local-studio-computer
 scripts/package.sh <out-dir>     # both of the above for arm64, then the release copy: signed ad hoc and checked
 ```
 
 `package.sh` fails unless the signed copy links only system libraries, verifies with the runtime flag and the
-identifier, and answers `initialize` as `tychicus-hands`.
+identifier, and answers `initialize` as `local-studio-computer`.
 
 ## Check
 
 ```sh
 swift test                       # HandsCore; needs engine/lib, because the helper is linked too
-cd ../../cli && TYCHICUS_HANDS_CONFORMANCE_BIN=$PWD/../hands/mac/.build/release/tychicus-hands node --test test/hands-conformance.test.mjs
+cd ../../cli && LOCAL_STUDIO_COMPUTER_CONFORMANCE_BIN=$PWD/../hands/mac/.build/release/local-studio-computer node --test test/hands-conformance.test.mjs
 ```
 
 CI (`.github/workflows/browser-hands-mac.yml`) runs `scripts/package.sh` and `swift test` on a macOS runner, and the conformance

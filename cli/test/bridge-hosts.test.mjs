@@ -11,7 +11,7 @@ import { after, afterEach, before, test } from "node:test";
 import { fileURLToPath } from "node:url";
 
 const here = dirname(fileURLToPath(import.meta.url));
-const root = mkdtempSync(join(tmpdir(), "tabkyra-hosts-"));
+const root = mkdtempSync(join(tmpdir(), "local-studio-hosts-"));
 const dir = join(root, "sock");
 mkdirSync(dir, { mode: 0o700 });
 const sleepers = [];
@@ -103,8 +103,8 @@ before(async () => {
 	const out = join(root, "client.mjs");
 	await build({ entryPoints: [join(here, "..", "src", "client.ts")], bundle: true, platform: "node", format: "esm", outfile: out, logLevel: "silent" });
 	// Read when the client module loads: set first.
-	process.env.TABKYRA_SOCKET_DIR = dir;
-	process.env.TABKYRA_RECONNECT_BUDGET_MS = "3000";
+	process.env.LOCAL_STUDIO_BROWSER_SOCKET_DIR = dir;
+	process.env.LOCAL_STUDIO_BROWSER_RECONNECT_BUDGET_MS = "3000";
 	({ BridgeClient } = await import(out));
 });
 
@@ -329,7 +329,7 @@ test("status --json asks every browser at once, and a slow one is listed as not 
 	const cli = join(here, "..", "dist", "index.js");
 	const started = Date.now();
 	const child = spawn(process.execPath, [cli, "status", "--json"], {
-		env: { ...process.env, TABKYRA_SOCKET_DIR: dir, POLYCARP_BROWSER_QUERY_MS: "500" },
+		env: { ...process.env, LOCAL_STUDIO_BROWSER_SOCKET_DIR: dir, LOCAL_STUDIO_BROWSER_QUERY_MS: "500" },
 		stdio: ["ignore", "pipe", "pipe"],
 	});
 	let out = "";

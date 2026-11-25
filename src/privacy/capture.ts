@@ -1,4 +1,4 @@
-import type { TabkyraAppStorage } from "../storage/app-storage.js";
+import type { LocalStudioAppStorage } from "../storage/app-storage.js";
 import { addEntry, BUG_LOG_KEY, BUG_REPORTS_KEY, type BugEntry } from "./bug-reports.js";
 
 /**
@@ -14,7 +14,7 @@ function serial<T>(task: () => Promise<T>): Promise<T> {
 }
 
 /** Record one error, if reports are on at the moment it is written. */
-export function recordError(storage: TabkyraAppStorage, error: unknown): Promise<void> {
+export function recordError(storage: LocalStudioAppStorage, error: unknown): Promise<void> {
 	return serial(async () => {
 		if ((await storage.settings.get<boolean>(BUG_REPORTS_KEY)) !== true) return;
 		const log = (await storage.settings.get<BugEntry[]>(BUG_LOG_KEY)) ?? [];
@@ -25,7 +25,7 @@ export function recordError(storage: TabkyraAppStorage, error: unknown): Promise
 }
 
 /** Turn reports on or off; off also clears the log, after any capture already queued. */
-export function setBugReports(storage: TabkyraAppStorage, on: boolean): Promise<void> {
+export function setBugReports(storage: LocalStudioAppStorage, on: boolean): Promise<void> {
 	return serial(async () => {
 		await storage.settings.set(BUG_REPORTS_KEY, on);
 		if (!on) await storage.settings.set(BUG_LOG_KEY, []);
@@ -36,7 +36,7 @@ export function setBugReports(storage: TabkyraAppStorage, on: boolean): Promise<
  * Keep redacted errors from the side panel while the user has bug reports on. Off by
  * default; when off, nothing is recorded. Nothing is sent from here.
  */
-export function installBugCapture(storage: TabkyraAppStorage): void {
+export function installBugCapture(storage: LocalStudioAppStorage): void {
 	window.addEventListener("error", (e) => void recordError(storage, e.error ?? e.message));
 	window.addEventListener("unhandledrejection", (e) => void recordError(storage, e.reason));
 }

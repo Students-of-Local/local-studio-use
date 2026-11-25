@@ -1,0 +1,32 @@
+{
+	"tool": "agent-browser",
+	"at": "2026-11-24T05:58:55.777Z",
+	"version": "0.43.0",
+	"machine": {
+		"os": "macOS 27.2",
+		"arch": "arm64",
+		"cpu": "Apple M5",
+		"cores": 10,
+		"memGB": 32
+	},
+	"node": "v24.15.0",
+	"chromium": "Google Chrome for Testing 156.0.8078.4",
+	"load1": {
+		"start": 25.9,
+		"end": 21.6
+	},
+	"repeat": 3,
+	"speedN": 9,
+	"tasks": {
+		"pass": 30,
+		"of": 30,
+		"failed": {}
+	},
+	"startMs": 2405,
+	"speed_ms": {
+		"click": 23,
+		"fill": 11,
+		"firstText": 41
+	},
+	"errors": {}
+}

@@ -122,14 +122,17 @@ test("starter chips: four, each a task that runs, none of the old odd ones", asy
 	const { starters } = await import("../src/tutorials.ts");
 	assert.deepEqual(
 		starters.map((s) => s.label),
-		["Summarize page", "Research a topic", "Fill a form", "Compare tabs"],
+		["Summarize page", "Research a topic", "Fill a form", "Change this site"],
 	);
 	for (const s of starters) {
-		assert.ok(s.prompt.length > 20 && s.hint && s.icon, s.label);
-		assert.ok(s.mode === "send" || s.mode === "compose", s.label);
+		assert.ok(s.hint && s.icon, s.label);
+		if (s.mode === "sites") assert.equal(s.prompt, "", s.label);
+		else assert.ok(s.prompt.length > 20 && (s.mode === "send" || s.mode === "compose"), s.label);
 	}
-	// "Compare tabs" ends in "@" so the composer opens its tab menu.
-	assert.match(starters.find((s) => s.label === "Compare tabs").prompt, /@$/);
+	// "Change this site" opens Settings > Sites on the page in front: one click to its switches, no prompt to write.
+	assert.equal(starters.find((s) => s.label === "Change this site").mode, "sites");
+	const welcome = readFileSync(new URL("../src/messages/WelcomeMessage.ts", import.meta.url), "utf8");
+	assert.match(welcome, /starter\.mode === "sites"[\s\S]{0,120}setup\.onChangeSite/);
 });
 
 test("pages that paint the theme background also set the theme text color, so dialogs on <body> stay readable", () => {
@@ -143,11 +146,11 @@ test("pages that paint the theme background also set the theme text color, so di
 });
 
 test("the Claude and Gemini MCP setup commands render as readable command blocks with a copy button", () => {
-	const source = readFileSync(new URL("../src/subscriptions/SubscriptionsSection.ts", import.meta.url), "utf8");
+	const source = readFileSync(new URL("../src/subscriptions/ConnectList.ts", import.meta.url), "utf8");
 	assert.match(source, /this\.command\("Claude Code", cliMcpSetup\("claude", hostCommand\(\)\)\)/);
 	assert.match(source, /this\.command\("Gemini CLI", cliMcpSetup\("gemini", hostCommand\(\)\)\)/);
 	const block = source.slice(source.indexOf("private command("), source.indexOf("private row("));
-	// The look is shared with Settings > Connect (src/components/command-box.ts): it wraps anywhere, so a long command can't run off the panel.
+	// The look is shared with Settings > Connections (src/components/command-box.ts): it wraps anywhere, so a long command can't run off the panel.
 	assert.match(block, /<code class=\$\{COMMAND_BOX_CLASS\}>/);
 	const codeClass = readFileSync(new URL("../src/components/command-box.ts", import.meta.url), "utf8").match(/COMMAND_BOX_CLASS =\s*"([^"]*)"/)?.[1] ?? "";
 	assert.match(codeClass, /\btext-foreground\b/);
@@ -168,18 +171,24 @@ test("native controls follow the theme: dark mode declares color-scheme dark", (
 	const css = readFileSync(new URL("../src/app.css", import.meta.url), "utf8");
 	const dark = css.slice(css.indexOf(".dark {"), css.indexOf("}", css.indexOf(".dark {")));
 	assert.match(dark, /color-scheme: dark;/);
-	assert.match(dark, /accent-color: var\(--tk-brass\);/);
+	assert.match(dark, /accent-color: var\(--tk-accent\);/);
 });
 
-test("Settings > Providers reads top to bottom: Free mode, API keys with their search and list, subscriptions, custom providers", () => {
+test("Settings > Providers reads top to bottom: the sign-ins, API keys with their list, custom providers, then Free mode", () => {
 	const tab = readFileSync(new URL("../src/dialogs/ApiKeysTab.ts", import.meta.url), "utf8");
-	const order = ["Free mode: use the best free model", ">API keys</h3>", 'placeholder="Find a provider"', "<tabkyra-provider-key", "<tabkyra-subscriptions>", "${this.custom}"].map((s) => tab.indexOf(s));
+	const rendered = tab.slice(tab.lastIndexOf("\trender(): TemplateResult"));
+	assert.match(rendered, /<local-studio-connect-list/);
+	const order = ["<local-studio-connect-list", "this.renderKeys()", "Free models (OpenRouter)"].map((s) => rendered.indexOf(s));
+	const keys = tab.slice(tab.indexOf("private renderKeys()"), tab.lastIndexOf("\trender(): TemplateResult"));
+	const inKeys = [">API keys</h3>", 'placeholder="Find a provider"', "<local-studio-provider-key", "Add an API key", "${this.custom}"].map((s) => keys.indexOf(s));
+	assert.ok(inKeys.every((i) => i > 0), JSON.stringify(inKeys));
+	assert.deepEqual([...inKeys].sort((a, b) => a - b), inKeys);
 	assert.ok(order.every((i) => i > 0), JSON.stringify(order));
 	assert.deepEqual([...order].sort((a, b) => a - b), order);
 });
 
 test("subscription commands are copyable blocks, and a failed copy is a toast that can't overwrite or outlive the section's notice", () => {
-	const source = readFileSync(new URL("../src/subscriptions/SubscriptionsSection.ts", import.meta.url), "utf8");
+	const source = readFileSync(new URL("../src/subscriptions/ConnectList.ts", import.meta.url), "utf8");
 	assert.match(source, /this\.command\("Install the Copilot SDK", `\$\{hostCommand\(\)\} copilot-sdk install`\)/);
 	assert.match(source, /this\.command\("Set up the Local Studio helper", `\$\{hostCommand\(\)\} setup`\)/);
 	assert.doesNotMatch(source, /run <code>/, "no bare inline commands left");
@@ -250,7 +259,7 @@ test("API keys are one line per provider: the key field opens on Add key, a bad 
 	assert.doesNotMatch(row, /stopReason === "stop"/, "a reasoning model that hits the token limit still proves the key");
 	for (const file of ["../src/dialogs/ApiKeysTab.ts", "../src/dialogs/ApiKeyDialog.ts"]) {
 		const source = readFileSync(new URL(file, import.meta.url), "utf8");
-		assert.match(source, /<tabkyra-provider-key /, file);
+		assert.match(source, /<local-studio-provider-key /, file);
 		assert.doesNotMatch(source, /<provider-key-input/, file);
 	}
 });
@@ -279,7 +288,29 @@ test("the / menu lists every skill: no cap drops any", async () => {
 	assert.equal(skillMenuItems("", site, new Set(), library).length, 190);
 });
 
-test("costs read as money, and the CORS proxy no longer names a sign-in Tychicus refuses", async () => {
+test("every bundled skill is in exactly one group, every group names skills that exist, and the groups keep them all", async () => {
+	const { bySkillGroup, SKILL_GROUPS, UNGROUPED } = await import("../src/composer/skill-groups.ts");
+	const folders = readdirSync(new URL("../skills/", import.meta.url), { withFileTypes: true })
+		.filter((d) => d.isDirectory())
+		.map((d) => d.name);
+	const grouped = SKILL_GROUPS.flatMap((g) => g.skills);
+	assert.deepEqual([...grouped].sort(), [...folders].sort());
+	assert.equal(new Set(grouped).size, grouped.length, "no skill is in two groups");
+	for (const g of SKILL_GROUPS) assert.ok(g.skills.length >= 2, `${g.name} groups nothing`);
+	// One added without a group still shows, last.
+	const groups = bySkillGroup([...folders, "new-skill"].map((name) => ({ name })));
+	assert.equal(groups.flatMap((g) => g.items).length, folders.length + 1);
+	assert.deepEqual(groups.at(-1), { name: UNGROUPED, items: [{ name: "new-skill" }] });
+});
+
+test("no page asks a favicon service about a site the person visits", () => {
+	const walk = (dir) =>
+		readdirSync(dir, { withFileTypes: true }).flatMap((e) => (e.isDirectory() ? walk(new URL(`${e.name}/`, dir)) : /\.(ts|js|html|css)$/.test(e.name) ? [new URL(e.name, dir)] : []));
+	for (const file of [...walk(new URL("../src/", import.meta.url)), ...walk(new URL("../static/", import.meta.url))])
+		assert.doesNotMatch(readFileSync(file, "utf8"), /s2\/favicons|icons\.duckduckgo|favicon\.ico\?|faviconV2/, file.pathname);
+});
+
+test("costs read as money, and the CORS proxy no longer names a sign-in Local Studio refuses", async () => {
 	const { formatCost } = await import("../src/utils/format-cost.ts");
 	assert.equal(formatCost(0), "$0.00");
 	assert.equal(formatCost(0.0042), "$0.0042");
@@ -292,7 +323,7 @@ test("costs read as money, and the CORS proxy no longer names a sign-in Tychicus
 	assert.doesNotMatch(costs, /toFixed\(4\)/);
 });
 
-test("Settings > Skills: one search for both lists, full descriptions on hover, name clashes explained", async () => {
+test("Settings > Skills: one search for both lists, a row opens to its full description, name clashes explained", async () => {
 	const { libraryRows, normalizeSkillQuery } = await import("../src/dialogs/skill-list.ts");
 	assert.equal(normalizeSkillQuery(" /GitHub "), "github");
 	const bundled = [{ name: "github", description: "Work with GitHub. Issues, pull requests and more." }];
@@ -302,7 +333,7 @@ test("Settings > Skills: one search for both lists, full descriptions on hover, 
 	]);
 	const tab = readFileSync(new URL("../src/dialogs/SkillsTab.ts", import.meta.url), "utf8");
 	assert.match(tab, /const query = normalizeSkillQuery\(this\.searchQuery\);/);
-	assert.match(tab, /title=\$\{row\.description\}/);
+	assert.match(tab, /<p class="text-xs text-muted-foreground">\$\{row\.description\}<\/p>/, "an open row says all of it, with no hover");
 	const { formatCost } = await import("../src/utils/format-cost.ts");
 	assert.equal(formatCost(0.00003), "<$0.0001");
 	assert.equal(formatCost(-0.0042), "-$0.0042");
@@ -347,10 +378,10 @@ test("Settings, the skill screens and the provider editor are pages, not overlay
 test("the short provider list loses nothing: a saved key stays, and custom providers never hide", () => {
 	const tab = readFileSync(new URL("../src/dialogs/ApiKeysTab.ts", import.meta.url), "utf8");
 	assert.match(tab, /this\.withKeys\.add\(this\.justSaved\)/);
-	assert.match(tab, /this\.showAll \|\| this\.hasCustom \|\| this\.query\.trim\(\) \? html`<div class="pt-5 border-t border-border">\$\{this\.custom\}/);
+	assert.match(tab, /this\.adding \|\| this\.hasCustom \? html`<div class="pt-3">\$\{this\.custom\}/);
 	// Having a custom provider must not take away the way to reach the rest of the list.
-	assert.match(tab, /this\.showAll \|\| this\.query\.trim\(\)\s*\? nothing\s*: html`<button/);
-	assert.match(tab, /q \|\| this\.showAll \|\| this\.withKeys\.has\(p\) \|\| COMMON_PROVIDERS\.has\(p\)/);
+	assert.match(tab, /this\.adding && !this\.showAll && !this\.query\.trim\(\)\s*\? html`<button/);
+	assert.match(tab, /this\.withKeys\.has\(p\) \|\| \(this\.adding && \(q \|\| this\.showAll \|\| COMMON_PROVIDERS\.has\(p\)\)\)/);
 });
 
 test("sending from the panel with another session's tab in front leaves that tab with its session", async () => {

@@ -25,9 +25,9 @@ Checked 2026-10-28 against the providers' own pages (first checked 2026-10-25).
 | OpenAI | API key (`api.openai.com`) | Yes | [API keys](https://platform.openai.com/docs/api-reference/authentication) | Kept. Billed by OpenAI. |
 | GitHub | **Copilot SDK with Local Studio's own OAuth App** (client id `Ov23li1qDiu9lRXbvcFh`, registered by baney75 on 2026-10-28, device flow, no client secret issued) | **Yes.** "Use an OAuth GitHub App to authenticate users through your application and pass their credentials to the SDK. This enables your application to make Copilot API requests on behalf of users who authorize your app." The setup page: "You create a GitHub OAuth App (or GitHub App) ... Copilot usage is billed to each user's subscription." | [Authenticate the Copilot SDK](https://docs.github.com/en/copilot/how-tos/copilot-sdk/authenticate-copilot-sdk/authenticate-copilot-sdk), [GitHub OAuth setup](https://docs.github.com/en/copilot/how-tos/copilot-sdk/setup/github-oauth), [Refreshing user access tokens](https://docs.github.com/en/apps/creating-github-apps/authenticating-with-a-github-app/refreshing-user-access-tokens) (all read 2026-10-28) | Offered: "Sign in with GitHub Copilot" in Settings. Provider `copilot-plan`. Each user needs their own Copilot plan. |
 | GitHub | Copilot device flow with VS Code Copilot Chat's client id, `Editor-Version: vscode/...`, `Copilot-Integration-Id: vscode-chat`, `User-Agent: GitHubCopilotChat/...`, and the undocumented `copilot_internal/v2/token` | **No.** GitHub documents no third-party use of that client or endpoint. | [Terms for Additional Products](https://docs.github.com/en/site-policy/github-terms/github-terms-for-additional-products-and-features) | Removed. GitHub Models (PAT) was retired on 2026-07-30 ([changelog](https://github.blog/changelog/2026-07-01-github-models-is-being-fully-retired-on-july-30-2026/)). |
-| Google | Gemini CLI's OAuth client id and secret against Code Assist (`cloudcode-pa.googleapis.com`), or spawning the user's Gemini CLI to use its sign-in | **No, explicitly.** "Directly accessing the services powering Gemini CLI (for example, the Gemini Code Assist service) using third-party software, tools, or services (for example, using OpenClaw with Gemini CLI OAuth) is a violation of applicable terms and policies. Such actions may be grounds for suspension or termination of your account." | [Gemini CLI terms and privacy](https://geminicli.com/docs/resources/tos-privacy/) (updated 2026-04-10, read 2026-10-28) | Removed, along with Antigravity. Settings tells the user to run their own Gemini CLI with Local Studio's MCP server instead: `gemini mcp add --scope user tychicus ~/.config/tychicus/tychicus mcp`. |
+| Google | Gemini CLI's OAuth client id and secret against Code Assist (`cloudcode-pa.googleapis.com`), or spawning the user's Gemini CLI to use its sign-in | **No, explicitly.** "Directly accessing the services powering Gemini CLI (for example, the Gemini Code Assist service) using third-party software, tools, or services (for example, using OpenClaw with Gemini CLI OAuth) is a violation of applicable terms and policies. Such actions may be grounds for suspension or termination of your account." | [Gemini CLI terms and privacy](https://geminicli.com/docs/resources/tos-privacy/) (updated 2026-04-10, read 2026-10-28) | Removed, along with Antigravity. Settings tells the user to run their own Gemini CLI with Local Studio's MCP server instead: `gemini mcp add --scope user local-studio ~/.local-studio/browser/local-studio-browser mcp`. |
 | Google | Gemini API key from Google AI Studio | Yes. The terms page lists it as a supported method. | [Gemini API key](https://ai.google.dev/gemini-api/docs/api-key) | Kept. Free tier with limits, paid above it, billed by Google. |
-| Anthropic | Claude Pro/Max sign-in (claude.ai OAuth, `sk-ant-oat` tokens), or spawning the user's `claude` to use its sign-in | **No, explicitly.** "Anthropic does not permit third-party developers to offer Claude.ai login into their own applications, or to route requests through Free, Pro, or Max plan credentials on behalf of their users. Moreover, developers may not collect, store, or intermediate Claude.ai credentials or session tokens." The same page allows "an end user ... signing in to the unmodified Claude Code binary with their own Claude subscription." | [Claude Code legal and compliance](https://code.claude.com/docs/en/legal-and-compliance) (read 2026-10-28) | Removed. An `sk-ant-oat` token pasted into the key field is refused. Settings tells the user to run their own Claude Code with Local Studio's MCP server: `claude mcp add --scope user tychicus -- ~/.config/tychicus/tychicus mcp`. |
+| Anthropic | Claude Pro/Max sign-in (claude.ai OAuth, `sk-ant-oat` tokens), or spawning the user's `claude` to use its sign-in | **No, explicitly.** "Anthropic does not permit third-party developers to offer Claude.ai login into their own applications, or to route requests through Free, Pro, or Max plan credentials on behalf of their users. Moreover, developers may not collect, store, or intermediate Claude.ai credentials or session tokens." The same page allows "an end user ... signing in to the unmodified Claude Code binary with their own Claude subscription." | [Claude Code legal and compliance](https://code.claude.com/docs/en/legal-and-compliance) (read 2026-10-28) | Removed. An `sk-ant-oat` token pasted into the key field is refused. Settings tells the user to run their own Claude Code with Local Studio's MCP server: `claude mcp add --scope user local-studio -- ~/.local-studio/browser/local-studio-browser mcp`. |
 | Anthropic | API key from the Claude Console | Yes | same page: "should use API key authentication through Claude Console" | Kept. Billed by Anthropic. |
 | Others (OpenRouter, Mistral, Groq, xAI, Cerebras, Hugging Face, z.ai, MiniMax, custom and local providers) | API key or none | Yes | each provider's API docs | Kept. Billed by the provider (local models aren't billed). |
 
@@ -35,7 +35,7 @@ Checked 2026-10-28 against the providers' own pages (first checked 2026-10-25).
 
 Both run in the **native host** (`cli/src/subscriptions/`), the Node process the browser
 starts for Local Studio, never in the extension. Tokens live in owner-only files under
-`~/.config/tychicus/subscriptions/` (folder 0700, files 0600, written atomically), as OpenAI's
+`~/.local-studio/browser/subscriptions/` (folder 0700, files 0600, written atomically), as OpenAI's
 docs require ("Keep tokens out of browser storage"). The extension never sees a token: the host
 runs a loopback proxy on `127.0.0.1` that adds the user's token to each model request. The side
 panel reaches it with a random per-process secret it gets over native messaging and keeps in
@@ -44,7 +44,7 @@ memory. The proxy checks the secret and its own `Host` header, and forwards only
 
 **Sign in with ChatGPT** (`siwc.ts`):
 
-- First sign-in: `client_id=dynamic_agent_client`, `agent_name_hint=Tabkyra`, and the host's
+- First sign-in: `client_id=dynamic_agent_client`, `agent_name_hint=Local Studio`, and the host's
   `ext_agent_host_id` (`urn:uuid:...`, made once and kept). Later sign-ins reuse the issued
   `oaiapp_...` client id with `login_hint`. Local Studio never sends the optional `id_token_hint`: the
   authorization URL passes through the extension and the browser's history, which must hold no
@@ -68,7 +68,7 @@ memory. The proxy checks the secret and its own `Host` header, and forwards only
   token at the `revocation_endpoint` (retried on network errors and 5xx) and delete the access,
   refresh and ID tokens. The registration and host id stay.
 - Requests: `store: false`, `stream: true`, no unsupported fields, developer instead of system
-  items, function tools in a `tabkyra` namespace. The side panel shapes the body and the host
+  items, function tools in a `local-studio-browser` namespace. The side panel shapes the body and the host
   shapes it again before forwarding (`siwcRequestBody` in `src/subscriptions/constants.ts`).
 - UI per OpenAI's guidelines: "Continue with ChatGPT", a one-time "You're using your ChatGPT
   plan" note with "Got it", model names marked "(ChatGPT plan)", "Manage usage" links to
@@ -87,7 +87,7 @@ memory. The proxy checks the secret and its own `Host` header, and forwards only
 - Sign-out deletes the token file. Revoking the grant on GitHub's side needs the app's secret,
   so Settings links the user to the app's own grant page, `github.com/settings/connections/applications/<client id>`.
 - Inference uses GitHub's Copilot SDK (`@github/copilot-sdk`, pinned to 1.0.28), installed by the
-  user with `tychicus copilot-sdk install` (about 160 MB, the SDK's runtime for the platform). The
+  user with `local-studio-browser copilot-sdk install` (about 160 MB, the SDK's runtime for the platform). The
   host creates `CopilotClient({ gitHubToken, useLoggedInUser: false, mode: "empty" })`, so it
   never falls back to another login, and one session per chat with only Local Studio's browser tools
   (`availableTools`), `systemMessage` in append mode so GitHub's own guardrails stay, and every

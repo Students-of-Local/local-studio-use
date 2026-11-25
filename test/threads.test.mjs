@@ -95,7 +95,7 @@ test("redaction removes keys, tokens and private keys but keeps commit ids and U
 	const { redactSecrets } = await import("../src/privacy/bug-reports.ts");
 	const token = ["ghp", "abcdefghijklmnopqrstuvwxyz0123456789"].join("_");
 	const out = redactSecrets(
-		`${token} Bearer ${"abcdefghijklmnop"}0123456789 ${"AKIA"}ABCDEFGHIJKLMNOP\n${PEM("MIIE")}\ncommit 9e37df3ef79b6c0e4cf95a8c30f4f272d913e9e0 at https://github.com/baney75/tabkyra/pull/40`,
+		`${token} Bearer ${"abcdefghijklmnop"}0123456789 ${"AKIA"}ABCDEFGHIJKLMNOP\n${PEM("MIIE")}\ncommit 9e37df3ef79b6c0e4cf95a8c30f4f272d913e9e0 at https://github.com/baney75/local-studio/pull/40`,
 	);
 	assert.doesNotMatch(out, /ghp_|abcdefghijklmnop0123|AKIAABCD|MIIE/);
 	assert.match(out, /Bearer \[secret\]/);
@@ -107,7 +107,7 @@ test("redaction removes keys, tokens and private keys but keeps commit ids and U
 	const hexOut = redactSecrets(`DD_API_KEY=${hex32} and seed ${hex64}`);
 	assert.doesNotMatch(hexOut, new RegExp(`${hex32}|${hex64}`), "a key written in hex was kept");
 	assert.match(hexOut, /DD_API_KEY=\[secret\] and seed \[secret\]/);
-	assert.match(out, /https:\/\/github\.com\/baney75\/tabkyra\/pull\/40/);
+	assert.match(out, /https:\/\/github\.com\/baney75\/local-studio\/pull\/40/);
 });
 
 test("thread ids can't name anything outside the threads folder", () => {
@@ -119,8 +119,8 @@ test("private-mode threads are never listed, read or searched; a missing and a p
 	const open = thread("open1");
 	const hidden = thread("private1");
 	store.setThreadSource({
-		list: async () => [meta(open), meta(hidden, { tabkyraPrivate: true })],
-		read: async (id) => (id === "open1" ? { meta: meta(open), data: open } : id === "private1" ? { meta: meta(hidden, { tabkyraPrivate: true }), data: { ...hidden, tabkyraPrivate: true } } : {}),
+		list: async () => [meta(open), meta(hidden, { localStudioPrivate: true })],
+		read: async (id) => (id === "open1" ? { meta: meta(open), data: open } : id === "private1" ? { meta: meta(hidden, { localStudioPrivate: true }), data: { ...hidden, localStudioPrivate: true } } : {}),
 	});
 	try {
 		const list = await bridge.handleThreads("threads.list", {});
@@ -161,8 +161,8 @@ test("the mirror writes a changed thread once it has been quiet, deletes private
 	const t = thread("live1");
 	let isPrivate = false;
 	store.setThreadSource({
-		list: async () => [meta(t, { tabkyraPrivate: isPrivate })],
-		read: async () => ({ meta: meta(t, { tabkyraPrivate: isPrivate }), data: t }),
+		list: async () => [meta(t, { localStudioPrivate: isPrivate })],
+		read: async () => ({ meta: meta(t, { localStudioPrivate: isPrivate }), data: t }),
 	});
 	const sent = [];
 	// Sharing began before this thread was made (older chats are the next test's subject).
@@ -250,7 +250,7 @@ test("the side panel's session store marks a thread saved in private mode privat
 	};
 	// pi-web-ui loads pdf.js, which wants a few browser globals at import time.
 	for (const k of ["DOMMatrix", "Path2D", "ImageData"]) globalThis[k] ??= class {};
-	const { TabkyraSessionsStore } = await import("../src/storage/stores/sessions-store.ts");
+	const { LocalStudioSessionsStore } = await import("../src/storage/stores/sessions-store.ts");
 	const tables = { settings: new Map(), sessions: new Map(), "sessions-metadata": new Map() };
 	const backend = {
 		async get(s, k) {
@@ -266,7 +266,7 @@ test("the side panel's session store marks a thread saved in private mode privat
 			return op({ get: (s, k) => backend.get(s, k), set: (s, k, v) => backend.set(s, k, v), delete: (s, k) => backend.delete(s, k) });
 		},
 	};
-	const sessions = new TabkyraSessionsStore();
+	const sessions = new LocalStudioSessionsStore();
 	sessions.setBackend(backend);
 	const save = (id) =>
 		sessions.save(
@@ -274,15 +274,15 @@ test("the side panel's session store marks a thread saved in private mode privat
 			{ id, title: "t", createdAt: "c", lastModified: "l", messageCount: 0, usage: {}, thinkingLevel: "off", preview: "" },
 		);
 	await save("plain");
-	assert.equal(tables["sessions-metadata"].get("plain").tabkyraPrivate, undefined);
+	assert.equal(tables["sessions-metadata"].get("plain").localStudioPrivate, undefined);
 	tables.settings.set("privacy.privateMode", true);
 	await save("secret");
-	assert.equal(tables.sessions.get("secret").tabkyraPrivate, true);
-	assert.equal(tables["sessions-metadata"].get("secret").tabkyraPrivate, true);
+	assert.equal(tables.sessions.get("secret").localStudioPrivate, true);
+	assert.equal(tables["sessions-metadata"].get("secret").localStudioPrivate, true);
 	// Private mode off again: the thread stays private.
 	tables.settings.set("privacy.privateMode", false);
 	await save("secret");
-	assert.equal(tables["sessions-metadata"].get("secret").tabkyraPrivate, true);
+	assert.equal(tables["sessions-metadata"].get("secret").localStudioPrivate, true);
 	// A read that fails can't show the thread isn't private, so nothing is saved unmarked.
 	const get = backend.get;
 	for (const broken of ["settings", "sessions-metadata"]) {
@@ -295,6 +295,6 @@ test("the side panel's session store marks a thread saved in private mode privat
 	await sessions.deleteSession("plain");
 	assert.deepEqual(
 		announced.map((m) => `${m.type}:${m.id}`),
-		["tabkyra-thread-changed:plain", "tabkyra-thread-changed:secret", "tabkyra-thread-changed:secret", "tabkyra-thread-changed:plain", "tabkyra-thread-changed:plain"],
+		["local-studio-thread-changed:plain", "local-studio-thread-changed:secret", "local-studio-thread-changed:secret", "local-studio-thread-changed:plain", "local-studio-thread-changed:plain"],
 	);
 });

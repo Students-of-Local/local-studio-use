@@ -14,7 +14,7 @@ Don't open a public issue, discussion or pull request for a vulnerability. Use e
   the subject.
 
 Include what you found, the version (extension version from the side panel's About screen,
-`tychicus --version`, and the commit if you built from source), the steps to reproduce,
+`local-studio-browser --version`, and the commit if you built from source), the steps to reproduce,
 and what an attacker gains. A proof of concept against a test page or a throwaway account
 is the most useful thing you can send.
 
@@ -34,18 +34,18 @@ In scope:
 
 - The extension: the side panel, the bridge, site permissions, tab group isolation,
   private mode and bug-report redaction.
-- The native host, the Unix-socket client and the MCP server (`tychicus mcp`).
-- Remote MCP: `tychicus serve`, token scopes and revocation, and the tunnel commands.
-- The skill lint and the bundled skills in `skills/`, including a skill text that gets an
-  agent to act against its user and still passes the lint.
-- `tychicus update`: signature, checksum and unpacking checks.
-- The setup prompt, `tychicus setup`, `tychicus install` and the launcher they write.
+- The native host, the Unix-socket client and the MCP server (`local-studio-browser mcp`).
+- Remote MCP: `local-studio-browser serve`, token scopes and revocation, and the tunnel commands.
+- The app's skills in the repository root's `skills/`, including a skill text that gets an
+  agent to act against its user.
+- `local-studio-browser update`: signature, checksum and unpacking checks.
+- The setup prompt, `local-studio-browser setup`, `local-studio-browser install` and the launcher they write.
 - The release and CI workflows in `.github/`.
 
 Examples of what counts: an agent reaching tabs outside its own group, opening a site
 that wasn't allowed while the mode is "ask", a token using a tool outside its scopes,
-another local user reaching the bridge socket, a skill that hides instructions from the
-lint, an update that installs unsigned code, or redaction that leaks an email or a key.
+another local user reaching the bridge socket, a skill that hides instructions from its
+reader, an update that installs unsigned code, or redaction that leaks an email or a key.
 
 Out of scope, or known and documented:
 
@@ -54,9 +54,8 @@ Out of scope, or known and documented:
   control (site permission, tab group, token scope) is in scope.
 - Programs running as the same user reaching the bridge. They have the same trust as the
   user's shell.
-- Lint gaps already listed under "Limits" in
-  [docs/skill-security.md](docs/skill-security.md). A new way around them is in scope.
-- `tychicus allow-all` and `tychicus tunnel tailscale --public` behaving as documented.
+- What is already listed under "Limits" in [docs/skill-security.md](docs/skill-security.md).
+- `local-studio-browser allow-all` and `local-studio-browser tunnel tailscale --public` behaving as documented.
 - Bugs in the sibling projects themselves. Report those upstream:
   [badlogic/pi-mono](https://github.com/badlogic/pi-mono),
   [badlogic/mini-lit](https://github.com/badlogic/mini-lit),

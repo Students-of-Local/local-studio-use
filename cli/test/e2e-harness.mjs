@@ -127,7 +127,7 @@ function listen(server) {
  * `chromiumArgs` go to Chromium before the first page.
  */
 export async function startHarness({ name = "dom-bench", onElicit, chromiumArgs = [], extension = extensionDir } = {}) {
-	const home = mkdtempSync(join(tmpdir(), "tabkyra-e2e-home-"));
+	const home = mkdtempSync(join(tmpdir(), "local-studio-e2e-home-"));
 	// Unix socket paths are capped near 104 bytes on macOS, so keep this one short.
 	const socketDir = mkdtempSync("/tmp/tke2e-");
 	const profile =
@@ -143,10 +143,10 @@ export async function startHarness({ name = "dom-bench", onElicit, chromiumArgs 
 		XDG_DATA_HOME: join(home, ".local", "share"),
 		XDG_STATE_HOME: join(home, ".local", "state"),
 		XDG_CACHE_HOME: join(home, ".cache"),
-		TABKYRA_SOCKET_DIR: socketDir,
-		TABKYRA_AUTO_ALLOW: "1",
-		TABKYRA_CLIENT_NAME: name,
-		TABKYRA_SESSION: name,
+		LOCAL_STUDIO_BROWSER_SOCKET_DIR: socketDir,
+		LOCAL_STUDIO_BROWSER_AUTO_ALLOW: "1",
+		LOCAL_STUDIO_BROWSER_CLIENT_NAME: name,
+		LOCAL_STUDIO_BROWSER_SESSION: name,
 	});
 
 	/** path -> html */
@@ -221,8 +221,8 @@ export async function startHarness({ name = "dom-bench", onElicit, chromiumArgs 
 		// tabs through chrome.debugger, and a second automation client attached to every
 		// target gets in its way. Targets are listed over the DevTools HTTP endpoint instead.
 		browser = spawn(
-			// TABKYRA_E2E_CHROMIUM: a Chromium already on disk, when Playwright's pinned build isn't downloaded.
-			process.env.TABKYRA_E2E_CHROMIUM || chromium.executablePath(),
+			// LOCAL_STUDIO_BROWSER_E2E_CHROMIUM: a Chromium already on disk, when Playwright's pinned build isn't downloaded.
+			process.env.LOCAL_STUDIO_BROWSER_E2E_CHROMIUM || chromium.executablePath(),
 			[
 				`--user-data-dir=${profile}`,
 				"--headless=new",

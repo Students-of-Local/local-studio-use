@@ -1,6 +1,6 @@
 # Why click and fill were slow, and what fixed them
 
-The 2026-11-17 study measured Tychicus at a median of 808 ms per click and 532 ms per fill on its form page
+The 2026-11-17 study measured Local Studio at a median of 808 ms per click and 532 ms per fill on its form page
 (`evals/market/tasks/site/t02-form`), where the rival tools took under 100 ms. This is the trace behind D50.
 
 ## How it was measured
@@ -147,7 +147,7 @@ the `Page.windowOpen` handling failed its unit test (`{"settled":true,"ms":25,"i
 
 ### Left as is
 
-Click under 50 ms was not reached. The 50 ms is the page's task queue held after the click, not Tychicus's own work:
+Click under 50 ms was not reached. The 50 ms is the page's task queue held after the click, not Local Studio's own work:
 in the CI trace the move reply came back at 6.3 ms, and the probe began in the page 0.8 ms after it was sent, but its
 MessageChannel message was delivered at 50.2 ms (fill and navigate probes: about 1 ms). Chromium's
 `DeferRendererTasksAfterInput` holds a page's ordinary tasks after a discrete input until the next frame. In a visible
@@ -158,14 +158,14 @@ set, so click stays at about 60 ms.
 
 ## 2026-11-22: beating agent-browser on click, fill and first text (D62)
 
-The goal: Tychicus's click, fill and firstText medians under agent-browser's in the market eval's rivals harness
+The goal: Local Studio's click, fill and firstText medians under agent-browser's in the market eval's rivals harness
 (`evals/market/rivals/run.mjs --repeat 3`), same machine and session, with startMs no worse than any rival once every tool
 is timed the same way, tasks at 30/30 and dom-bench at 54/54. The machine is a shared 32-core host whose load swung from
 16 to 50 during the work, from other people's jobs; every comparison below pairs the two tools in one session.
 
 ### How it was measured
 
-`TYCHICUS_TRACE` (off by default; `cli/src/hop-trace.ts`) adds a mark at every hop: the MCP server, the client, the native
+`LOCAL_STUDIO_BROWSER_TRACE` (off by default; `cli/src/hop-trace.ts`) adds a mark at every hop: the MCP server, the client, the native
 host in both directions, the service worker, and named steps inside the handlers. Set to a file, each tool call appends one
 JSON line. `evals/market/tasks/speed.mjs N` drove the calls; the table gives medians in ms from the MCP server receiving the
 call. Before: 18 calls per tool on the branch point (b5df132). After: 15 on 9149b13, load 20.
@@ -234,11 +234,11 @@ The rivals harness, 3 reps each, medians in ms. startMs is timed the same way fo
 
 | Run | Load | Tool | click | fill | firstText | startMs | tasks |
 |---|---|---|---|---|---|---|---|
-| baseline, b5df132 | | tychicus | 71 | 43 | 112 | 2253 | 30/30 |
+| baseline, b5df132 | | local-studio-browser | 71 | 43 | 112 | 2253 | 30/30 |
 | baseline | | agent-browser | 24 | 9 | 41 | 0 (unmeasured) | 30/30 |
-| after, 9149b13 (run 1) | 29 | tychicus | 40 | 21 | 61 | 2285 | 30/30 |
+| after, 9149b13 (run 1) | 29 | local-studio-browser | 40 | 21 | 61 | 2285 | 30/30 |
 | same session | 25 | agent-browser | 32 | 20 | 135 | 3894 | 30/30 |
-| after, 9149b13 (run 2) | 16 | tychicus | 27 | 16 | 48 | 1769 | 30/30 |
+| after, 9149b13 (run 2) | 16 | local-studio-browser | 27 | 16 | 48 | 1769 | 30/30 |
 | same session | 15 | agent-browser | 20 | 9 | 43 | 2049 | 30/30 |
 
 On the quieter pair, startMs is under agent-browser's, and click, fill and firstText are 7, 7 and 5 ms over it.
@@ -247,7 +247,7 @@ On the quieter pair, startMs is under agent-browser's, and click, fill and first
 ### What still blocks click, fill and firstText
 
 agent-browser's driver runs its CLI once per call against a CDP daemon and returns when the input is acknowledged: no
-settle and no change report. Tychicus's results say what each action changed, which needs a look before, a drained look
+settle and no change report. Local Studio's results say what each action changed, which needs a look before, a drained look
 after and a settle that waits for what the page queued. From the after trace:
 
 - **click (27 against 20).** 15.2 ms go from the input to the drained look. About 2.5 ms of it is the probe's round
@@ -258,6 +258,6 @@ after and a settle that waits for what the page queued. From the after trace:
   is not ours to set.
 - **fill (16 against 9).** The two looks and the settle probe are 8.5 ms of the 15.4; the transport, resolve and the
   fill itself are about 7.
-- **firstText (48 against 43).** The page load is 38 ms of Tychicus's navigate, which no change here touches; Tychicus adds the
+- **firstText (48 against 43).** The page load is 38 ms of Local Studio's navigate, which no change here touches; Local Studio adds the
   settle's drained look after the load (3.5 ms), which D56 needs for pages that draw at DOMContentLoaded or load, and
   about 2 ms of transport each for navigate and get_page_text.

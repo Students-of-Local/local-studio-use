@@ -1,0 +1,43 @@
+{
+	"tool": "playwright-mcp",
+	"at": "2026-11-24T05:44:47.624Z",
+	"version": "0.0.85",
+	"machine": {
+		"os": "macOS 27.2",
+		"arch": "arm64",
+		"cpu": "Apple M5",
+		"cores": 10,
+		"memGB": 32
+	},
+	"node": "v24.15.0",
+	"chromium": "Google Chrome for Testing 156.0.8078.4",
+	"load1": {
+		"start": 301.9,
+		"end": 25.9
+	},
+	"repeat": 3,
+	"speedN": 9,
+	"tasks": {
+		"pass": 9,
+		"of": 30,
+		"failed": {
+			"t10-dialog": 3,
+			"t01-read": 2,
+			"t02-form": 2,
+			"t03-multitab": 2,
+			"t04-checkout": 2,
+			"t05-iframe": 2,
+			"t06-shadow": 2,
+			"t07-upload": 2,
+			"t08-stale": 2,
+			"t09-long": 2
+		}
+	},
+	"startMs": 3394,
+	"speed_ms": {
+		"click": 558,
+		"fill": 24,
+		"firstText": 56
+	},
+	"errors": {}
+}

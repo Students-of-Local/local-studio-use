@@ -1,4 +1,4 @@
-// "Use Polycarp from Claude, ChatGPT and Grok", host side: the six remote methods Connect's flow calls. Every Tailscale,
+// "Use Local Studio from Claude, ChatGPT and Grok", host side: the six remote methods Connect's flow calls. Every Tailscale,
 // Cloudflare and `remote fix` step is a stand-in; nothing here runs tailscale, cloudflared, a service or `remote setup`.
 import assert from "node:assert/strict";
 import { mkdirSync, readFileSync, readdirSync, utimesSync } from "node:fs";
@@ -7,7 +7,7 @@ import { after, test } from "node:test";
 import { rmSync, tempRoot, writeJson } from "./helpers/hub-fixture.mjs";
 import { loadTs } from "./helpers/bundle-ts.mjs";
 
-const root = tempRoot("tabkyra-connect-remote-");
+const root = tempRoot("local-studio-connect-remote-");
 after(() => rmSync(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 }));
 
 const mod = await loadTs(`
@@ -19,13 +19,13 @@ const { ConnectService, parseConnect, failureFor, remoteAnswer, remoteState, nex
 async function inConfig(name, fn) {
 	const dir = join(root, name);
 	mkdirSync(dir, { recursive: true, mode: 0o700 });
-	const before = process.env.TABKYRA_CONFIG_DIR;
-	process.env.TABKYRA_CONFIG_DIR = dir;
+	const before = process.env.LOCAL_STUDIO_BROWSER_DIR;
+	process.env.LOCAL_STUDIO_BROWSER_DIR = dir;
 	try {
 		return await fn(dir);
 	} finally {
-		if (before === undefined) delete process.env.TABKYRA_CONFIG_DIR;
-		else process.env.TABKYRA_CONFIG_DIR = before;
+		if (before === undefined) delete process.env.LOCAL_STUDIO_BROWSER_DIR;
+		else process.env.LOCAL_STUDIO_BROWSER_DIR = before;
 	}
 }
 
@@ -121,7 +121,7 @@ test("the outside checks: a failed one names its check; nothing set up says so",
 
 test("Repair is feature-detected: a helper without `remote fix` answers available: false, and the host passes fixed arguments only", async () => {
 	const calls = [];
-	const without = await remoteFix(true, async (args) => (calls.push(args), { code: 2, out: "Usage: polycarp remote setup | status | off | test" }));
+	const without = await remoteFix(true, async (args) => (calls.push(args), { code: 2, out: "Usage: local-studio-browser remote setup | status | off | test" }));
 	assert.deepEqual(without, { available: false });
 	assert.deepEqual(calls[0], ["remote", "fix", "--json", "--dry-run"]);
 	const plan = await remoteFix(true, async () => ({ code: 0, out: JSON.stringify({ ok: true, state: "on", code: "fix_pending", message: "Would restart the service.", actions: [{ kind: "service", what: "Restart the background service", status: "planned" }] }) }));
@@ -228,9 +228,9 @@ test("second-N3: Cloudflare's last check timing out after the tunnel was made is
 			check: async () => ({ ok: false, detail: "no answer" }),
 		};
 		const service = new ConnectService({ tunnel, tunnelCheckMs: 30 });
-		const { result, error, progress } = await ask(service, "setupTunnel", { host: "polycarp.example.com" });
+		const { result, error, progress } = await ask(service, "setupTunnel", { host: "local-studio.example.com" });
 		assert.equal(error, undefined);
-		assert.equal(result.connectorUrl, "https://polycarp.example.com/mcp");
+		assert.equal(result.connectorUrl, "https://local-studio.example.com/mcp");
 		assert.match(result.connectCode, /^TK-/);
 		const lag = result.checks.find((c) => c.status === "fail");
 		assert.equal(lag.name, "resource_metadata");

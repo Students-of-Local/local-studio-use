@@ -1,4 +1,4 @@
-// What bridge.debug reports about chrome.userScripts, and so what `polycarp browser doctor` says.
+// What bridge.debug reports about chrome.userScripts, and so what `local-studio-browser doctor` says.
 // Chromium exposes the API only when the optional permission is granted AND the "Allow user
 // scripts" toggle is on; each combination must map to its own cause.
 import assert from "node:assert/strict";
@@ -115,4 +115,39 @@ test("classifier: every probe maps to exactly one state", () => {
 		[{ permissionGranted: null, apiPresent: false, callWorks: false }, "probe_error"],
 	];
 	for (const [probe, state] of cases) assert.equal(classifyUserScripts(probe).state, state, JSON.stringify(probe));
+});
+
+test("a click that turns a script on asks the browser first, and opens its switch when only that is left", async () => {
+	const { allowPageScripts, pageScriptsWait } = await import("../src/browser/userscripts-status.ts");
+	const asked = [];
+	const opened = [];
+	const withRequest = (answer) => {
+		Object.assign(globalThis.chrome, {
+			runtime: { id: "abc" },
+			tabs: { create: async ({ url }) => opened.push(url) },
+		});
+		globalThis.chrome.permissions.request = async (q) => {
+			asked.push(q.permissions);
+			if (answer instanceof Error) throw answer;
+			return answer;
+		};
+	};
+	fakeChrome({ granted: true, api: workingApi() });
+	withRequest(true);
+	const run = allowPageScripts();
+	assert.deepEqual(asked, [["userScripts"]], "nothing awaited before the request, or the gesture is lost");
+	assert.equal(pageScriptsWait(await run), undefined);
+	assert.deepEqual(opened, []);
+
+	fakeChrome({ granted: true });
+	withRequest(true);
+	assert.match(pageScriptsWait(await allowPageScripts()), /once "Allow user scripts" is on/);
+	assert.deepEqual(opened, ["chrome://extensions/?id=abc"]);
+
+	fakeChrome({ granted: false });
+	withRequest(new Error("no gesture"));
+	const refused = await allowPageScripts();
+	assert.equal(refused.error, "no gesture");
+	assert.match(pageScriptsWait(refused), /once the browser's permission is allowed/);
+	assert.equal(opened.length, 1, "a refusal opens nothing");
 });

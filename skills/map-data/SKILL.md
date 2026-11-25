@@ -40,7 +40,7 @@ the user to use a paid geocoder or their own Nominatim for more.
    whether the data is private (customers, homes, GPS tracks). Private data stays local
    unless the user says yes to sending it to a named service.
 2. **Geocode each address,** one per second, private addresses only after that yes:
-   `curl -s -A 'tabkyra-map-data/1.0' 'https://nominatim.openstreetmap.org/search?q=[street+address,+city,+state]&format=jsonv2&limit=1'`
+   `curl -s -A 'local-studio-map-data/1.0' 'https://nominatim.openstreetmap.org/search?q=[street+address,+city,+state]&format=jsonv2&limit=1'`
    Keep `lat`, `lon`, `display_name`. If `display_name` names a different place, mark the
    row unmatched. Don't keep a wrong match.
 3. **Write the Overpass query.** Tags come from the OSM wiki (`https://wiki.openstreetmap.org/wiki/Map_features`).
@@ -48,7 +48,7 @@ the user to use a paid geocoder or their own Nominatim for more.
    `[out:json][timeout:25];area["name"="Evanston"]["boundary"="administrative"]->.a;nwr["amenity"="library"](area.a);out center;`
    A name can match towns in several states. For one place, use a box `(south,west,north,east)` in place of `(area.a)`.
 4. **Run it.**
-   `curl -s -A 'tabkyra-map-data/1.0' -G --data-urlencode 'data=[the query]' https://overpass-api.de/api/interpreter -o raw.json`
+   `curl -s -A 'local-studio-map-data/1.0' -G --data-urlencode 'data=[the query]' https://overpass-api.de/api/interpreter -o raw.json`
    If the reply starts with `#` or HTML, the server is busy: wait 30 s, then 60 s, then
    run it in overpass-turbo in the browser instead.
 5. **Convert to GeoJSON.** Write this to `osm2geojson.py`, then run

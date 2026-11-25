@@ -1,47 +1,47 @@
 # Updates
 
-Local Studio updates from the side panel. The native host checks once a day; the panel shows
+The Local Studio app carries the helper and the extension and updates them with the rest of the app: there,
+`local-studio-browser update` answers "Local Studio updates this with the app." and changes nothing. Releases of the helper
+alone aren't published. The rest of this page is for a copy built from source and for a folder made with
+`cli/scripts/package-release.mjs`.
+
+It updates from the side panel. The native host checks once a day; the panel shows
 "Update available" with an **Update now** button; the update runs, and the extension reloads
 itself once no agent is running. Settings > About (Updates) shows what runs and offers Check now,
-Update now and Roll back. `tychicus update` does the release install from a terminal.
+Update now and Roll back. `local-studio-browser update` does the release install from a terminal.
 
-**A release install.** `tychicus install --release .`, run in a downloaded release folder (what the setup prompt
-does), unpacks each version into a folder of its own under `~/.local/share/tychicus/versions/`
-(`%LOCALAPPDATA%\Tychicus\versions\` on Windows), named `<version>-<first 12 hex of the archive's SHA-256>`. The
+**A release install.** `local-studio-browser install --release .`, run in a downloaded release folder (what the setup prompt
+does), unpacks each version into a folder of its own under `~/.local/share/local-studio-browser/versions/`
+(`%LOCALAPPDATA%\LocalStudioBrowser\versions\` on Windows), named `<version>-<first 12 hex of the archive's SHA-256>`. The
 `release` pointer beside it (a symlink, a junction on Windows) names the current one, and
-`~/.local/share/tychicus/release/tychicus` is the program. The extension is copied to one fixed folder,
-`~/.local/share/tychicus/extension`, so the browser keeps loading it from the same place. To upgrade, download the
-newer release and run its `tychicus install --release .` the same way: the pointer moves only after the new version
+`~/.local/share/local-studio-browser/release/local-studio-browser` is the program. The extension is copied to one fixed folder,
+`~/.local/share/local-studio-browser/extension`, so the browser keeps loading it from the same place. To upgrade, download the
+newer release and run its `local-studio-browser install --release .` the same way: the pointer moves only after the new version
 registers itself, and an old version is removed once no program runs from it. A running service (serve, the
 Cloudflare tunnel, hub, link) keeps the version it started with, so install restarts each one still on an older version
 and checks that it runs the new one; `--no-restart` names them with the command that does it later
-(`~/.local/share/tychicus/release/tychicus install --restart-services`). The side panel's Update now doesn't
-upgrade a release install yet: the updater below still reads the archived Tabkyra releases (issue #13).
-
-**Beside the Polycarp app.** Polycarp keeps its own copy of the helper and the extension and updates them with
-`polycarp update`, with the rest of Polycarp. On Linux it copies them to `~/.local/share/polycarp/browser/source`.
-That copy is Polycarp's, not Local Studio's, and nothing here changes it.
+(`~/.local/share/local-studio-browser/release/local-studio-browser install --restart-services`). The side panel's Update now doesn't
+upgrade a release install.
 
 What "update" does depends on how the helper runs (the install mode):
 
 | Mode | When | Update now does | Roll back does |
 | --- | --- | --- | --- |
-| **Release** | the native host runs from `~/.local/share/tychicus/app` | downloads the newest signed GitHub release, verifies it ([checks](#what-an-update-checks-before-it-touches-a-file)) and unpacks it to `staged/`; once idle, swaps it in | swaps back to the release before it |
-| **Checkout** | the native host runs from a git checkout of baney75/tychicus on main | `git fetch`, `git pull --ff-only` on main, `./scripts/setup-siblings.sh`, builds the extension and the CLI into `.tabkyra-update/next/`; once idle, swaps them in | swaps back to the build before it (the git checkout stays where it is) |
-| Unmanaged | anything else (an npm install, a copied folder) | refuses: run `tychicus update` in a terminal | |
+| **Release** | the native host runs from `~/.local/share/local-studio-browser/app` | downloads the newest signed GitHub release, verifies it ([checks](#what-an-update-checks-before-it-touches-a-file)) and unpacks it to `staged/`; once idle, swaps it in | swaps back to the release before it |
+| **Checkout** | the native host runs from a git checkout of baney75/local-studio (its `browser/` folder), on main | `git fetch`, `git pull --ff-only` on main, `./scripts/setup-siblings.sh`, builds the extension and the CLI into `.local-studio-update/next/`; once idle, swaps them in | swaps back to the build before it (the git checkout stays where it is) |
+| Unmanaged | anything else (an npm install, a copied folder) | refuses: run `local-studio-browser update` in a terminal | |
 
 ## The side panel
 
 - **Update now** (under the header, and in Settings > About (Updates)) sends the native host one
   of a fixed set of action names. The host runs the matching fixed command
-  (`tychicus update --host`, `--host --activate`, `--host --rollback` or `--host --reinstall`)
+  (`local-studio-browser update --host`, `--host --activate`, `--host --rollback` or `--host --reinstall`)
   as a child process of the CLI it runs from, and streams each step to the panel: checking,
-  downloading, verifying, pulling, installing, building, skills, then done or failed with
-  the reason.
+  downloading, verifying, pulling, installing, building, then done or failed with the reason.
 - **Two steps.** The first step (`--host`) downloads and verifies a release, or pulls and
   builds a checkout, aside; nothing the browser loads changes, so you can keep working. The
   panel then shows "Update ready". The second step (`--host --activate`) swaps the new files
-  in, refreshes skills and records What's new. The service worker sends it only when no
+  in and records What's new. The service worker sends it only when no
   agent is running, and reloads the extension right after, so the browser never runs a mix of old
   and new files for more than that moment. Roll back also runs only when idle. **Install
   now** in the panel asks for the second step (it still waits for idle).
@@ -70,18 +70,15 @@ What "update" does depends on how the helper runs (the install mode):
   and `chrome.storage.local`, so chats and agent tab groups come back after the reload;
   reopen the side panel to continue.
 - **The updater outlives the host.** It runs in its own process group and writes each step
-  to `~/.config/tychicus/update-progress.json`. If the browser closes the native host
+  to `~/.local-studio/browser/update-progress.json`. If the browser closes the native host
   mid-update, the update finishes, and the next host reports it (or reports that it stopped,
   if its process died). A host also repairs an interrupted swap when it starts.
 - **What's new.** After the reload a card shows the release notes (the GitHub release
   body) as a digest: the first sentence of up to two entries per section, six in all, with
   "And N more" and a link to the full notes (notes without a bullet list show as text) or, in a checkout, the commits pulled in (first-parent, a pull request shown by its
   title, at most 20, with a link to compare on GitHub). The ✕ hides it.
-- **Bundled skills.** After an update the new CLI refreshes the skills installed in Claude
-  Code, Codex and OpenCode that you haven't edited (`tychicus skill refresh`). A copy is
-  refreshed only when it is exactly what Local Studio wrote (`~/.config/tychicus/skills-installed.json`
-  records the hash of every file install writes, and the updater records the unedited copies
-  right before it swaps). Edited copies are left alone and listed in What's new.
+- **Skills** come with the Local Studio app and aren't part of this update. Copies an earlier version
+  installed in Claude Code, Codex or OpenCode stay as they are.
 - **Version mismatch.** Each build writes `build-info.json` (a build id, the commit and the
   version) and compiles the same record in. If the installed extension and CLI come from
   different commits (an update stopped partway), the panel offers **Re-run install**. If the
@@ -100,8 +97,9 @@ What "update" does depends on how the helper runs (the install mode):
 
 ### Checkout mode
 
-This mode updates a checkout of baney75/tychicus in place: the one the native host runs from. A copy of the helper
-inside the Polycarp app is not a checkout and is left to `polycarp update`.
+This mode updates a checkout in place, from its own remote: the one the native host runs from. A checkout of
+baney75/local-studio keeps updating, and `local-studio-browser doctor` says where the project moved. A copy of the helper
+inside the Local Studio app is not a checkout and is left to `local-studio-browser update`.
 
 The checkout is the folder the native host runs from (its `cli/dist/index.js`). The host
 compares the `build-info.json` the browser serves from the extension folder with the one in
@@ -114,22 +112,22 @@ An update refuses, changing nothing, when:
 - it isn't on main (another branch or a detached HEAD);
 - main and origin/main have diverged, so the pull wouldn't be a fast-forward.
 
-The builds go to `.tabkyra-update/next/` (ignored by git) with `TABKYRA_NO_BUMP=1`, so the
+The builds go to `.local-studio-update/next/` (ignored by git) with `LOCAL_STUDIO_BROWSER_NO_BUMP=1`, so the
 build never edits the manifest. Only when both the extension and the CLI built is the build
 staged (`next/staged.json`); activation refuses it if HEAD moved since. The extension folder
 is swapped by renames; the CLI is replaced file by file in place (a rename over each file),
 so `cli/dist/index.js`, which the native host's launcher runs, is never missing. Install
-and Roll back write a journal (`.tabkyra-update/journal.json`) and keep every source whole
+and Roll back write a journal (`.local-studio-update/journal.json`) and keep every source whole
 until they commit, so a crash at any point is finished or undone by the next updater, the
-next native host start, or `tychicus doctor`, `status`, `setup` or `update` in a terminal (`status --json`
-only reads, on every system, so it repairs nothing). The builds they replace go to `.tabkyra-update/previous/` for Roll
+next native host start, or `local-studio-browser doctor`, `status`, `setup` or `update` in a terminal (`status --json`
+only reads, on every system, so it repairs nothing). The builds they replace go to `.local-studio-update/previous/` for Roll
 back. If `npm install` in `setup-siblings.sh` rewrote a `package-lock.json`, the updater puts
 it back as committed (any other changed tracked file stops the update), so the next update
 isn't refused for local changes. `setup-siblings.sh` fetches a pinned sibling revision the
 clone doesn't have yet, and moves pi-mono to a new pin when a pull changed it. A failed build leaves the old
 build live and says why; the pulled commits stay, and the next Update now builds them, with
 What's new counting from the live build. One updater runs at a time
-(`.tabkyra-update/update.lock`).
+(`.local-studio-update/update.lock`).
 
 **Trust.** A release is checked against the minisign key in the CLI. A checkout is trusted
 the way `git pull` and `npm run build` by hand are: the updater runs `setup-siblings.sh` and
@@ -146,11 +144,11 @@ else; a frame with any other field, or an unknown name, is refused before anythi
 | Action | The host |
 | --- | --- |
 | `check` | checks now (a GitHub API GET, or `git fetch origin main` in a checkout) |
-| `update` | runs `tychicus update --host` (download or pull, verify or build, stage) |
-| `activate` | runs `tychicus update --host --activate` (swap the staged build in); the service worker sends it only when idle |
-| `rollback` | runs `tychicus update --host --rollback` |
-| `reinstall` | runs `tychicus update --host --reinstall` (the mismatch fix: register the host again, or rebuild a checkout from HEAD) |
-| `policy-off`, `policy-notify`, `policy-auto` | writes the updates choice to `~/.config/tychicus/update.json` |
+| `update` | runs `local-studio-browser update --host` (download or pull, verify or build, stage) |
+| `activate` | runs `local-studio-browser update --host --activate` (swap the staged build in); the service worker sends it only when idle |
+| `rollback` | runs `local-studio-browser update --host --rollback` |
+| `reinstall` | runs `local-studio-browser update --host --reinstall` (the mismatch fix: register the host again, or rebuild a checkout from HEAD) |
+| `policy-off`, `policy-notify`, `policy-auto` | writes the updates choice to `~/.local-studio/browser/update.json` |
 
 The command lines are constants (`UPDATE_COMMANDS` in `cli/src/update-host.ts`) passed as
 argv without a shell, and the updater's own commands (`git`, `npm run build`,
@@ -161,14 +159,13 @@ worker for an action; a content script can't.
 
 | Command | What it does | Exit code |
 | --- | --- | --- |
-| `tychicus update --check` | Asks GitHub for the newest release on your channel | 0 up to date (or nothing published), **100** update available, 1 error, 2 usage |
-| `tychicus update --check --json` | The same, as JSON (`current`, `latest`, `available`, `channel`, `url`, `error`) | as above |
-| `tychicus update` | Downloads, verifies and installs the newest release | 0 done or up to date, 1 refused or failed |
-| `tychicus update --yes` | Also answers yes to "install the release" when you run from a git checkout | |
-| `tychicus update --rollback` | Swaps back to the release before this one (run it again to undo). From a git checkout it asks first (`--yes` skips the question) | 0, 1 when there is none or you said no |
-| `--channel stable\|nightly` | Picks the channel. An update (not `--check`) remembers it in `~/.config/tychicus/update.json` | |
-| `tychicus update --auto-check off` | Turns the daily check off, the same as Settings > About (Updates) > Off (`on` turns it back on). `TABKYRA_NO_UPDATE_CHECK=1` also turns it off | |
-| `tychicus skill refresh [--json]` | Refreshes the installed skills you haven't edited (the update runs it) | 0 |
+| `local-studio-browser update --check` | Asks GitHub for the newest release on your channel | 0 up to date (or nothing published), **100** update available, 1 error, 2 usage |
+| `local-studio-browser update --check --json` | The same, as JSON (`current`, `latest`, `available`, `channel`, `url`, `error`) | as above |
+| `local-studio-browser update` | Downloads, verifies and installs the newest release | 0 done or up to date, 1 refused or failed |
+| `local-studio-browser update --yes` | Also answers yes to "install the release" when you run from a git checkout | |
+| `local-studio-browser update --rollback` | Swaps back to the release before this one (run it again to undo). From a git checkout it asks first (`--yes` skips the question) | 0, 1 when there is none or you said no |
+| `--channel stable\|nightly` | Picks the channel. An update (not `--check`) remembers it in `~/.local-studio/browser/update.json` | |
+| `local-studio-browser update --auto-check off` | Turns the daily check off, the same as Settings > About (Updates) > Off (`on` turns it back on). `LOCAL_STUDIO_BROWSER_NO_UPDATE_CHECK=1` also turns it off | |
 
 Stable takes releases tagged `vX.Y.Z`. Nightly also takes prereleases such as
 `vX.Y.Z-nightly.20261025`.
@@ -176,27 +173,27 @@ Stable takes releases tagged `vX.Y.Z`. Nightly also takes prereleases such as
 Script example:
 
 ```sh
-tychicus update --check; case $? in 0) echo current ;; 100) tychicus update ;; *) echo "check failed" ;; esac
+local-studio-browser update --check; case $? in 0) echo current ;; 100) local-studio-browser update ;; *) echo "check failed" ;; esac
 ```
 
 ## Where it installs
 
 ```
-~/.local/share/tychicus/app/        the installed release: dist-chrome/, cli/dist/index.js, release.json
-~/.local/share/tychicus/previous/   the release before it, for --rollback
-~/.config/tychicus/update-status.json   the last check (the native host reads it)
-~/.config/tychicus/update.json      the channel and the updates choice
-~/.config/tychicus/last-update.json the last update, rollback or reinstall ("What's new")
-<checkout>/.tabkyra-update/        checkout mode: next/ (a build in progress), previous/ (for Roll back)
+~/.local/share/local-studio-browser/app/        the installed release: dist-chrome/, cli/dist/index.js, release.json
+~/.local/share/local-studio-browser/previous/   the release before it, for --rollback
+~/.local-studio/browser/update-status.json   the last check (the native host reads it)
+~/.local-studio/browser/update.json      the channel and the updates choice
+~/.local-studio/browser/last-update.json the last update, rollback or reinstall ("What's new")
+<checkout>/.local-studio-update/        checkout mode: next/ (a build in progress), previous/ (for Roll back)
 ```
 
-The browser loads `~/.local/share/tychicus/app/dist-chrome`, and the agent launcher
-(`~/.config/tychicus/tychicus`) and native host run `app/cli/dist/index.js`. Both paths stay
+The browser loads `~/.local/share/local-studio-browser/app/dist-chrome`, and the agent launcher
+(`~/.local-studio/browser/local-studio-browser`) and native host run `app/cli/dist/index.js`. Both paths stay
 the same across updates, so harness configs never change.
 
-**From a git checkout** (how this repository is developed), `tychicus update` in a terminal doesn't
+**From a git checkout** (how this repository is developed), `local-studio-browser update` in a terminal doesn't
 touch the checkout; Update now in the side panel updates the checkout itself (see Checkout
-mode above). It offers to install the release into `~/.local/share/tychicus/app` and points the
+mode above). It offers to install the release into `~/.local/share/local-studio-browser/app` and points the
 native host and launcher there. After that first install, remove the old extension on
 `chrome://extensions` and load the new folder once. To keep running from the checkout,
 answer no and use `git pull`, `./scripts/setup-siblings.sh`, `npm run build` and
@@ -204,18 +201,18 @@ answer no and use `git pull`, `./scripts/setup-siblings.sh`, `npm run build` and
 
 ## What an update checks before it touches a file
 
-1. **The release list.** It reads the newest non-draft release on the channel from
-   baney75/tychicus, counting only releases that carry a `tychicus-<version>` asset. To update in
-   place it needs `tychicus-<version>.zip`, `SHA256SUMS` and `SHA256SUMS.minisig`, and refuses a
-   release without all three. A release `.github/workflows/release.yml` built has per-OS archives
+1. **The release list.** It reads the `browser-v<version>` tags of baney75/local-studio and takes the highest version
+   on the channel that has a non-draft release, counting only releases that carry a `local-studio-browser-<version>` asset. To update in
+   place it needs `local-studio-browser-<version>.zip`, `SHA256SUMS` and `SHA256SUMS.minisig`, and refuses a
+   release without all three. A release `.github/workflows/browser-release.yml` built has per-OS archives
    with build attestations and no minisign signature yet: the check reports it, and the update
-   refuses it and prints the one install command (README.md, Install) that installs it instead. Downloads use https (loopback http is allowed only for the test server),
+   refuses it and prints the release's address instead. Downloads use https (loopback http is allowed only for the test server),
    with size limits (64 KB for the checksum files, 200 MB for the zip).
 2. **The signature.** `SHA256SUMS.minisig` must verify against the minisign public key
-   built into the CLI (`keys/tabkyra-release.pub`). The verifier is `cli/src/minisign.ts`.
+   built into the CLI (`keys/local-studio-release.pub`). The verifier is `cli/src/minisign.ts`.
    It accepts only prehashed Ed25519 signatures (minisign's default), checks the key id,
    and checks the signed trusted comment.
-3. **The version.** The trusted comment must say `tychicus <version>`, the version being
+3. **The version.** The trusted comment must say `local-studio-browser <version>`, the version being
    installed. An old, validly signed `SHA256SUMS` can't be passed off as a newer release.
 4. **The checksum.** The zip's SHA-256 must match its line in `SHA256SUMS`.
 5. **The contents.** The zip is unpacked into a staging folder. It refuses absolute paths,
@@ -230,10 +227,10 @@ Any failure stops the update, and the installed release stays as it was.
 The update holds a lock: a directory, `update.lock`, holding the owner's pid. It is taken
 over only when that pid is dead, or when no pid was written and the lock is over 10 minutes
 old. Under the lock it does two renames: `app/` becomes `previous/`, and the staged folder
-becomes `app/`. If the second rename fails, the first is undone. Release swaps are these renames, not the journal checkout mode uses; a crash between them leaves `app/` missing until `recover()` (below) runs. The native host and launcher run from `app/`, so with it missing run the repair by hand from the kept copy: `node ~/.local/share/tychicus/previous/cli/dist/index.js update` (every `tychicus update` run repairs first). Rollback is three renames
+becomes `app/`. If the second rename fails, the first is undone. Release swaps are these renames, not the journal checkout mode uses; a crash between them leaves `app/` missing until `recover()` (below) runs. The native host and launcher run from `app/`, so with it missing run the repair by hand from the kept copy: `node ~/.local/share/local-studio-browser/previous/cli/dist/index.js update` (every `local-studio-browser update` run repairs first). Rollback is three renames
 through a `.swap-*` folder.
 
-Every `tychicus update` run, including `--check` and `--rollback`, first repairs whatever a
+Every `local-studio-browser update` run, including `--check` and `--rollback`, first repairs whatever a
 crash left, without deleting a release:
 
 - if `app/` is missing, a `.swap-*` folder or `previous/` becomes `app/`;
@@ -242,14 +239,14 @@ crash left, without deleting a release:
 
 After the swap, the new CLI runs `install`, which rewrites the launcher and every browser's
 native host manifest if they changed. Then it tells you to reload the extension
-(`tychicus reload`, or the reload button on `chrome://extensions`). The browser keeps
+(`local-studio-browser reload`, or the reload button on `chrome://extensions`). The browser keeps
 running the old files until you reload.
 
 ## The daily check
 
 When the extension connects, and every hour while the host runs, the native host reads
 `update-status.json` and refreshes it if it's more than a day old. In release mode that is
-one GET to the GitHub releases API; in a checkout it is `git fetch origin main`. A check
+two GETs to the GitHub API (the tags, then the release); in a checkout it is `git fetch origin main`. A check
 never downloads or installs anything. The host sends the result to the extension
 (`update_status` in `src/bridge/protocol.ts`). The ✕ on "Update available" hides it until
 the next version.
@@ -261,141 +258,19 @@ run updates. Update a checkout once by hand, then reload the extension:
 
 ```sh
 git pull --ff-only && ./scripts/setup-siblings.sh
-TABKYRA_NO_BUMP=1 npm run build && (cd cli && npm run build)
-tychicus reload  # or the reload button on chrome://extensions
+LOCAL_STUDIO_BROWSER_NO_BUMP=1 npm run build && (cd cli && npm run build)
+local-studio-browser reload  # or the reload button on chrome://extensions
 ```
 
-`TABKYRA_NO_BUMP=1` keeps the build from editing the manifest; a checkout with local changes
+`LOCAL_STUDIO_BROWSER_NO_BUMP=1` keeps the build from editing the manifest; a checkout with local changes
 can't update itself.
 
 ## Releasing
 
-### Is the release workflow ready?
-
-Checked 2026-10-27, before the first release:
-
-- **Runner.** Both jobs run on `ubuntu-24.04`, GitHub-hosted. The repository is public, Actions
-  are enabled for all actions, and the CI workflow already runs on the same runner and passes
-  (for example run 40445740971 on main). Public repositories don't use paid minutes.
-- **minisign on the runner.** The publish job installs it with apt; Ubuntu 24.04 (noble) has
-  `minisign` 0.11-1 in universe, which GitHub's images enable.
-- **The key.** The release key (minisign `16C760BCAEA0129D`) is on main, and its secret is in
-  the `release` environment, which needs baney75's approval for every signing run (see
-  "Release key" below).
-- **The workflow has never run.** The `v1.0.0` tag predates it and has no release;
-  `tychicus update` reads releases, not tags, so it is ignored.
-- **The version.** `static/manifest.chrome.json` says 1.1.8, so `./release.sh patch` makes
-  `v1.1.9`. Build with `TABKYRA_NO_BUMP=1` (the workflow does): a plain `npm run build` bumps
-  the manifest in the checkout.
-- **The notes** are the `CHANGELOG.md` section for the version (`scripts/release/notes.mjs`);
-  the side panel shows each entry's first sentence in "What's new", so start every entry with a
-  short sentence a user understands (AGENTS.md, Changelog). Checkout mode needs no release at all.
-
-1. Add entries under `## [Unreleased]` in `CHANGELOG.md`.
-2. Stable: `./release.sh patch` (or `minor`, `major`). It bumps
-   `static/manifest.chrome.json`, finalizes the changelog, commits, tags `vX.Y.Z` and
-   pushes.
-   Nightly: tag the commit `vX.Y.Z-nightly.<yyyymmdd>`, where `X.Y.Z` equals the manifest
-   version, then push the tag.
-3. `.github/workflows/release.yml` runs on the tag in two jobs.
-   - **build** has a read-only token, no secrets and no persisted git credentials. It
-     checks the tag against the manifest, checks out the pinned siblings (pi-mono and
-     mini-lit, by commit, in `scripts/setup-siblings.sh`), builds, runs the checks and the
-     CLI tests, packages (`scripts/release/package.mjs`), and uploads the files.
-   - **publish** runs no npm and no repo code. It downloads those files, installs minisign,
-     signs `SHA256SUMS`, verifies the signature against the public key at the tagged commit,
-     and creates the release. It is the only job that holds the secret or a write token,
-     so install scripts in the build can't read the key.
-
-   A tag with a `-` becomes a prerelease.
-
-## Release key
-
-The release key is minisign key `16C760BCAEA0129D`, made 2026-10-27 without a password,
-because CI signs unattended. `keys/tabkyra-release.pub` holds its public half, and the CLI
-builds it in. The secret half exists in two places only:
-
-- Proton Pass, Personal vault, secure note "Tabkyra release signing key (minisign
-  16C760BCAEA0129D)";
-- the `MINISIGN_SECRET_KEY` secret of the `release` environment on baney75/tabkyra.
-  `release.yml`'s publish job and `release-key-check.yml` use it.
-
-Every job that reads the key waits for an approval: the environment has baney75 as its
-required reviewer (self-review allowed), so a run starts signing only after he approves it, in
-the Actions run page or with
-`gh api -X POST repos/baney75/tabkyra/actions/runs/<run id>/pending_deployments -f state=approved -F 'environment_ids[]=<id>' -f comment=ok`,
-where `<id>` comes from `gh api repos/baney75/tabkyra/environments/release --jq .id`. Before
-approving, check that no workflow changed since the last run you approved, for example
-`git log <last v* tag>..<run's commit> -- .github/workflows`; the approval prompt doesn't show
-workflow changes, and an unexpected change or an unexpected request gets rejected.
-That holds whoever changed main, so a collaborator who merges a workflow that prints the key
-still can't run it without that approval. Only `main` and `v*` tags can deploy to the
-environment at all, so a workflow on any other branch (even one dispatched by hand) can't
-read the key. Two repository rulesets keep those refs trusted: "Release tags" lets only admins create, move or delete `v*` tags, so nobody else can
-tag their own commit into signing; "main" blocks deleting and force-pushing main and requires
-a pull request, and only the admin role bypasses it. There is no repository-level or
-organization-level `MINISIGN_SECRET_KEY`: a job falls back to one of those when its
-environment lacks the secret, which would hide a broken environment secret and reach every
-ref. `gh secret list --repo baney75/tabkyra` must not list it.
-
-To cut a release, run `./release.sh patch` on a clean, up-to-date main, then approve the publish job's `release` deployment. Then, on a machine
-with the CLI, `tychicus update --check` exits 100 and `tychicus update` installs it.
-
-Before the first tag after any change to the secret or the public key, prove they are a pair
-with the real minisign: `gh workflow run release-key-check.yml --repo baney75/tabkyra`, then
-approve its `release` deployment. It
-signs a scratch file and verifies it against `keys/tabkyra-release.pub`, and publishes nothing.
-
-### Rotating the key (not supported yet)
-
-The CLI trusts exactly one built-in public key, and `release.yml` verifies each release
-against the one key committed at that tag. So there is no clean rotation today:
-
-- A release signed with a new key is refused by every installed CLI, which only knows the
-  old key.
-- A "transition" release signed with the old key while shipping the new public key fails
-  `release.yml`'s own verify step, which checks against the key in that commit.
-
-Until the CLI and the workflow accept a list of trusted keys (issue #33),
-replacing the key means every user reinstalls Local Studio from a trusted channel. Keep the
-current secret in both places; don't replace either unless you mean to make users reinstall.
-
-**If the key leaks:** delete every copy of the secret so you stop signing with it, and publish
-nothing more:
-`gh secret delete MINISIGN_SECRET_KEY --repo baney75/tabkyra --env release`, plus a
-repository-level copy if one ever appears (`gh secret delete MINISIGN_SECRET_KEY --repo
-baney75/tabkyra`). Confirm with `gh secret list --repo baney75/tabkyra` and
-`gh secret list --repo baney75/tabkyra --env release` that neither lists it.
-
-Then close every other way to publish a release, because a key holder still needs one to reach
-installed CLIs (the rulesets protect `v*` tags, not release assets): remove any collaborator
-other than baney75 (`gh api repos/baney75/tabkyra/collaborators`), deploy keys with write
-access (`gh api repos/baney75/tabkyra/keys`), and GitHub Apps or tokens with `contents: write`
-on this repository. Check that no workflow outside `release.yml` grants `contents: write`. That doesn't revoke it. Every installed CLI keeps trusting the leaked key, and
-whoever holds it can sign a release those CLIs accept. Tell users to reinstall from a trusted
-channel with a CLI that carries a new key. There is no revocation or expiry yet.
-
-**Making a replacement key after a leak.** This is not a rotation: every installed CLI keeps
-trusting only the old key, so every user reinstalls. (Rotation without reinstalling needs #33,
-and its own procedure: add the new key beside the old one in a release signed by the old key.)
-
-1. On your Mac, in a new folder outside any repo, make a pair without a password (CI signs
-   unattended): `minisign -G -W -p tabkyra-release.pub -s tabkyra-release.key`. `minisign` is
-   a Homebrew formula (`brew install minisign`). Note the key ID it prints; it is also in the
-   `.pub` file's comment line.
-2. In one PR, replace `keys/tabkyra-release.pub` with the new file and update the key ID and
-   the Pass note name in this section. Merge it.
-3. Replace the Proton Pass note's contents with `tabkyra-release.key` and `tabkyra-release.pub`,
-   and rename it to "Tabkyra release signing key (minisign <new key ID>)". Then set the secret
-   from the file on stdin, never as an argument:
-   `gh secret set MINISIGN_SECRET_KEY --repo baney75/tabkyra --env release < tabkyra-release.key`.
-4. Run `gh workflow run release-key-check.yml --repo baney75/tabkyra`, approve its `release`
-   deployment (the run page, or the `pending_deployments` call above), and wait for it to pass.
-   A check that seems to hang is waiting for that approval.
-   Push no `v*` tag between step 2 and this passing check: a release in that window would be
-   signed with the wrong key for the committed public key.
-5. Delete `tabkyra-release.key`. On an SSD with FileVault, deleting is all you can do; the Pass
-   note and the environment secret are the intended copies.
+Nothing here is released on its own: the Local Studio app's releases carry this folder's programs and extension, built at the
+app's commit. The version is the one in `static/manifest.chrome.json`; `scripts/plugin-version.mjs` writes it where else it is
+kept, and a `CHANGELOG.md` section goes with it (the side panel shows each entry's first sentence in "What's new", so start
+every entry with a short sentence a user understands).
 
 ## Tests
 
@@ -422,7 +297,7 @@ throwaway key (`cli/test/helpers/minisign-sign.mjs`):
 
 `cli/test/checkout-update.test.mjs` runs checkout mode against a throwaway checkout with its
 own origin: a fast-forward, local changes, another branch and a diverged main refused, a
-failed build leaving the old build, rollback, a copy that is neither mode, skill refresh, and
+failed build leaving the old build, rollback, a copy that is neither mode, and
 the native host's update action (the no-parameters rule, the settings actions, the mismatch
 report, a browser that loads the extension from another folder).
 

@@ -7,24 +7,27 @@ import {
 	SessionsStore,
 	SettingsStore,
 } from "@mariozechner/pi-web-ui";
+import { DB_NAME } from "./db-name.js";
 import { CostStore } from "./stores/cost-store.js";
 import { DiscoveredModelsStore } from "./stores/discovered-models-store.js";
-import { TabkyraSessionsStore } from "./stores/sessions-store.js";
+import { LocalStudioSessionsStore } from "./stores/sessions-store.js";
 import { SkillsStore } from "./stores/skills-store.js";
 
 /**
- * Extended AppStorage for Polycarp with skills, memories, and prompts stores.
+ * Extended AppStorage for Local Studio with skills, memories, and prompts stores.
  */
-export class TabkyraAppStorage extends BaseAppStorage {
+export class LocalStudioAppStorage extends BaseAppStorage {
 	readonly skills: SkillsStore;
 	readonly costs: CostStore;
 	readonly discoveredModels: DiscoveredModelsStore;
+	/** Every store in the database, by name. */
+	readonly storeNames: string[];
 
 	constructor() {
 		// 1. Create all stores (no backend yet)
 		const settings = new SettingsStore();
 		const providerKeys = new ProviderKeysStore();
-		const sessions = new TabkyraSessionsStore();
+		const sessions = new LocalStudioSessionsStore();
 		const customProviders = new CustomProvidersStore();
 		const skills = new SkillsStore();
 		const costs = new CostStore();
@@ -44,7 +47,7 @@ export class TabkyraAppStorage extends BaseAppStorage {
 
 		// 3. Create backend with all configs
 		const backend = new IndexedDBStorageBackend({
-			dbName: "tabkyra-storage",
+			dbName: DB_NAME,
 			version: 4, // v4: discovered-models store
 			stores: configs,
 		});
@@ -61,16 +64,17 @@ export class TabkyraAppStorage extends BaseAppStorage {
 		// 5. Pass base stores to parent
 		super(settings, providerKeys, sessions, customProviders, backend);
 
-		// 6. Store references to tabkyra-specific stores
+		// 6. Store references to local-studio-specific stores
 		this.skills = skills;
 		this.costs = costs;
 		this.discoveredModels = discoveredModels;
+		this.storeNames = configs.map((config) => config.name);
 	}
 }
 
 /**
- * Helper to get typed Polycarp storage.
+ * Helper to get typed Local Studio storage.
  */
-export function getTabkyraStorage(): TabkyraAppStorage {
-	return getAppStorage() as TabkyraAppStorage;
+export function getLocalStudioStorage(): LocalStudioAppStorage {
+	return getAppStorage() as LocalStudioAppStorage;
 }

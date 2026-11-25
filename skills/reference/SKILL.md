@@ -51,9 +51,9 @@ high-stakes launch, say a lawyer should review it.
 8. **Check for brand confusion.** If the new work would look like it comes from the
    referenced brand (same name style, logo shape, color and layout together), say so and
    change at least the name, mark and main color.
-9. **Save the board** as `~/.config/tychicus/personal/references/[project].md`, or where the
+9. **Save the board** as `~/.local-studio/browser/personal/references/[project].md`, or where the
    user asks, with one block per reference from steps 4 to 6. Create the folder with
-   `(umask 077 && mkdir -p ~/.config/tychicus/personal/references) && chmod 700 ~/.config/tychicus/personal`.
+   `(umask 077 && mkdir -p ~/.local-studio/browser/personal/references) && chmod 700 ~/.local-studio/browser/personal`.
    Boards hold links to other people's work, so they stay out of the design library.
 10. **Hand over** the board and the credits list.
 

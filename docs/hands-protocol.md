@@ -1,46 +1,38 @@
 # The hands protocol
 
-The wire between Tychicus (`cli/src/computer.ts`) and a computer-use helper: the program that reads and acts on native
+The wire between Local Studio (`cli/src/computer.ts`) and a computer-use helper: the program that reads and acts on native
 windows for an agent. One protocol, one helper per OS. Any helper that passes the conformance suite
 (`cli/test/hands-conformance.test.mjs`) can stand in for any other.
 
-This page writes down the wire exactly as Polycarp's helper spoke it at its last commit with computer use (baney75/polycarp
-`e43ee1d6`, tag `pre-hands-removal`: `spaces/Sources/BaneySpacesCore/Hands/MCP.swift`, `Tools.swift`, `Envelope.swift`,
-`AccessMode.swift`, `RunSteps.swift`, and `HandsRouter.swift` for the connector cap). Nothing here is new except the
-helper's own names (`tychicus-hands`, `tychicus-connector`) and the optional `hands/grants`. Where this page and that code disagree, the code was the
-truth and this page is wrong: fix the page and the suite together.
+The conformance suite is what the wire is: where this page and the suite disagree, fix both together.
 
-## Helpers and how Tychicus finds one
+## Helpers and how Local Studio finds one
 
 | Helper | Command | Answers `initialize` as | Connector name |
 | --- | --- | --- | --- |
-| Tychicus, macOS | `tychicus-hands mcp [--connector]` | `tychicus-hands` | `tychicus-connector` |
-| Tychicus, Linux (`hands/linux`) | `tychicus-hands mcp [--connector]` | `tychicus-hands` | `tychicus-connector` |
+| Local Studio, macOS | `local-studio-computer mcp [--connector]` | `local-studio-computer` | `local-studio-connector` |
+| Local Studio, Linux (`hands/linux`) | `local-studio-computer mcp [--connector]` | `local-studio-computer` | `local-studio-connector` |
 
 `computerHelper()` in `cli/src/computer.ts` looks in this order and takes the first that exists:
 
-1. `TYCHICUS_HANDS_BIN` (tests and dev builds; a named path that doesn't exist means none).
-2. `tychicus-hands` on `PATH`.
-3. `~/.local/bin/tychicus-hands`.
-4. Inside a Tychicus app bundle: `/Applications/Tychicus.app/Contents/Resources/bin/tychicus-hands`, then the same under
-   `~/Applications`.
+1. `LOCAL_STUDIO_COMPUTER_BIN` (tests and dev builds; a named path that doesn't exist means none).
+2. Beside the running `local-studio-browser` program, then in `bin/` beside it (a release archive).
+3. `local-studio-computer` on `PATH`, then `~/.local/bin/local-studio-computer`: only for a copy run by Node (a checkout or npm link).
 
-Polycarp's `polycarp-spaces` is never used: Polycarp removed computer use (baney75/polycarp #568).
-
-`computer_status` and `tychicus doctor` name the helper that was found and whether it answered, or say there is none
+`computer_status` and `local-studio-browser doctor` name the helper that was found and whether it answered, or say there is none
 and how to get it on this OS (`handsHowTo`).
 
 A connector's helper runs with a small environment of its own (`connectorHelperEnv`): `HOME`, `PATH`, the way to the
 person's desktop (`DISPLAY`, `XAUTHORITY`, `WAYLAND_DISPLAY`, `HYPRLAND_INSTANCE_SIGNATURE`, `SWAYSOCK`,
 `XDG_RUNTIME_DIR`, `XDG_CURRENT_DESKTOP`, `DBUS_SESSION_BUS_ADDRESS`, `AT_SPI_BUS_ADDRESS`) and where the person's
-Tychicus settings live (`XDG_CONFIG_HOME`, `TYCHICUS_CONFIG_DIR` and its inherited names). Nothing else of the
+Local Studio settings live (`XDG_CONFIG_HOME`, `LOCAL_STUDIO_BROWSER_DIR` and its inherited names). Nothing else of the
 service's reaches it.
 
 ### The Linux helper
 
 `hands/linux` is a static Rust binary (x86_64 and aarch64, musl). It reads and acts through AT-SPI, takes windows from
 Hyprland, Sway or an X11 EWMH window manager, and on GNOME or KDE under Wayland works through AT-SPI alone and says so.
-It never sends physical input. The person's access mode and app list are `hands.json` in Tychicus's config folder
+It never sends physical input. The person's access mode and app list are `hands.json` in Local Studio's config folder
 (`{"access": "read_only" | "default" | "full", "apps": [...]}`), read on every call. What Linux can't do in the
 background answers `not_supported`: `drag`, right clicks, `press` of a key with no accessibility meaning, `shot` of a
 window that isn't on screen on a wlroots compositor, and window management on GNOME and KDE. Under Default a `shot`
@@ -51,12 +43,12 @@ answer `needs_lend` as everywhere. Details, desktops and tests: `hands/linux/REA
 ### The Mac helper
 
 `hands/mac` is the Mac helper, one arm64 file with the engine linked in. A release
-carries it in the darwin archive as `bin/tychicus-hands`, and `tychicus install --release` copies it to
-`~/.local/bin/tychicus-hands` (step 3 above). It is signed ad hoc with the hardened runtime and not notarized: no
+carries it in the darwin archive as `bin/local-studio-computer`, and `local-studio-browser install --release` copies it to
+`~/.local/bin/local-studio-computer` (step 3 above). It is signed ad hoc with the hardened runtime and not notarized: no
 Developer ID yet. macOS matches a program signed ad hoc by its hash, so a person who allowed the helper itself in
 Accessibility allows it again after each update; a grant to the app it runs under (Terminal, say) is unaffected.
 Without the grant it answers `hands/grants` (below) and every window verb with the program macOS checks and where to
-allow it. Access is Default, or Read Only (`defaults write tychicus-hands agentAccessMode read_only`); there are no
+allow it. Access is Default, or Read Only (`defaults write local-studio-computer agentAccessMode read_only`); there are no
 consent sheets yet, so nothing widens it. Details: `hands/mac/README.md`.
 
 ## Transport
@@ -71,8 +63,8 @@ consent sheets yet, so nothing widens it. Details: `hands/mac/README.md`.
 
 ### `initialize`
 
-Request params: `{protocolVersion, capabilities, clientInfo}`. Tychicus sends `protocolVersion: "2025-06-18"` and
-`clientInfo.name: "tychicus"`.
+Request params: `{protocolVersion, capabilities, clientInfo}`. Local Studio sends `protocolVersion: "2025-06-18"` and
+`clientInfo.name: "local-studio-browser"`.
 
 Result:
 
@@ -80,13 +72,13 @@ Result:
 {
   "protocolVersion": "<the one asked for, or 2025-06-18>",
   "capabilities": { "tools": { "listChanged": false } },
-  "serverInfo": { "name": "tychicus-hands", "version": "<helper version>" },
+  "serverInfo": { "name": "local-studio-computer", "version": "<helper version>" },
   "instructions": "<how an agent uses the tools>"
 }
 ```
 
-`serverInfo.name` is the helper's local name, or, when it was started with `--connector`, its connector name. Tychicus
-uses a connector helper only when the name is `tychicus-connector`: a helper older than the flag
+`serverInfo.name` is the helper's local name, or, when it was started with `--connector`, its connector name. Local Studio
+uses a connector helper only when the name is `local-studio-connector`: a helper older than the flag
 ignores it and answers with its usual name, and its calls would not be capped. A helper started without `--connector`
 never answers with a connector name.
 
@@ -96,13 +88,13 @@ Result `{}`.
 
 ### `hands/grants` (optional)
 
-Result `{"missing": [Missing, ...]}`: the OS grants the helper lacks right now, asked of the OS on each call. Empty when
-it has them. Each entry:
+Result `{"missing": [Missing, ...], "grants": [Grant, ...]}`, asked of the OS on each call. `missing` is what the helper can't
+work without and lacks right now, empty when it has it all. Each entry:
 
 ```json
 {
   "grant": "accessibility",
-  "message": "macOS hasn't allowed Terminal to use Accessibility, so tychicus-hands can't read or act on windows",
+  "message": "macOS hasn't allowed Terminal to use Accessibility, so local-studio-computer can't read or act on windows",
   "suggestion": "Ask the person to open System Settings > Privacy & Security > Accessibility and turn on Terminal (/System/Applications/Utilities/Terminal.app). ...",
   "program": { "name": "Terminal", "path": "/System/Applications/Utilities/Terminal.app" }
 }
@@ -111,8 +103,18 @@ it has them. Each entry:
 `computer_status` asks it once the tools are listed and, when something is missing, answers with each `message` and
 `suggestion` (optional) instead of "available", so the agent can tell the person exactly what to allow. `program` is the program
 the OS checks the grant against (on a Mac, the process responsible for the helper), and is optional. A helper without
-the method answers `-32601` (an older helper, the Linux one), and Tychicus reads that, and only that, as nothing missing: a
-helper that stopped or doesn't answer within 2 seconds is reported as such. The Mac helper implements it.
+the method answers `-32601` (an older helper), and Local Studio reads that, and only that, as nothing missing: a
+helper that stopped or doesn't answer within 2 seconds is reported as such.
+
+`grants` is optional: one entry for everything the helper looks at, allowed or not, in the order to show it. Accessibility and
+Screen Recording on a Mac; what this desktop gives (apps, windows, screenshots) on Linux. `text` is in the helper's own words.
+
+```json
+{ "name": "Screen Recording", "ok": false, "text": "macOS hasn't allowed Local Studio to record the screen, so windows can't be captured" }
+```
+
+`local-studio-browser status --json` gives them as `computer.grants`, and `local-studio-computer grants --json` prints the same
+result without a session. Neither makes the OS ask the person anything.
 
 ### `tools/list`
 
@@ -127,13 +129,13 @@ Result `{"tools": [Tool, ...]}`, the same list with or without `--connector`. Ea
 }
 ```
 
-- `name` is the verb with `_` for `-` (`set_value`, `click_at`, `run_steps`). Tychicus adds the `computer_` prefix.
+- `name` is the verb with `_` for `-` (`set_value`, `click_at`, `run_steps`). Local Studio adds the `computer_` prefix.
 - Property `type` is one of `string`, `integer`, `boolean`, or `array` with `items.type` `string` (a list of strings)
-  or `object` (a list of objects). Tychicus maps an unknown type to "anything" and lets the helper check it.
+  or `object` (a list of objects). Local Studio maps an unknown type to "anything" and lets the helper check it.
 - `required` is left out when nothing is required.
 - `readOnlyHint` is `true` for the verbs that change nothing and `false` for the rest. `shot` is `false` (it writes a file).
 - The list never contains `lend`, `return` or `status`. `lend` and `return` are the person's; `status` is
-  `computer_status`, which Tychicus answers itself.
+  `computer_status`, which Local Studio answers itself.
 
 ### `tools/call`
 
@@ -231,7 +233,7 @@ how long to wait while the person is using the app.
 
 Arguments not marked are strings. A ref is `@<snapshot>:e<N>` or a bare row number from the session's latest snapshot.
 
-What each answers in `data` (fields a helper may add to; Tychicus passes them through unread):
+What each answers in `data` (fields a helper may add to; Local Studio passes them through unread):
 
 - `windows`: `{agent_workspace: int|null, access: "read_only"|"default"|"full", windows: [{id, app, bundle?, pid, title, kind, scope, workspace?, in_use?, ...}]}`.
   `access` is the access the caller works under, after the connector cap.
@@ -250,34 +252,34 @@ What each answers in `data` (fields a helper may add to; Tychicus passes them th
 
 ## Helper extensions
 
-A helper may list more verbs. Polycarp's listed `workspaces`, `query`, `events`, `arrange`, `move`, `switch`, `focus`,
-`frame` and `close`. Tychicus's local server offers every listed verb but `lend`, `return` and `status`, with the helper's
+A helper may list more verbs. Local Studio's listed `workspaces`, `query`, `events`, `arrange`, `move`, `switch`, `focus`,
+`frame` and `close`. Local Studio's local server offers every listed verb but `lend`, `return` and `status`, with the helper's
 own description and schema; a connector session sees only the 17 above, and only those its scopes allow
 (`COMPUTER_READ_TOOLS`, `COMPUTER_ACT_TOOLS`). Extension names must match `^[a-z][a-z0-9_]*$`.
 
 ## The person's own verbs: `lend`, `return`, `status`
 
 Never listed and never an agent's. `tools/call` with `lend` or `return` answers, in either mode, an error envelope with
-code `needs_lend`, retry `never`: lending is a sheet the person clicks in the helper's own app (Polycarp: the Lend sheet,
+code `needs_lend`, retry `never`: lending is a sheet the person clicks in the helper's own app (Local Studio: the Lend sheet,
 `LendConsent.swift`), never something an agent's call or a command line can do. `status` is not a helper tool:
-`computer_status` is answered by Tychicus, and a helper asked for `status` answers `bad_arguments` (unknown tool).
+`computer_status` is answered by Local Studio, and a helper asked for `status` answers `bad_arguments` (unknown tool).
 
 ## The connector cap
 
-`--connector` means the caller is on another machine (a `tychicus serve` session granted `computer.read` or
+`--connector` means the caller is on another machine (a `local-studio-browser serve` session granted `computer.read` or
 `computer.act`). It never widens anything. Under it the helper:
 
-1. answers `initialize` with its connector name (`tychicus-connector`; Polycarp's was `polycarp-connector`).
+1. answers `initialize` with its connector name (`local-studio-connector`; Local Studio's was `local-studio-connector`).
 2. works under the person's access mode capped at Default: Full Access becomes Default, Read Only stays Read Only.
    `windows` reports that capped `access`, never `full`.
 3. refuses the managing verbs (`arrange`, `move`, `close`, `switch`, `focus`, `frame`) with `permission_denied`, retry
    `never`, message `<verb> isn't open to an assistant connected from another machine`, whether or not it lists them.
 4. refuses `lend` and `return` with `needs_lend`, as in local mode.
-5. refuses every connector call when the part that enforces the cap can't say it does (Polycarp's CLI asked the app on
+5. refuses every connector call when the part that enforces the cap can't say it does (Local Studio's CLI asked the app on
    every call and answered `not_running` when the app didn't reply `connector_cap: default`).
 
-Tychicus adds its own layer: a connector session can name only the verbs its scopes allow, and its `run_steps` may only
-name step tools it could call itself (`stepRefusal`). That layer is Tychicus's; the helper's cap holds without it.
+Local Studio adds its own layer: a connector session can name only the verbs its scopes allow, and its `run_steps` may only
+name step tools it could call itself (`stepRefusal`). That layer is Local Studio's; the helper's cap holds without it.
 
 Under Read Only (local or connector), every acting verb answers `permission_denied`, retry `never`; `shot` still works.
 
@@ -291,7 +293,7 @@ managing verbs and lending refused).
 - In CI it runs against `cli/test/helpers/fake-hands.mjs`, a helper that implements the wire with no desktop behind it.
   The same file also runs the suite against broken copies of the fake (a verb missing, a widened connector) and fails
   unless the suite catches each one.
-- Against a real helper: `TYCHICUS_HANDS_CONFORMANCE_BIN=/path/to/tychicus-hands node --test test/hands-conformance.test.mjs`
+- Against a real helper: `LOCAL_STUDIO_COMPUTER_CONFORMANCE_BIN=/path/to/local-studio-computer node --test test/hands-conformance.test.mjs`
   from `cli/`. To see the cap hold over Full Access, set the person's mode to Full Access first; the suite checks that a
   connector never reports it.
 - The Linux helper runs it in CI against its own static binary in a headless desktop (Xvfb with openbox, and headless

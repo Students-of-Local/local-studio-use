@@ -1,0 +1,14 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Your cart</title><script src="shop.js"></script></head><body>
+<main><h1>Your cart</h1><table><thead><tr><th>Item</th><th>Qty</th><th></th></tr></thead><tbody id="rows"></tbody></table>
+<p id="total"></p><p><a href="index.html">Keep shopping</a> <button id="go">Proceed to checkout</button></p></main>
+<script>
+const draw = () => {
+  const c = cart.get(); let t = 0;
+  document.getElementById("rows").innerHTML = Object.entries(c).filter(([, q]) => q > 0).map(([k, q]) => { t += q * PRODUCTS[k].price;
+    return `<tr><td>${PRODUCTS[k].name}</td><td>${q}</td><td><button data-k="${k}" aria-label="Take one ${PRODUCTS[k].name} out">Take one out</button></td></tr>`; }).join("");
+  document.getElementById("total").textContent = `Subtotal: $${t}`;
+  document.querySelectorAll("button[data-k]").forEach((b) => b.onclick = () => { const c = cart.get(); c[b.dataset.k]--; cart.set(c); draw(); });
+};
+draw();
+document.getElementById("go").onclick = () => (location.href = "checkout.html");
+</script></body></html>

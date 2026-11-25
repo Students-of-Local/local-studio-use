@@ -1,0 +1,21 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Create an account</title><script src="/common.js"></script></head><body>
+<main><h1>Create an account</h1>
+<form id="f">
+<p><label for="n">Full name</label> <input id="n" name="name" autocomplete="off"></p>
+<p><label for="e">Email address</label> <input id="e" name="email" type="email"></p>
+<p><label for="p">Plan</label> <select id="p" name="plan"><option value="">Choose one</option><option value="basic">Basic</option><option value="pro">Pro</option><option value="team">Team</option></select></p>
+<fieldset><legend>Preferred contact</legend>
+<label><input type="radio" name="contact" value="email"> Email</label>
+<label><input type="radio" name="contact" value="phone"> Phone</label></fieldset>
+<p><label><input type="checkbox" name="news"> Send me the monthly newsletter</label></p>
+<p><button type="submit">Create account</button></p>
+</form><p id="out" role="status"></p></main>
+<script>
+document.getElementById("f").addEventListener("submit", (ev) => {
+  ev.preventDefault();
+  const f = new FormData(ev.target);
+  const s = { name: f.get("name"), email: f.get("email"), plan: f.get("plan"), contact: f.get("contact"), news: f.get("news") === "on" };
+  report("t02-form", s);
+  document.getElementById("out").textContent = "Account created for " + s.name;
+});
+</script></body></html>

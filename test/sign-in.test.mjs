@@ -43,7 +43,7 @@ test("only the extension's own sign-in window answers", () => {
 });
 
 test("the answer holds the asked fields and nothing else", () => {
-	const say = (values) => ({ type: "tychicus-sign-in", id: "1", action: "fill", values });
+	const say = (values) => ({ type: "local-studio-sign-in", id: "1", action: "fill", values });
 	assert.deepEqual(signInValues(say({ username: "pat", password: "pw", extra: "x" }), { password: "e2" }), { password: "pw" });
 	for (const values of [undefined, {}, { password: "" }, { password: 5 }])
 		assert.equal(signInValues(say(values), { password: "e2" }), undefined);

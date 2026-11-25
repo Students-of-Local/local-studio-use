@@ -47,7 +47,7 @@ let statusInWelcomeChunk = false;
 let hellos = 0;
 
 before(async () => {
-	root = mkdtempSync(join(tmpdir(), "tabkyra-retry-"));
+	root = mkdtempSync(join(tmpdir(), "local-studio-retry-"));
 	const dir = join(root, "sock");
 	mkdirSync(dir, { mode: 0o700 });
 	mkdirSync(join(root, "home"));
@@ -106,7 +106,7 @@ before(async () => {
 		new StdioClientTransport({
 			command: process.execPath,
 			args: [cli, "mcp"],
-			env: { HOME: join(root, "home"), PATH: dirname(process.execPath), TABKYRA_SOCKET_DIR: dir, TABKYRA_SESSION: "retry", TABKYRA_RECONNECT_BUDGET_MS: "1000" },
+			env: { HOME: join(root, "home"), PATH: dirname(process.execPath), LOCAL_STUDIO_BROWSER_SOCKET_DIR: dir, LOCAL_STUDIO_BROWSER_SESSION: "retry", LOCAL_STUDIO_BROWSER_RECONNECT_BUDGET_MS: "1000" },
 			stderr: "ignore",
 		}),
 	);
@@ -134,7 +134,7 @@ test("a click cut off by a drop is not replayed, and the agent is told it may ha
 	plan.click = ["drop"];
 	const r = await mcp.callTool({ name: "click", arguments: { ref: "e1" } });
 	assert.equal(r.isError, true);
-	assert.match(text(r), /^interrupted: The browser connection dropped while click was running .* may have run\. Check the page with read_page before you repeat it; Tychicus reconnects on your next call\./);
+	assert.match(text(r), /^interrupted: The browser connection dropped while click was running .* may have run\. Check the page with read_page before you repeat it; Local Studio reconnects on your next call\./);
 	assert.equal(seen.click, 1, "the click reached the browser twice");
 	// The bridge is back: the next call works without the agent doing anything special.
 	assert.ok(!(await mcp.callTool({ name: "tabs_context", arguments: {} })).isError);
@@ -213,7 +213,7 @@ test("calls made while the client is still connecting share that one connection"
 		new StdioClientTransport({
 			command: process.execPath,
 			args: [cli, "mcp"],
-			env: { HOME: join(root, "home"), PATH: dirname(process.execPath), TABKYRA_SOCKET_DIR: join(root, "sock"), TABKYRA_SESSION: "retry2" },
+			env: { HOME: join(root, "home"), PATH: dirname(process.execPath), LOCAL_STUDIO_BROWSER_SOCKET_DIR: join(root, "sock"), LOCAL_STUDIO_BROWSER_SESSION: "retry2" },
 			stderr: "ignore",
 		}),
 	);
@@ -268,10 +268,10 @@ test("a socket the host has half-closed takes no request: it is treated as never
 	const out = join(root, "client.mjs");
 	await build({ entryPoints: [join(dirname(fileURLToPath(import.meta.url)), "..", "src", "client.ts")], bundle: true, platform: "node", format: "esm", outfile: out, logLevel: "silent" });
 	const { BridgeClient } = await import(out);
-	const before = process.env.TABKYRA_SOCKET_DIR;
+	const before = process.env.LOCAL_STUDIO_BROWSER_SOCKET_DIR;
 	// No host at all: a request that is never sent fails as "not connected".
-	process.env.TABKYRA_SOCKET_DIR = join(root, "no-host");
-	mkdirSync(process.env.TABKYRA_SOCKET_DIR, { recursive: true, mode: 0o700 });
+	process.env.LOCAL_STUDIO_BROWSER_SOCKET_DIR = join(root, "no-host");
+	mkdirSync(process.env.LOCAL_STUDIO_BROWSER_SOCKET_DIR, { recursive: true, mode: 0o700 });
 	const client = new BridgeClient({ name: "halfclose" });
 	// The host ended this socket: Node keeps it open but no longer writable until it closes.
 	const writes = [];
@@ -280,8 +280,8 @@ test("a socket the host has half-closed takes no request: it is treated as never
 		await assert.rejects(() => client.call("press", { key: "Tab" }), /isn't connected/);
 		assert.equal(writes.length, 0, "a request was written to a half-closed socket (it would then be reported 'may have run')");
 	} finally {
-		if (before === undefined) delete process.env.TABKYRA_SOCKET_DIR;
-		else process.env.TABKYRA_SOCKET_DIR = before;
+		if (before === undefined) delete process.env.LOCAL_STUDIO_BROWSER_SOCKET_DIR;
+		else process.env.LOCAL_STUDIO_BROWSER_SOCKET_DIR = before;
 	}
 });
 

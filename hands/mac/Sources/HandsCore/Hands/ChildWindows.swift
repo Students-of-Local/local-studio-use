@@ -70,8 +70,7 @@ public enum ChildWindowRule {
         }
     }
 
-    /// Whether the window waits on someone: anything modal, and a dialog or alert by its subrole. The same meaning as
-    /// `WaitingWindow.asks` in #99 (spaces/dock-leftover-tile); the two should become one once both are merged.
+    /// Whether the window waits on someone: anything modal, and a dialog or alert by its subrole.
     public static func waits(subrole: String?, modal: Bool?) -> Bool {
         if modal == true { return true }
         return subrole == "AXDialog" || subrole == "AXSystemDialog"
@@ -159,8 +158,8 @@ public enum ChildWindowRule {
                               selfPid: Int32? = nil) -> Decision {
         let kindName = c.kind?.rawValue ?? "window"
         if let me = selfPid, c.pid == me {
-            return .refused(.ownWindow, HandsError(.permissionDenied, "window \(c.id) is Tychicus's own",
-                                                   suggestion: "Agents never use Tychicus's windows; its settings are the person's.", retry: .never))
+            return .refused(.ownWindow, HandsError(.permissionDenied, "window \(c.id) is Local Studio's own",
+                                                   suggestion: "Agents never use Local Studio's windows; its settings are the person's.", retry: .never))
         }
         if isSystemPrompt(bundle: c.bundle, processName: c.processName) {
             return .refused(.systemPrompt, HandsError(.permissionDenied,
@@ -170,7 +169,7 @@ public enum ChildWindowRule {
         if c.panel { return .refused(.panel, PanelDetector.refusal(window: c.id, app: c.app)) }
         guard c.kind != nil else {
             return .refused(.notAChild, HandsError(.outsideAgentWorkspace,
-                "window \(c.id) of \(c.app) is not a dialog, alert, sheet or floating window, and Tychicus doesn't place it (rule 1)",
+                "window \(c.id) of \(c.app) is not a dialog, alert, sheet or floating window, and Local Studio doesn't place it (rule 1)",
                 suggestion: "A new document window is placed in a moment: run `windows` again. Menus are never an agent's.", retry: .safe))
         }
         let usable = placed.filter { $0.window.pid == c.pid && $0.scope.allowed }
@@ -413,9 +412,9 @@ public enum SheetMark {
 public enum OpenNote {
     public static func text(_ start: SessionWindows.OpenStart, app: String) -> String {
         switch start {
-        case .owns: return "Tychicus couldn't identify the window this open made yet, so this session owns none of it for now; if it appears within 30 s it becomes yours. Run `computer_windows`"
-        case .noSession: return "Tychicus couldn't identify the window this open made yet; this open had no session, so no window of it is anyone's. Run `computer_windows`"
-        case .overlap: return "Tychicus identified no window for this open: another open of \(app) is still waiting for its window or overlapped one in the last 30 s, so it can't tell whose new window is whose and gives it to neither; you may still use it, but `close` won't close it"
+        case .owns: return "Local Studio couldn't identify the window this open made yet, so this session owns none of it for now; if it appears within 30 s it becomes yours. Run `computer_windows`"
+        case .noSession: return "Local Studio couldn't identify the window this open made yet; this open had no session, so no window of it is anyone's. Run `computer_windows`"
+        case .overlap: return "Local Studio identified no window for this open: another open of \(app) is still waiting for its window or overlapped one in the last 30 s, so it can't tell whose new window is whose and gives it to neither; you may still use it, but `close` won't close it"
         }
     }
 }

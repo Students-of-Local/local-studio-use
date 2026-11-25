@@ -50,8 +50,8 @@ export class Transcript {
 
 	push(e) {
 		if (e.type === "system" && e.subtype === "init") {
-			this.mcpStatus = e.mcp_servers?.find((s) => s.name === "polycarp")?.status;
-			this.toolCount = e.tools?.filter((t) => t.startsWith("mcp__polycarp__")).length;
+			this.mcpStatus = e.mcp_servers?.find((s) => s.name === "local-studio-browser")?.status;
+			this.toolCount = e.tools?.filter((t) => t.startsWith("mcp__local-studio__")).length;
 		}
 		if (e.type === "system" && e.subtype === "compact_boundary")
 			this.compactions.push({ atCall: this.calls.length, pre: e.compact_metadata?.pre_tokens, post: e.compact_metadata?.post_tokens });
@@ -64,7 +64,7 @@ export class Transcript {
 		if (e.type === "assistant")
 			for (const c of e.message?.content ?? []) {
 				if (c.type === "tool_use") {
-					const call = { tool: c.name.replace(/^mcp__polycarp__/, ""), args: c.input };
+					const call = { tool: c.name.replace(/^mcp__local-studio__/, ""), args: c.input };
 					// Where the ref or tab a call names came from: the call that handed it out, or -1 when none did.
 					const named = c.input?.ref ?? c.input?.tabId;
 					if (named != null) call.from = this.handed.get(String(named)) ?? -1;

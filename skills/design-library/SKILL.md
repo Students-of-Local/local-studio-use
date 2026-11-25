@@ -21,7 +21,7 @@ licenses, not copies.
 
 ## Where it lives
 
-`~/.config/tychicus/personal/design-library/`, unless the user names another folder they
+`~/.local-studio/browser/personal/design-library/`, unless the user names another folder they
 own. Don't use a team drive, a shared folder or a public repo. Layout:
 
 ```
@@ -36,16 +36,16 @@ design-library/
 
 Index line format: `- [type] [name] - [tags] - [date] - [source] - [path]`.
 Reference boards of other people's work don't go here; `reference` keeps them in
-`~/.config/tychicus/personal/references/`.
+`~/.local-studio/browser/personal/references/`.
 
 ## Steps to save
 
 1. **Confirm it is the user's.** Save only what the user made, commissioned, or picked
    from a source whose license allows reuse. For anything else, use `reference`.
 2. **Create the folder privately** if missing:
-   `(umask 077 && mkdir -p ~/.config/tychicus/personal/design-library/palettes) && chmod 700 ~/.config/tychicus/personal ~/.config/tychicus/personal/design-library`
+   `(umask 077 && mkdir -p ~/.local-studio/browser/personal/design-library/palettes) && chmod 700 ~/.local-studio/browser/personal ~/.local-studio/browser/personal/design-library`
    (swap `palettes` for the subfolder you need).
-3. **Search first.** `grep -i "[name or tag]" ~/.config/tychicus/personal/design-library/index.md`.
+3. **Search first.** `grep -i "[name or tag]" ~/.local-studio/browser/personal/design-library/index.md`.
    If a close match exists, update it instead of adding a duplicate.
 4. **Write the entry** with the template for its type below.
 5. **Check palettes for contrast.** For each text and background pair:
@@ -115,7 +115,7 @@ Used in: [projects]
 The user says: "Save this palette as Harbor: navy 1F3A5F, sand F4EFE6, orange E07A2F."
 
 ```
-grep -i harbor ~/.config/tychicus/personal/design-library/index.md     -> no match
+grep -i harbor ~/.local-studio/browser/personal/design-library/index.md     -> no match
 contrast 1F3A5F on FFFFFF -> 11.48   1F3A5F on F4EFE6 -> 10.03   E07A2F on FFFFFF -> 3.0
 ```
 

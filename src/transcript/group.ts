@@ -258,6 +258,22 @@ function actLabel(a: Record<string, unknown>): string {
 	}
 }
 
+/** A site_edit call's label, by its action. */
+function siteEditLabel(a: Record<string, unknown>): string {
+	switch (a.action) {
+		case "list":
+			return "Read site changes";
+		case "off":
+			return "Turn off a site change";
+		case "remove":
+			return "Remove a site change";
+		case "script":
+			return "Suggest a site script";
+		default:
+			return "Change the site";
+	}
+}
+
 /** A one-line label for a tool call row. */
 export function stepLabel(call: TToolCall, result?: TMessage): { label: string; detail?: string } {
 	const a = call.arguments ?? {};
@@ -298,6 +314,8 @@ export function stepLabel(call: TToolCall, result?: TMessage): { label: string; 
 			return { label: actLabel(a) };
 		case "handle_dialog":
 			return { label: a.accept === true ? "Answer the dialog: OK" : "Answer the dialog: Cancel" };
+		case "site_edit":
+			return { label: siteEditLabel(a), detail: siteOf(str(a.host)) ?? str(a.host) };
 		case "artifacts":
 			return { label: `${str(a.command) ?? "Edit"} ${str(a.filename) ?? ""}`.trim() };
 		default:

@@ -1,0 +1,35 @@
+{
+	"tool": "browse",
+	"at": "2026-11-24T05:59:20.028Z",
+	"version": "c3ad2ada2c4c",
+	"machine": {
+		"os": "macOS 27.2",
+		"arch": "arm64",
+		"cpu": "Apple M5",
+		"cores": 10,
+		"memGB": 32
+	},
+	"node": "v24.15.0",
+	"chromium": "Google Chrome for Testing 156.0.8078.4",
+	"load1": {
+		"start": 19.2,
+		"end": 10.6
+	},
+	"repeat": 3,
+	"speedN": 9,
+	"tasks": {
+		"pass": 26,
+		"of": 30,
+		"failed": {
+			"t09-long": 3,
+			"t10-dialog": 1
+		}
+	},
+	"startMs": 7364,
+	"speed_ms": {
+		"click": 661,
+		"fill": 119,
+		"firstText": 122
+	},
+	"errors": {}
+}

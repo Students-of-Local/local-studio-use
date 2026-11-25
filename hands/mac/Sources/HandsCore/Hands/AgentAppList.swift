@@ -26,8 +26,8 @@ public enum AgentAppGrants {
 
     /// Why the copy at `appURL` is not the one Donovan allowed for `bundle`, or nil when it is (review of #533, second-F7).
     public static func copyProblem(bundle: String, at appURL: URL?) -> String? {
-        guard let allowed = copy(of: bundle) else { return "Tychicus has no record of the copy the person allowed" }
-        guard let appURL else { return "Tychicus can't find its bundle" }
+        guard let allowed = copy(of: bundle) else { return "Local Studio has no record of the copy the person allowed" }
+        guard let appURL else { return "Local Studio can't find its bundle" }
         if let why = AgentAppCopy.placeProblem(appURL, registered: NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundle)) { return why }
         if AgentAppCopy.path(appURL) != allowed.path { return "it is not the copy the person allowed (\(allowed.path))" }
         if !AgentAppCopy.meets(appURL, allowed.requirement) { return "its code is not signed as the copy the person allowed was" }

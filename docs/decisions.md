@@ -4,14 +4,14 @@ Conventional defaults chosen while implementing the Done Criteria (DC-1 to DC-14
 owner's answers to the questions that changed the outcome. Newest last. Each entry names
 the criterion it serves.
 
-## D1. Polycarp skill metadata lives in `skill.toml`, not in SKILL.md frontmatter (DC-3)
+## D1. Local Studio skill metadata lives in `skill.toml`, not in SKILL.md frontmatter (DC-3)
 
 DC-3 lists name, description, triggers, required tools, permissions, version and
 provenance as frontmatter. Harnesses read SKILL.md frontmatter, and some act on keys they
 recognize (Claude Code's `allowed-tools` pre-approves tools), so extra keys there are an
 escalation route. SKILL.md keeps `name`, `description` and `license`, which every harness
-reads the same way. The Polycarp fields go in `skill.toml` in the same folder, which only
-Polycarp reads and the lint validates. The installer copies only SKILL.md into harness
+reads the same way. The Local Studio fields go in `skill.toml` in the same folder, which only
+Local Studio reads and the lint validates. The installer copies only SKILL.md into harness
 folders. Same information, no new attack surface in the harness.
 
 ## D2. CAPTCHA handling (DC-10, DC-12)
@@ -23,7 +23,7 @@ Implementation default:
 - Off by default. Turned on once at setup, behind a plain warning that solving breaks
   most sites' terms and can get an account or IP flagged. The setting then syncs to the
   user's other devices.
-- Polycarp ships no solver. When the setting is on, the agent may use a solver extension
+- Local Studio ships no solver. When the setting is on, the agent may use a solver extension
   the user installed themselves (Buster), one challenge at a time at human pace.
 - Allowed for search engines, the `ghost` skill and the `osint` skill's company and domain
   research. Never for buying, ticketing, account creation, posting, or any site the user
@@ -50,14 +50,14 @@ for gpt-6.1-sol, as the existing field note documents.
 ## D5. Bug report transport (DC-13)
 
 Owner, 2026-10-25: GitHub issues filed through the user's own `gh` sign-in on
-baney75/tabkyra. Reports are de-duplicated by a fingerprint of the scrubbed error (an
+baney75/local-studio. Reports are de-duplicated by a fingerprint of the scrubbed error (an
 open issue with the same fingerprint gets a comment instead of a new issue). Off by
 default. Without `gh` signed in, the report falls back to the prefilled issue link the
 user submits.
 
 ## D6. Personal and shared skills (owner note, DC-5)
 
-Every skill has a category in `skill.toml`: `personal` or `shared`. `polycarp-browser` classifies
+Every skill has a category in `skill.toml`: `personal` or `shared`. `local-studio-browser` classifies
 it automatically and the stricter answer wins. Anything matching personal data (emails,
 phone numbers, street addresses, account or student IDs, home paths, names the user marks
 as private, signed-in site data) makes it `personal`. Personal skills are never submitted,
@@ -71,7 +71,7 @@ Pasting the prompt into each harness needs that harness signed in and calling a 
 That uses the owner's sign-ins and, for some harnesses, metered API use, which is not
 allowed without the owner. The default check runs the prompt's commands, unchanged, in a
 fresh container per harness with that harness's binary installed. It checks harness
-detection, skills folder, MCP config and `polycarp browser doctor`. The model-in-the-loop
+detection, skills folder, MCP config and `local-studio-browser doctor`. The model-in-the-loop
 transcripts are recorded as blocked until the owner signs in a harness for the run.
 
 ## D8. Stacked pull requests
@@ -82,19 +82,19 @@ on #13 and then review and merge #14 and #15: "Yes, review and merge".
 
 ## D9. Remote MCP and tunnels (DC-2, DC-9)
 
-`polycarp browser serve` speaks MCP over Streamable HTTP and binds to loopback only; it refuses any
-other address. Every request needs a bearer token from `polycarp browser token create`. Tokens are
+`local-studio-browser serve` speaks MCP over Streamable HTTP and binds to loopback only; it refuses any
+other address. Every request needs a bearer token from `local-studio-browser token create`. Tokens are
 per client, stored as SHA-256 hashes, revocable at once, and limited to named scopes
 (`browser.read`, `browser.navigate`, `browser.act`, `browser.script`, `library.read`,
 `library.write`). There is no wildcard. A session sees only its scopes' tools, and another
 token can't reuse it. The stdio server that a local harness runs keeps full access: it
 runs as the user, so a token there would protect nothing. TLS comes from the tunnel:
-`polycarp browser tunnel tailscale` (tailnet only; `--public` uses Funnel and warns) or
-`polycarp browser tunnel cloudflare` (a quick tunnel under the user's own `cloudflared`).
+`local-studio-browser tunnel tailscale` (tailnet only; `--public` uses Funnel and warns) or
+`local-studio-browser tunnel cloudflare` (a quick tunnel under the user's own `cloudflared`).
 
 ## D10. Appearance customization and the contribution network (owner, 2026-10-25)
 
-Users and their agents customize Polycarp's look through a theme file: design tokens and
+Users and their agents customize Local Studio's look through a theme file: design tokens and
 CSS custom properties as data, checked by a linter. A theme can't contain code, URLs or
 selectors that hide controls. A modified build is still allowed (AGPL-3.0).
 
@@ -130,7 +130,7 @@ loads when the skill is invoked. Each first-party skill stays under 150 lines an
 day, because every well-specified skill exceeded it; the owner hasn't ruled on the number. Enforced by the lint's `budget` rule, and longer material is
 split into separate skills, not appendices. The
 router (DC-3) picks at most one skill per task for small models. The `rsi` and `fix`
-skills apply their edits with `polycarp browser skill apply`, which runs the same lint, so an improvement can't bloat a skill past it (`fix` also aims for under 150 lines).
+skills apply their edits with `local-studio-browser skill apply`, which runs the same lint, so an improvement can't bloat a skill past it (`fix` also aims for under 150 lines).
 
 ## D13. Local model providers (owner, 2026-10-25)
 
@@ -142,7 +142,7 @@ private mode only once the user lists it as their own (#15's rule in `src/privac
 
 ## D14. Fix submissions and tier variants (owner, 2026-10-25)
 
-`submit` in `~/.config/polycarp/browser/rsi.json` takes `"ask"` (default), `"auto"` or `"never"`.
+`submit` in `~/.local-studio/browser/rsi.json` takes `"ask"` (default), `"auto"` or `"never"`.
 The owner asked that users be able to submit fixes automatically, which overrides DC-5's
 confirm-each-submission default for users who choose `"auto"`. Auto submission still only
 opens a pull request: CI, adversarial review and a maintainer decide what enters the
@@ -154,7 +154,7 @@ variant by model tier.
 ## D15. Voice and mail skills (owner, 2026-10-25)
 
 The writing-voice skill learns the user's style only from the user's own mail and
-documents, read in place through their signed-in Polycarp tabs or their Drive. It keeps
+documents, read in place through their signed-in Local Studio tabs or their Drive. It keeps
 just a style profile (sentence length, word choice, openings, sign-offs, a few short
 example lines), not the messages. The profile is a personal skill (D6): it stays on the
 user's devices and is never submitted, synced to shared storage or put in a bug report.
@@ -164,16 +164,16 @@ rules.
 
 ## D16. SDKs and vendor terms (owner, 2026-10-25: "we don't want to break ToS")
 
-No user should risk a ban for using Polycarp.
+No user should risk a ban for using Local Studio.
 
 - **Harnesses the user runs** (Claude Code, Codex, pi, OMP, OpenCode, Cursor) connect to
-  Polycarp as an MCP server, a pi extension or skills. The user's own harness, signed in
-  however its vendor allows, calls Polycarp. Nothing is borrowed or impersonated, so this
+  Local Studio as an MCP server, a pi extension or skills. The user's own harness, signed in
+  however its vendor allows, calls Local Studio. Nothing is borrowed or impersonated, so this
   is the primary integration.
 - **pi** (`@mariozechner/pi-ai`, `pi-agent-core`, `pi-web-ui`, MIT) already powers the side
   panel with API keys. OMP is integrated through MCP config.
 - **Vendor agent SDKs** (Claude Agent SDK, Codex SDK) are used only with an API key the
-  user supplies and pays for, never with a subscription sign-in inside Polycarp. Products
+  user supplies and pays for, never with a subscription sign-in inside Local Studio. Products
   built on these SDKs are expected to use API keys, and reusing a consumer sign-in in
   another app is what got the old Sitegeist sign-ins removed (docs/auth-policy.md).
 - `/fix` and `adversarial-review` run a stronger model by calling the user's own CLI
@@ -188,15 +188,15 @@ The owner asked for a `visual-explainer` skill adapted from nicobailon/visual-ex
   D12 budget, so upstream's `references/` files, its CSS/JS kit, its renderer and its
   slide and video tooling are not copied. Their rules (figure choice, grid layout, shape
   meanings, captions, motion restraint) are rewritten into one `SKILL.md`. The MIT notice
-  with Nico Bailon's copyright is at the end of that `SKILL.md`, because `polycarp browser skill
+  with Nico Bailon's copyright is at the end of that `SKILL.md`, because `local-studio-browser skill
   install` copies only `SKILL.md`, and also in `skills/visual-explainer/LICENSE`. The skill
-  is MIT; the rest of Polycarp stays AGPL-3.0.
+  is MIT; the rest of Local Studio stays AGPL-3.0.
 - **Inline SVG, not Mermaid.** Upstream loads Mermaid, Chart.js and three.js from a CDN.
   The `artifacts` rules forbid outside scripts, and inlining Mermaid would add megabytes of
   layout code to every page for diagrams a model can draw by hand. Upstream itself makes
   hand-drawn SVG the default and Mermaid opt-in. A user's Mermaid source is redrawn as SVG
   and kept as text in the page.
-- **Upstream's checks are replaced by Polycarp's**: serve the page's own folder,
+- **Upstream's checks are replaced by Local Studio's**: serve the page's own folder,
   `navigate`, start `read_console` and `read_network` and reload, `screenshot`, and
   `run_js` checks for captions, SVG labels, the script count and 375px overflow. The page's
   Content-Security-Policy (first in head: `default-src 'none'`, `script-src 'none'` or the
@@ -221,10 +221,10 @@ available"). Defaults chosen:
   notebook preview; the build aliases it, SheetJS, JSZip and highlight.js to one copy each.
   The previews add about 58 KB unminified (18 KB gzipped) to `sidepanel.js`. The build has
   no code splitting and AGENTS.md forbids dynamic imports, so nothing is lazy-loaded.
-- **Viewers live in Polycarp, not the pi-mono patch.** pi-web-ui gains one hook,
+- **Viewers live in Local Studio, not the pi-mono patch.** pi-web-ui gains one hook,
   `setArtifactViewerFactory` (through `patches/pi-mono.patch`), which the artifacts panel
   asks before its built-in viewers; `src/artifacts/viewers.ts` answers it. The fork patch
-  stays small, and the viewers are ordinary Polycarp source with Polycarp's tests and review.
+  stays small, and the viewers are ordinary Local Studio source with Local Studio's tests and review.
 - **Spreadsheets** (`xlsm`, `xlsb`, `ods`, `numbers` and templates) go through the SheetJS
   build already bundled. CSV and TSV get a table with a toggle to the raw text.
 - **Untrusted input.** Nothing in a file runs or reaches the network: text is set as text,
@@ -245,8 +245,8 @@ available"). Defaults chosen:
 The owner asked for "a great update system" (2026-10-26) with Update now, checkout mode,
 Settings > Updates and an automatic choice defaulting to "Tell me". Defaults chosen:
 
-- **The mode comes from where the native host runs**: `~/.local/share/polycarp/browser/app` is a
-  release, a Polycarp git checkout is a checkout, anything else updates only from a terminal.
+- **The mode comes from where the native host runs**: `~/.local/share/local-studio-browser/app` is a
+  release, a Local Studio git checkout is a checkout, anything else updates only from a terminal.
   The browser's extension folder is confirmed by its `build-info.json` (build ids are new for
   every build); if it differs from the host's folder, Update now refuses, because updating
   the host's folder would not change what the browser runs.
@@ -266,7 +266,7 @@ Settings > Updates and an automatic choice defaulting to "Tell me". Defaults cho
   what that means.
 - **Automatic updates never undo a rollback**: not the release rolled back from, and in a
   checkout only new commits. A failed automatic attempt isn't retried for the same version.
-- **Skill refresh only rewrites what Polycarp wrote.** A hash record of installed files decides;
+- **Skill refresh only rewrites what Local Studio wrote.** A hash record of installed files decides;
   a copy without a record is refreshed only if it matched the old CLI's text right before the
   swap. Anything else is reported, never overwritten.
 - **What's new is plain text.** Release notes come from GitHub and are rendered as text, never
@@ -312,7 +312,7 @@ The owner asked to clean up the side panel chat, remove the in-chat Artifacts pi
 - **The `/` menu order** is site skills matching the current page, then the library, then site
   skills for other sites. A name shows once, in its first section.
 - **A library skill runs by loading its SKILL.md into the user message**, with a note that its
-  tool names are Polycarp's MCP tools and the panel agent uses its own (navigate, repl).
+  tool names are Local Studio's MCP tools and the panel agent uses its own (navigate, repl).
 - **References resolve when the message first goes to the model** (prompt, queue and Send now
   all pass through `convertToLlm`), once per message, and are frozen on it. Messages loaded
   with a saved chat are never resolved again.
@@ -350,7 +350,7 @@ safely or fails with a clear retryable error, never a hang". Defaults chosen:
   installing, a host stopping) is resent after 250 ms, 500 ms, 1 s, 2 s... within the budget.
   A half-closed socket takes no request; one an answer showed is retiring is no longer used
   but not cut under the requests still waiting on it.
-- **Same browser, for a resend.** Each profile keeps a random id (`tabkyra.browserId`) that
+- **Same browser, for a resend.** Each profile keeps a random id (`local-studio.browserId`) that
   the host passes on. A call's resends go only to the browser it started in, never to another
   browser or to a host that hasn't said which it is; when that browser doesn't come back within
   the budget the call fails, and the next call takes whatever browser is up. A reconnect on a
@@ -373,7 +373,7 @@ chosen:
 
 - **The default session is the project**, not the harness conversation: the git root of the
   MCP server's working directory (or the directory), named `<folder>-<4 hex of its path>`.
-  `--session` and `TABKYRA_SESSION` override it. Harness conversation ids
+  `--session` and `LOCAL_STUDIO_BROWSER_SESSION` override it. Harness conversation ids
   (`CLAUDE_SESSION_ID`, `CODEX_THREAD_ID`) no longer pick it: each new conversation made a new
   group and lost the old one's tabs. Outside a project (the disk root or the home folder, even a
   home that is a git repository, where GUI harnesses often start servers) each process gets its
@@ -382,9 +382,9 @@ chosen:
   (`session_assigned`) so a reload can't swap it onto the first one's tabs. A restarted harness
   that connected before its old process hung up gets the base session back if it hasn't
   opened its `-2` yet. A name the user chose is shared on purpose.
-- **Group titles** are `Polycarp · <agent> · <project or session name>`, plus an optional label
+- **Group titles** are `Local Studio · <agent> · <project or session name>`, plus an optional label
   the agent sets (session_info), sanitized as plain text, at most 32 characters, never
-  starting with "Polycarp".
+  starting with "Local Studio".
 - **Gestures apply to agent sessions only.** Side panel chats keep their rules: their tabs are
   the user's already. A tab counts as moved out only once it was seen inside the group, so a
   tab still being grouped is never handed over by mistake. A closed window is not a gesture.
@@ -392,12 +392,12 @@ chosen:
   current tab, it has no current tab until it picks one or navigates.
 - **15 tabs per session**, refused with `tab_limit` and what to do. Popups the foreground
   guard adopts are not refused (they come from the page, not the agent).
-- **`polycarp browser sessions` acts as the user**, like the side panel: any local process that can
+- **`local-studio-browser sessions` acts as the user**, like the side panel: any local process that can
   reach the bridge socket can list, rename, end, focus or collapse agent sessions.
 
 ## D24. Past chats are readable by local agents, by default (Claude, 2026-10-27)
 
-Owner, 2026-10-27: "Make it so tabkyra threads are accessible locally too for the agents using
+Owner, 2026-10-27: "Make it so local-studio-browser threads are accessible locally too for the agents using
 the mcp, and cli, and such." Defaults chosen:
 
 - **On by default**, with a Settings > Privacy switch that turns it off: no agent reads a past
@@ -450,15 +450,15 @@ Defaults chosen:
 ## D26. Free mode: the best free OpenRouter model, measured (Claude, 2026-10-28)
 
 Owner, 2026-10-28: "Add a free mode so through openrouter it provides the best free model for
-usage in tabkyra." Defaults chosen:
+usage in local-studio-browser." Defaults chosen:
 
 - **One step to turn on.** "Free (best available)" is the first entry in the model selector,
   and Settings > Providers has a Free mode switch. Free mode is a model choice
-  (`openrouter/tabkyra-free`), so it persists like any other model. OpenRouter has no model by
+  (`openrouter/local-studio-free`), so it persists like any other model. OpenRouter has no model by
   that id, so a request that somehow skipped the gate fails instead of reaching a paid model.
 - **Best is measured, not guessed.** `cli/eval/free-models.mjs` runs every free, tool-capable
   model on four fixture tasks (shop, contact form with a confirm dialog, a forum thread with a
-  planted instruction, two-store price comparison) through Polycarp's MCP tools in a headless
+  planted instruction, two-store price comparison) through Local Studio's MCP tools in a headless
   Chromium, scored by the fixture site's own state. `cli/eval/free-ranking.mjs` writes the
   result to `src/models/free-ranking.json` with its date and method; `test/free-mode.test.mjs`
   fails if the shipped order doesn't match the recorded scores. The eval drives the MCP tools,
@@ -479,7 +479,7 @@ usage in tabkyra." Defaults chosen:
   (50 requests a day, 1,000 after buying 10 credits, 20 a minute) and what to do.
 - **Gated free models are not worked around.** Some free models answer only for apps on
   OpenRouter's app list (`thinkingmachines/inkling:free` and `inkling-small:free` returned 403 "only available on
-  agentic harnesses"). Polycarp sends its own identity and never borrows another app's (D16);
+  agentic harnesses"). Local Studio sends its own identity and never borrows another app's (D16);
   such a model scores 0 and is skipped.
 - **Private mode still wins.** In private mode Free mode uses only free models with a free
   zero-data-retention endpoint, never `openrouter/free` (it picks its model on OpenRouter's
@@ -493,12 +493,12 @@ usage in tabkyra." Defaults chosen:
 ## D27. Community skills: manage, contribute, review, sync (Claude, 2026-10-28)
 
 Owner, 2026-10-28: "make it so the skill system is easier for peoples llms to manage, and
-contrinute to the larger polycarp browser community, ex if an llm finds a better way to navigate a site
+contrinute to the larger local-studio-browser community, ex if an llm finds a better way to navigate a site
 like notion, it should make said skill, review it, and submit it for review to be merged, and
-then synced amongst those who use tabkyra." Defaults chosen:
+then synced amongst those who use local-studio-browser." Defaults chosen:
 
 - **Where they live.** `community/skills/<name>/SKILL.md` and `community/cases/<name>.jsonl` in
-  baney75/tabkyra, beside but apart from the built-in `skills/`. They are not compiled into the
+  baney75/local-studio, beside but apart from the built-in `skills/`. They are not compiled into the
   CLI or the extension; they reach users only through the signed catalog. A community skill
   can't take a built-in skill's name.
 - **Scope instead of new frontmatter.** A required `## Sites` section names the sites (D1 keeps
@@ -519,7 +519,7 @@ then synced amongst those who use tabkyra." Defaults chosen:
   skill needs 8 or more cases and must route 75% of them to itself (`COMMUNITY_TOP1_MIN`).
   The 75% is Claude's number; the measured example (notion-navigation) routes 9 of 10, losing
   one to the built-in `notes` skill, which also covers Notion.
-- **Submission is the user's.** `polycarp browser skill submit` always shows a preview and exits 3; it
+- **Submission is the user's.** `local-studio-browser skill submit` always shows a preview and exits 3; it
   sends only with `--confirm <code>`, a hash of the target, the skill, its cases and the note,
   so a yes covers exactly what the user saw. D14's `"auto"` setting for `/fix` doesn't apply
   here: every community submission needs the user's yes. The MCP tool only prepares
@@ -532,14 +532,14 @@ then synced amongst those who use tabkyra." Defaults chosen:
 - **Signed catalog, release key, in CI.** `.github/workflows/community-catalog.yml` builds the
   catalog on main (on a merge that changes `community/`, the lint or community rules, or the release key, and by hand; no scheduled publish, owner 2026-10-28; a daily check with no signing key rebuilds the catalog, verifies the published file and signature, and opens an issue when they differ or the check can't run; a publish refuses a catalog whose source predates a change to its inputs or whose serial isn't newer; a takedown still waits for a person to approve its publish) in a job with no secrets,
   then signs it with minisign in the `release` environment in a job that runs no repo code,
-  verifies it against `keys/tabkyra-release.pub`, and uploads it to the `community-catalog`
+  verifies it against `keys/local-studio-release.pub`, and uploads it to the `community-catalog`
   release. No key is on a contributor's or user's machine. The signed trusted comment names
   the catalog's serial (its build time); a client refuses a catalog whose comment and file
   disagree, and any serial lower than the one it holds, so an old catalog can't be replayed to
   bring back a pulled skill. The kept file is verified again whenever it changes on disk.
 - **Sync about daily.** The native host syncs on each hello and hourly when the last good check
-  is over a day old, and `polycarp browser mcp` on start and every 6 hours on the same rule. A failed or
-  refused fetch keeps the catalog in use and doesn't count as a check. `polycarp browser skill sync`
+  is over a day old, and `local-studio-browser mcp` on start and every 6 hours on the same rule. A failed or
+  refused fetch keeps the catalog in use and doesn't count as a check. `local-studio-browser skill sync`
   checks now; `--off` (or the switch in Settings > Skills) turns community skills off and stops
   checking. The side panel gets the skills from the native host, never from the network.
 - **Local edits win, while their base is in use.** Editing a community skill keeps a local copy
@@ -555,7 +555,7 @@ then synced amongst those who use tabkyra." Defaults chosen:
   so a slow sync can't roll back a newer catalog. (Review of #56, first-F1, sol-F1, sol-F2, sol-F4.)
 - **Pulling a skill.** Delete its folder and list it in `community/revoked.json` with a reason.
   At the next sync the skill is no longer matched or read (`skill_read` gives the reason), the
-  copies Polycarp installed into harnesses are deleted, and a local copy based on it is turned
+  copies Local Studio installed into harnesses are deleted, and a local copy based on it is turned
   off but left on disk.
 - **Built-in skills keep their path.** `skill submit` refuses a built-in skill's name; changes to
   those still go through a pull request to `skills/` (the `fix` skill).
@@ -563,29 +563,29 @@ then synced amongst those who use tabkyra." Defaults chosen:
 ## D28. Subscription sign-ins: Sign in with ChatGPT and the Copilot SDK only (Claude, 2026-10-28)
 
 Owner, 2026-10-28: "Make it so people can LEGALLY connect to their coding subs like codex claude
-code ect ... follow the TOS exactly do none get banned." He approved registering a Tabkyra GitHub
+code ect ... follow the TOS exactly do none get banned." He approved registering a Local Studio GitHub
 OAuth App under baney75 ("Yes, register it"), chose "Build it" for ChatGPT, and asked to "review
 and merge the codex login and copilot login thing". Sources and details: `docs/auth-policy.md`.
 
 - **Two sign-ins, each on the provider's documented third-party route.** OpenAI: Sign in with
   ChatGPT for open-source and locally hosted apps (dynamic registration, no secret). GitHub: the
-  Copilot SDK with Polycarp's own OAuth App (`Ov23li1qDiu9lRXbvcFh`, device flow, no secret).
+  Copilot SDK with Local Studio's own OAuth App (`Ov23li1qDiu9lRXbvcFh`, device flow, no secret).
 - **No sign-in for Anthropic or Google.** Their terms forbid it, including driving their CLIs.
-  Settings shows how to run Claude Code or Gemini CLI with Polycarp's MCP server instead.
+  Settings shows how to run Claude Code or Gemini CLI with Local Studio's MCP server instead.
 - **No OpenAI interest form.** OpenAI's docs send open-source, locally hosted apps to the docs and
-  paid or hosted apps to the form; Polycarp is AGPL-3.0 and local. The form itself says "If you're
+  paid or hosted apps to the form; Local Studio is AGPL-3.0 and local. The form itself says "If you're
   an open source developer, explore our developer docs", and it asks for a commercial partner.
-  If Polycarp ever ships a paid or hosted build, that build needs the form first.
+  If Local Studio ever ships a paid or hosted build, that build needs the form first.
 - **OAuth App, not a GitHub App.** GitHub's Copilot SDK setup page says both work and names the
   OAuth App in its steps; the owner approved an OAuth App. Expiring tokens are on, and the device
   flow refreshes them without a secret.
 - **Tokens only in the native host**, in 0600 files, never in browser storage, as OpenAI's docs
   require. The side panel reaches the providers through the host's loopback proxy with a
   per-process secret.
-- **The Copilot SDK is installed by the user** (`polycarp browser copilot-sdk install`, pinned 1.0.28,
+- **The Copilot SDK is installed by the user** (`local-studio-browser copilot-sdk install`, pinned 1.0.28,
   about 160 MB), not bundled: most users don't need it.
 - **The API-keys-only rule of AGENTS.md is replaced** by "API keys, plus sign-ins on a provider's
-  documented third-party route with Polycarp's own registration".
+  documented third-party route with Local Studio's own registration".
 
 ## D29. Dictation: speech to text on the device, the model chosen by the device (Claude, 2026-10-29)
 
@@ -631,7 +631,7 @@ Owner, 2026-11-01: get the MCP working for claude.ai, grok.com, Grok Bot and Cha
 "maybe tailscale tunnels", and without paying for a tunnel.
 
 - claude.ai, ChatGPT and grok.com call a connector from their own servers and can't send a
-  static bearer header (ChatGPT supports only no auth or OAuth). So `polycarp browser serve
+  static bearer header (ChatGPT supports only no auth or OAuth). So `local-studio-browser serve
   --public-url` adds an OAuth 2.1 authorization server, ported from Waypost's (`src/oauth.ts`
   in baney75/waypost), which already works with claude.ai. Static `tkr_` tokens stay for header
   clients such as Grok Bot (`~/.grok/config.toml`, `url` plus a bearer header).
@@ -648,10 +648,10 @@ Owner, 2026-11-01: get the MCP working for claude.ai, grok.com, Grok Bot and Cha
   hourly refresh doesn't end the session or its tab group.
 - Rate limits count per client and per source, with high global caps that only bound scrypt
   work (run off the event loop, four at a time). A flood with forged source headers can still
-  fill a global cap for up to 15 minutes; `polycarp browser token passcode` clears every limit. The
+  fill a global cap for up to 15 minutes; `local-studio-browser token passcode` clears every limit. The
   passcode carries about 100 bits, so the caps don't guard against guessing.
 - The passcode field is a masked text field with `autocomplete="one-time-code"`, so a password
-  manager in the browser Polycarp drives won't fill it for an agent tab. Blocking agent tabs
+  manager in the browser Local Studio drives won't fill it for an agent tab. Blocking agent tabs
   from the approval page in the extension is a follow-up.
 - Tailscale Funnel can't be the public route on Donovan's tailnet: Tailnet Lock rejects Funnel
   ingress (field note `lab-a/tailscale-funnel-never-reachable-on-a-tailnet-lock-tailnet`).
@@ -661,7 +661,7 @@ Owner, 2026-11-01: get the MCP working for claude.ai, grok.com, Grok Bot and Cha
 
 ## D31. Each install is its own single-owner server; no central relay (Claude, 2026-11-01)
 
-Many users will connect claude.ai, ChatGPT and grok.com to their own Polycarp. `polycarp browser remote
+Many users will connect claude.ai, ChatGPT and grok.com to their own Local Studio. `local-studio-browser remote
 setup` (docs/remote.md) is the one command for it.
 
 - Each install is single-owner: its own OAuth server (D30), its own passcode, its own public
@@ -675,18 +675,18 @@ setup` (docs/remote.md) is the one command for it.
   already serves something else.
 - Otherwise: a Cloudflare named tunnel (free) or any HTTPS front door the user runs to
   `127.0.0.1:<port>`, given as `--public-url`.
-- `remote.json` in the config dir (0600) holds the route; `polycarp browser serve` reads it when
+- `remote.json` in the config dir (0600) holds the route; `local-studio-browser serve` reads it when
   `--public-url` is absent, and flags win. A user service (launchd or systemd, user level) keeps
   serve running.
 
 ## D32. Many devices behind one hub, still single-owner (Claude, 2026-11-02)
 
-Owner, 2026-11-02: one public URL (for example `https://tabkyra.dbaney.com/mcp`) that claude.ai,
+Owner, 2026-11-02: one public URL (for example `https://local-studio-browser.dbaney.com/mcp`) that claude.ai,
 ChatGPT and grok.com add once, with any number of his own computers behind it.
 
-- `polycarp browser hub setup` turns an always-on box into the hub. It needs no browser. It serves the D30
+- `local-studio-browser hub setup` turns an always-on box into the hub. It needs no browser. It serves the D30
   OAuth server and consent page (shared code, `oauth-http.ts`) and `/mcp`, and proxies each MCP
-  session to one of the owner's devices. A device runs `polycarp browser link`, which dials out to the hub
+  session to one of the owner's devices. A device runs `local-studio-browser link`, which dials out to the hub
   over a WebSocket, so devices need no inbound port or tunnel of their own.
 - Still D31: one owner, no relay run by the maintainer, no cost. The hub is the owner's own
   server; the maintainer runs nothing. An install has one public route, so `hub setup` refuses
@@ -696,9 +696,9 @@ ChatGPT and grok.com add once, with any number of his own computers behind it.
   anywhere, any online device (tools such as `skill_search` still work). A session stays on its
   device and caller. If that device's link is gone, the hub answers 404 "Unknown or expired
   session", and the client's re-initialize lands elsewhere.
-- Scopes never widen across the hop. The hub sets `x-tabkyra-hub-scopes` and
-  `x-tabkyra-hub-caller` itself from the caller it authenticated, and drops any
-  `x-tabkyra-hub-*` header a public client sends (the forwarded headers come from a short
+- Scopes never widen across the hop. The hub sets `x-local-studio-hub-scopes` and
+  `x-local-studio-hub-caller` itself from the caller it authenticated, and drops any
+  `x-local-studio-hub-*` header a public client sends (the forwarded headers come from a short
   list). A device's `serve` honors those headers only for a `link`-kind token, only on the
   loopback serve `link run` starts (never one with a public URL, which refuses to start with
   that option), and uses the intersection of the token's scopes (the device's cap, default
@@ -753,7 +753,7 @@ ChatGPT and grok.com add once, with any number of his own computers behind it.
 - The panel reaches the helper through a `connect` native-messaging frame, parsed strictly in
   `cli/src/connect-host.ts`: exactly `{type, id, method, params?}`, a known method, and that
   method's own params. A frame that isn't exactly that is answered `bad_params` when it has an
-  id and runs nothing. The background worker (`src/connect/relay.ts`) only takes Polycarp's own
+  id and runs nothing. The background worker (`src/connect/relay.ts`) only takes Local Studio's own
   pages and known method names; the host is the authority.
 - `status` reads local files only (hub.json, remote.json, link.json, the live snapshots, the
   theme), never the network, so the panel can ask every 10 seconds. It reports `route` as hub,
@@ -773,12 +773,12 @@ ChatGPT and grok.com add once, with any number of his own computers behind it.
   host answers "The hub answered with a malformed code." The panel checks again before drawing a
   code or the command that carries it.
 - A request the helper never answers (a helper older than the panel drops the frame) fails after
-  20 seconds, 30 for `joinHub`, with `no_reply` and "Update it: polycarp browser update".
+  20 seconds, 30 for `joinHub`, with `no_reply` and "Update it: local-studio-browser update".
 - The setup prompt for an agent runs `remote setup` and `hub setup` with `--no-passcode`, which
   mint and print no passcode, so no long-lived secret lands in an agent's output or transcript.
   The one-time connect code approves the connection (D32), and the owner can set a passcode later
-  with `polycarp browser token passcode` in their own terminal.
-- `joinHub` runs the same enrollment as `polycarp browser link <hub> --code`, including the service.
+  with `local-studio-browser token passcode` in their own terminal.
+- `joinHub` runs the same enrollment as `local-studio-browser link <hub> --code`, including the service.
   The address (https origin, or http on loopback; a pasted `/mcp` is dropped) and the code
   (`TK-XXXX-XXXX`, case and look-alike letters folded) are checked in the parser, before any
   file is read or any network call. It runs only when the route is none, one at a time.
@@ -791,7 +791,7 @@ ChatGPT and grok.com add once, with any number of his own computers behind it.
   sees no list: the hub has no endpoint that lists devices for a device credential, and adding
   one widens what a stolen manager credential reads. Not done; the list stays on the hub.
 - The side panel's colors are the approval and hub pages' presets (`src/appearance/palettes.ts`),
-  so the three match. That changes the default look from mini-lit's neutral palette to the Polycarp
+  so the three match. That changes the default look from mini-lit's neutral palette to the Local Studio
   one for everyone on update; the choice is saved in `chrome.storage.local`. Text pairs reach
   4.5:1 and the focus ring 3:1 in both modes (`test/appearance.test.mjs`). Control edges (`--input`,
   also the off switch's track) are derived from the text color to reach 3:1 against the page and
@@ -815,10 +815,10 @@ Issues #94 and #97, follow-ups from #93.
 - Consent phishing: anyone can register a client against the public URL and send the owner its
   approval link. A client with no earlier grant (`approved_at` unset, no `last_used`, no token)
   is approved only by a live one-time connect code, which the owner mints on their computer
-  (`polycarp browser token approval-code`), outside the browser an agent drives. The passcode is not even
+  (`local-studio-browser token approval-code`), outside the browser an agent drives. The passcode is not even
   checked for such a client, so the refusal tells an attacker nothing about it. A wrong code counts
   toward the same lockout. Clients with a grant before this change count as approved, so existing
-  connectors keep working. Rejected: a separate `polycarp browser token clients approve <id>` pending flow;
+  connectors keep working. Rejected: a separate `local-studio-browser token clients approve <id>` pending flow;
   it adds a second state and a second command for the same out-of-browser step the connect code
   already is.
 
@@ -841,7 +841,7 @@ Issues #94 and #97, follow-ups from #93.
   read pages, and click and type in this browser as you", and each scope the link would allow with
   its description (`status.joinScopes`, `{id, what}` pairs from the host's `SCOPES`, the
   device's default grant, not the hub's choice). A helper that sends no list is out of date: no
-  Confirm, "run polycarp browser update". Nothing is sent until Confirm, and what was confirmed is what is
+  Confirm, "run local-studio-browser update". Nothing is sent until Confirm, and what was confirmed is what is
   sent; a route change, a problem, or an edit to the address, code or name clears the confirm.
   Success lists the scopes.
 - A join, from the panel or the CLI, takes `link.json.joining` (O_EXCL, under the short
@@ -856,7 +856,7 @@ Issues #94 and #97, follow-ups from #93.
 - The hub's words do not reach the panel. Enroll failures map by status to fixed sentences (wrong
   or expired code, rate limited, unreachable, refused); the hub-chosen device name must pass
   `validDeviceName` before anything is written; service-manager output is replaced by "run
-  polycarp browser link status". A manager's `/link/code` refusal maps the same way (401 revoked, 403 not a
+  local-studio-browser link status". A manager's `/link/code` refusal maps the same way (401 revoked, 403 not a
   manager, 429 rate limited, otherwise "refused"; the CLI still prints the hub's words). The
   device-code origin the hub returns is normalized before use, and the hub normalizes it before
   sending. Whatever else passes through from the library is our own sentence, cut at 200 characters.
@@ -877,7 +877,7 @@ Issues #94 and #97, follow-ups from #93.
   bytes to spare, so the SDK's default `"execution":{"taskSupport":"forbidden"}` is no longer sent on each tool
   (about 1.9 KB; an absent field means the same). No description was shortened and the budget did not move.
 - **Why not `chrome.tabCapture`.** `getMediaStreamId` for an agent's tab fails with "Extension has not been
-  invoked for the current page (see activeTab permission)", with the host permissions Polycarp has and also after
+  invoked for the current page (see activeTab permission)", with the host permissions Local Studio has and also after
   `tabs_show`: it needs the user to have invoked the extension on that tab, which no agent session has. Measured
   in Chrome 156 (the e2e Chromium). The debugger's screencast already renders a tab nobody is looking at, so the
   frames come from it (`startScreencast`), and the hidden page encodes them with MediaRecorder. No permission is
@@ -921,7 +921,7 @@ The owner asked that a tab or window an agent uses be blocked out "with a cool t
   `elementFromPoint` over the button returns that element between agent calls; and that it comes back (at most five
   times) when removed. It cannot read the agent or project name, the colors, or the text: they live in the closed
   shadow root and the isolated world, never in an attribute or a page global. A fixed tag name was rejected because it
-  would let any page tell Polycarp is driving it with one query; a random name per document leaves it guessing from
+  would let any page tell Local Studio is driving it with one query; a random name per document leaves it guessing from
   structure.
 - **What the agent can't see.** `get_page_html` cuts the element out and `inspect_page` doesn't count it (both read
   the tab's tag from session storage, `veil-shared.ts`). `read_page`, `find` and `get_page_text` never reach it: they
@@ -937,7 +937,7 @@ The owner asked that a tab or window an agent uses be blocked out "with a cool t
 - **Take over** calls `userTook` and ungroups the tab, the path a drag out of the group takes, so the agent hears the
   same notice. The button answers only a trusted click on a veil the worker drew, in a top frame.
 - **Theme.** The worker builds the panel's own tokens (`appearanceVariables`) for light and dark from the saved choice
-  and the cached Polycarp theme. The panel now mirrors its Light / Dark / System switch to `tabkyra.mode` in
+  and the cached Local Studio theme. The panel now mirrors its Light / Dark / System switch to `local-studio.mode` in
   extension storage so the veil follows it; before the panel opens once after this change, "System" is assumed.
   The group colors are Chrome's tab group colors, as custom properties.
 
@@ -971,7 +971,7 @@ Agents could not attach a file to a form or keep a file a page offers. One tool,
   `id_ed25519*`, `id_ecdsa*`, `id_dsa*`, `*.keychain*`, `.netrc`, `_netrc`, `.npmrc`, `.pypirc`, `.pgpass`,
   `.git-credentials`, `known_hosts`, `authorized_keys`, `credentials`, `tokens.json`, `oauth*.json`, a browser's
   cookie and login stores by name, and anything under `.ssh`, `.gnupg`, `.aws`, `.azure`, `.kube` or `.docker`.
-  Refused by place: the Polycarp and tabkyra config folders except `files/`, browser profile folders, and the
+  Refused by place: the Local Studio and local-studio-browser config folders except `files/`, browser profile folders, and the
   system key stores (on Windows the same under `%USERPROFILE%`, `%APPDATA%` and `%LOCALAPPDATA%`). Names are
   compared without case on every platform, and folders without case on Windows and macOS. Also refused: anything
   that is not a regular file, a file with more than one hard link, an unreadable one, and on Windows a device path
@@ -981,7 +981,7 @@ Agents could not attach a file to a form or keep a file a page offers. One tool,
   home folder, above it, or a drive root counts as no root. Any other path needs a yes for that exact upload. The
   question goes the way a site question does (elicitation in the agent's client, and "Waiting for your answer" in
   Settings > Agents) and names the agent, the files, their sizes and the destination host. It differs from a site
-  question in three ways: it is asked in every permission mode, `TABKYRA_AUTO_ALLOW` does not answer it, and there
+  question in three ways: it is asked in every permission mode, `LOCAL_STUDIO_BROWSER_AUTO_ALLOW` does not answer it, and there
   is no "from now on": only a yes to this one upload, never remembered. A no, no answer in two minutes, and a
   client that cannot show questions with nobody at the side panel are all refusals.
 - **Where files may go.** Only into a page on a site the person has allowed for agents (the allowed list, or the
@@ -1062,7 +1062,7 @@ Agents could not attach a file to a form or keep a file a page offers. One tool,
   tries at once, because Funnel was most likely allowed while the window was away, and never reopens Tailscale's page.
   A fresh limit, not what was left of the old one, so a person who allowed Funnel slowly isn't sent to the gave-up step
   the moment they return. The passcode and connect code stay through a tab switch and go when the window closes.
-- **`launcher` has a Mac entry of its own (`launcher_app`).** The terminal's remedy is `polycarp install`; the app's is
+- **`launcher` has a Mac entry of its own (`launcher_app`).** The terminal's remedy is `local-studio-browser install`; the app's is
   Connect in the Browsers section, which installs the launcher. The entry lives in the shared table, so the words still
   come from one place.
 - **Replaced claim.** "claude.ai often can't reach Tailscale Funnel addresses" had no source and is gone. The true reason
@@ -1142,7 +1142,7 @@ Agents could not attach a file to a form or keep a file a page offers. One tool,
   capture (debugging and evidence for outside agents), site_edit and site_script (Settings > Sites), and search, crawl,
   skills, library and threads (the helper's or the panel's own tools).
 - **Same reach as before, nothing looser.** The tools act only on tabs in the panel's session (the handlers refuse others),
-  never on a Polycarp page (`isOwnExtensionUrl`), open no site (their `checkUrl` refuses; navigate stays the panel's own
+  never on a Local Studio page (`isOwnExtensionUrl`), open no site (their `checkUrl` refuses; navigate stays the panel's own
   tool) and send no file (`askUpload` is false). The bridge's per-host allow list governs outside agents and is not
   applied: the panel's model could already act on these pages through the REPL, and asking before acting under the user's
   sign-in stays a system prompt rule, as it was. Guarded hosts are the native host's to name per bridge request, so the
@@ -1170,7 +1170,7 @@ page has been quiet for 300 ms or 2.5 s have passed; `wait {until:"settled"}` wa
 - **No request the page waits on.** Documents, scripts, stylesheets, fetch and XHR from the tab's debugger Network events;
   images, media, fonts, pings, EventSource and websockets don't count. Only requests started after the action began count,
   and only while they are younger than 2 s (5 s for `wait`): a long poll or a stream would otherwise hold every call to its cap.
-- **No DOM change.** A MutationObserver the first wait leaves in the document, in Polycarp's isolated world; the veil's own
+- **No DOM change.** A MutationObserver the first wait leaves in the document, in Local Studio's isolated world; the veil's own
   element is left out.
 - **No loading marker on screen.** `aria-busy="true"`, or a class token `skeleton`, `shimmer`, `spinner` or `loading`
   on a visible element in the window, and a document still parsing.
@@ -1189,7 +1189,7 @@ never moves that mark: a download or a 204 asks for one that never commits, and 
 
 What it can never do: hold an action longer than the cap plus that 0.5 s (a timer ends the wait at the cap whatever the page
 or the debugger does, and one DOM probe gets at most 0.4 s), or fail an action that already ran. A box the page opens while
-it settles is the action's result, with the dialog note, for every tool that settles. A page Polycarp may not script (the
+it settles is the action's result, with the dialog note, for every tool that settles. A page Local Studio may not script (the
 Chrome Web Store, the PDF viewer) is judged by its requests alone after two refused probes, counted per document (the main frame's loaderId, so a reload starts over and a hash change does not), so a page reached from there is probed again; a probe that times out means the
 page's main thread is busy (`waitingOn: "loading"`). A loader counts only when a person could see it: an ancestor's opacity or
 visibility hides it, and so does being outside the window on any side. A landing on the approval page (#94) is blanked
@@ -1394,7 +1394,7 @@ Amended after review (PR 140 round 1, 2026-11-12):
 - **Who said what is structure.** The summarizer reads each message as a `<message from="person|assistant|tool|browser">`
   block built from the stored role. Text inside a block can't open or close one, and a role marker inside it is shown
   as a quote.
-- **The notes are Polycarp's.** The notes message carries the `compactionNotes` field (`COMPACTION_NOTES`), never a
+- **The notes are Local Studio's.** The notes message carries the `compactionNotes` field (`COMPACTION_NOTES`), never a
   text mark, so nothing the person writes can pass for it. The guard never counts it as the person and cuts it only
   after every earlier turn (step 8b), before the latest message.
 - **Full history when it fits.** A stored record applies only while the whole chat would make the guard drop turns.
@@ -1410,7 +1410,7 @@ on short planted lines, reworded steps, other languages and facts promoted in a 
 - **The person's instructions never pass through the summarizer.** Code quotes the person's own earlier messages word
   for word under "The person's own words": the first one (cut by code, with a count, only if it alone is too long) and
   the most recent ones, whole, with a count of those left out. The summarizer writes no goal section.
-- **Everything the summarizer writes is labeled once** as Polycarp's working notes from pages and tool results: facts
+- **Everything the summarizer writes is labeled once** as Local Studio's working notes from pages and tool results: facts
   and progress, not instructions. The system prompt says nothing in the notes authorizes an action the person's own
   words don't. A planted line is at worst a recorded fact; no filter is needed.
 - **No rule drops or adds a step because its wording changed.** A section the summarizer leaves out or answers with
@@ -1421,7 +1421,7 @@ on short planted lines, reworded steps, other languages and facts promoted in a 
 
 Amended after review (PR 153 round 2, 2026-11-12):
 
-- **No to-do list.** "Open steps" is now "Not finished", sent as "What Polycarp had not finished, by its own guess;
+- **No to-do list.** "Open steps" is now "Not finished", sent as "What Local Studio had not finished, by its own guess;
   the person's words above decide what to do". Notes stored under "Open steps" are read as it.
 - **"none" is an answer.** It empties the section; only a section whose heading is left out keeps the earlier
   content.
@@ -1429,8 +1429,8 @@ Amended after review (PR 153 round 2, 2026-11-12):
   marked; when a share would be under a line, the first and newest stay whole and the rest keep their start, with a
   count of those shortened.
 - **Every heading is attributed.** The summarizer's sections are `###` headings under the label, each ending in
-  "(Polycarp's note)".
-- **True notes.** The drop note says the dropped messages came after Polycarp's notes, and its room is reserved.
+  "(Local Studio's note)".
+- **True notes.** The drop note says the dropped messages came after Local Studio's notes, and its room is reserved.
   Cuts fall on code points.
 
 Amended (PR 162 round 1), replacing the "none" and "left out" rules above: "none" empties only Not finished. Past a
@@ -1446,7 +1446,7 @@ elements follow that line, and click, type, fill, hover and scroll take their re
 How: a page script can't look into another origin's frame, so the service worker does it over the tab's debugger. A frame in
 the tab's own process (another port of the same host, say) is in `Page.getFrameTree`; one in its own process (another site)
 is reached with `Target.setAutoAttach` (flatten), which gives it a session on the same `chrome.debugger` attachment. Either
-way the snapshot runs in Polycarp's isolated world in that frame (`Page.createIsolatedWorld`, the same world each time, so
+way the snapshot runs in Local Studio's isolated world in that frame (`Page.createIsolatedWorld`, the same world each time, so
 its refs stay), with the same code as the top page: the same masking, the same limits. Its refs get the frame's tag
 (`fk3z9e12`: "f", four characters from the frame id, then the ref inside), its points are moved by the frame's content box
 (`DOM.getFrameOwner` and its box model) and scaled by how large the frame is drawn (its quad against its layout width, so a
@@ -1481,7 +1481,7 @@ anything else is hidden. Each axis is tested alone, in the box's own direction (
 (a slotted frame's slot and shadow boxes, then the host), and a cover fixed over the whole viewport hides it (at the center and each corner the top box is in a fixed
 layer that is seen, not under the page and paints there, and one such layer spans the viewport). A scroller that starts at its
 far end (column-reverse, row-reverse, vertical-rl) reaches back, and the debugger names an `<iframe>`'s slot in a closed
-shadow root (`DOM.describeNode`), lent to the walk on Polycarp's wrapper only. Not modeled: a cover the pointer goes
+shadow root (`DOM.describeNode`), lent to the walk on Local Studio's wrapper only. Not modeled: a cover the pointer goes
 through (`pointer-events: none`) and a frame inside an element slotted into a closed root. Any other failure keeps one line, "not shown, so not read", and nothing inside it is read either; this keeps the
 #73 rule that hidden text never reaches the agent, and an invisible field can't be filled. The same test runs again in the
 tab for each frame, level by level, before the frame claims its line (matched by the `<iframe>`'s border box, not its
@@ -1508,7 +1508,7 @@ closed. Uploads and downloads (D38) run in the top page and refuse a frame ref w
 `get_page_text` and `page_markdown` stay the top page's, and settle (D41) still doesn't count a frame's own requests.
 
 Safety: the site permission is per host, and it applies to frames. A frame on the page's own host is the page's; a frame on
-any other host is read and acted in only when the person allowed that host for agents (Settings > Agents, `polycarp browser
+any other host is read and acted in only when the person allowed that host for agents (Settings > Agents, `local-studio-browser
 allow <host>`, or "allow all"). An unallowed frame is one line, `not allowed for agents: <host>`, with no text and no refs,
 and a by-ref action into it (a ref read before the host was taken back, or a forged one) fails with `permission_denied`,
 "Not allowed to open <host>", naming the command that allows it. Before this the agent had to `navigate` to the frame's
@@ -1560,7 +1560,7 @@ Decision:
   waits on the browser when its time runs out (that read, the theme's, the tab's) does every wait first, then decides
   with nothing awaited before it draws: the tab's view as it is by then, concealed for a capture queued after it, or
   nothing if the veil is gone or a newer show was queued.
-- **Motion**: off under prefers-reduced-motion or a Polycarp theme with motion off (it jumps and holds still); Highlight
+- **Motion**: off under prefers-reduced-motion or a Local Studio theme with motion off (it jumps and holds still); Highlight
   colors under forced colors.
 
 Not done: a pointer for the side panel's own calls (its session has no veil), and for `actions` steps beyond the input
@@ -1574,7 +1574,7 @@ while a direct capture shows it, gone when the setting is off while the veil sta
 ## D48. An agent's dialog is cancelled only when it would freeze the person (Claude, 2026-11-12)
 
 Problem: the owner saw tabs of one site blocked while an agent worked in only one of them. The cause is a dialog. Chrome
-cancels an alert, confirm or prompt that a hidden tab opens. With Polycarp's debugger attached (`Page.enable` in
+cancels an alert, confirm or prompt that a hidden tab opens. With Local Studio's debugger attached (`Page.enable` in
 `ensureAttached`, cdp.ts) the box waits for the agent's `handle_dialog` instead, with no limit, and while it waits its
 renderer process runs nothing. Chrome runs tabs of one site in one process (a tab one page opened, and same-site tabs
 once it nears its process limit), so one agent tab's unanswered box froze every tab of that site, the person's too: no
@@ -1593,7 +1593,7 @@ Decision (`src/browser/dialog-guard.ts`, service worker):
   person's own tab and is theirs to answer: never cancelled.
 - **Same site is the proxy.** Which tabs share a renderer process can't be read from an extension, so the guard asks
   whether the person has a tab on the box's site: its registrable domain by the Public Suffix List with its private
-  section, the list Polycarp already ships for site edits (`siteOf`; mail.web.de and www.web.de are one site,
+  section, the list Local Studio already ships for site edits (`siteOf`; mail.web.de and www.web.de are one site,
   alice.github.io and bob.github.io two, as Chrome groups them). An IP address or a one-label host is its own site. The
   person's tabs are tabs no agent session owns; the side panel's count as theirs. Where the proxy errs it over-matches:
   a box is cancelled although the person was not frozen, and the agent does the one step again with `on_dialog`; a
@@ -1679,7 +1679,7 @@ Decision (`src/browser/dialog-guard.ts`, service worker):
     The notice says to read the page before acting again. A box after the one the call's `on_dialog` answered (confirm
     OK, then another confirm) says that answer stands and not to repeat the call.
   - No known cause (run_js, a hover, scroll or drag, a page timer, leaving the page, a box kept from before a restart),
-    or a box on another tab than the step's: the notice says Polycarp does not know what opened it and to read the page
+    or a box on another tab than the step's: the notice says Local Studio does not know what opened it and to read the page
     first. It names no call.
   - A type or fill step: read the page; finish with the click or press that submits it, with `on_dialog`.
   - A click or press: that one step, on the box's tab, with `on_dialog`, as a single call. In `actions` the notice says
@@ -1740,7 +1740,7 @@ path and final name, but a new permission means store review again and a prompt 
 
 **Limits.** The save folder is not known, and the result says so. Chrome adds " (1)" to a name already taken. A
 download waiting on a save box stays "started". A type the person set to open on its own still opens. Steps inside
-`actions` report no downloads. Polycarp opens nothing; to read a file the agent calls `files download` with the link's
+`actions` report no downloads. Local Studio opens nothing; to read a file the agent calls `files download` with the link's
 ref, under its 50 MiB limit and its rules for other sites.
 
 **Proof.** `test/downloads.test.mjs` drives `click` through the bridge on fake chrome (all four fail on main
@@ -1823,36 +1823,36 @@ and the alias's schema line says only "Old name": tools/list grows 57 bytes for 
 
 **Problem.** The study's 8B run did best with the small profile (4/10 tasks, 1.5 errors and 47k tokens per task,
 against 3/10, 4.9 and 189k with every tool), but a session got it only with `--profile small` or
-`POLYCARP_PROFILE=small`, which nobody running LM Studio or Ollama knew to set.
+`LOCAL_STUDIO_BROWSER_PROFILE=small`, which nobody running LM Studio or Ollama knew to set.
 
-**Decision.** `polycarp mcp` chooses: `--profile small|full`, then `POLYCARP_PROFILE=small|full`, then the small list
-when `POLYCARP_LOCAL_MODEL` is set (not 0) or the client's `initialize` names an app that runs local models (LM
+**Decision.** `local-studio-browser mcp` chooses: `--profile small|full`, then `LOCAL_STUDIO_BROWSER_PROFILE=small|full`, then the small list
+when `LOCAL_STUDIO_BROWSER_LOCAL_MODEL` is set (not 0) or the client's `initialize` names an app that runs local models (LM
 Studio, Ollama, Jan, Msty, AnythingLLM, Open WebUI, Cherry Studio, oterm, mcphost, llama.cpp, KoboldCpp, LocalAI,
 GPT4All, 5ire), and the full list otherwise. The client names itself only in its first message, so the server reads
 that line before it is built and hands it on to the transport unchanged. The choice is logged to stderr with
 `--profile full` as the way back. `evals/weak-model/run.mjs` now passes `--profile full` when no profile is given, so
 its full round stays full.
 
-**Limits.** A client with another name running a local model (opencode, Goose) needs `POLYCARP_LOCAL_MODEL=1`.
+**Limits.** A client with another name running a local model (opencode, Goose) needs `LOCAL_STUDIO_BROWSER_LOCAL_MODEL=1`.
 
 **Proof.** `cli/test/small-profile.test.mjs` "D53:" connects as LM Studio, Ollama, Jan, Open WebUI and mcphost (small),
 as Claude Code, Codex, Cursor and opencode (full), and checks both overrides.
 
-## D54. Tychicus gets its own extension ID and host name, and installs from an attested release (Claude, 2026-11-17)
+## D54. The extension gets its own ID and host name, and installs from an attested release (Claude, 2026-11-17)
 
-**Problem.** Tychicus shipped Polycarp's manifest `key`, so both had extension ID `kenehmggpggpiolepbjojeenmeapgfoc` and
-both registered `com.polycarp.browser`. On a computer with both, whichever installed last owned the host manifest, and
+**Problem.** This extension shipped the manifest `key` of the project it was forked from, so both had one extension ID and
+both registered one native host. On a computer with both, whichever installed last owned the host manifest, and
 either extension could reach the other's helper. Installing took 163 s and 11 manual steps from source, most of it
 `setup-siblings.sh`, and there was no release to download.
 
 **Decision.**
-- A new manifest `key` (an RSA public key made for Tychicus; the private key was deleted unprinted, since Chrome needs
+- A new manifest `key` (an RSA public key made for Local Studio; the private key was deleted unprinted, since Chrome needs
   the private key only to pack a `.crx`, and a store listing signs with the store's own). ID
   `igjafcggmahiboobmnhfkndodphjdnhg`, kept in `src/bridge/extension-id.json`, which `cli/src/install.ts` and the tests
-  import. The host is `com.tychicus.browser`; Polycarp's names are never written or asked for.
-- `.github/workflows/release.yml` builds one `tychicus` program per OS with the extension and plugins beside it, writes
+  import. The host is `com.localstudio.browser`; the older project's names are never written or asked for.
+- `.github/workflows/release.yml` builds one `local-studio-browser` program per OS with the extension and plugins beside it, writes
   `SHA256SUMS` and attests each artifact (sigstore build provenance, `actions/attest-build-provenance`).
-  `tychicus install --release <folder>` refuses the whole folder on one bad sum, an unlisted `tychicus-*` file, or a
+  `local-studio-browser install --release <folder>` refuses the whole folder on one bad sum, an unlisted `local-studio-browser-*` file, or a
   failed `gh attestation verify --signer-workflow` when gh is on PATH, before it unpacks anything. It unpacks into one
   fixed folder, so the host manifests and the unpacked extension keep their paths across upgrades.
 - The Local Studio plugins' version lives in `plugin.toml` and in each skill's frontmatter, stamped by
@@ -1860,22 +1860,20 @@ either extension could reach the other's helper. Installing took 163 s and 11 ma
   and weakening it for every skill was the wrong trade, so the plugin test lints a copy with the one version line
   removed.
 
-**Limits.** The check is as strong as the program that runs it: a tampered archive could carry a `tychicus` that skips
+**Limits.** The check is as strong as the program that runs it: a tampered archive could carry a `local-studio-browser` that skips
 it, so the README's first install trusts the download, and `gh attestation verify` by hand (or an upgrade run from an
 installed copy) closes that. Pull request builds carry no attestation, so CI checks attestations only by refusing an
 unattested build. The extension still loads unpacked (four clicks) until a Chrome Web Store listing; no minisign
-signature or macOS notarization yet. The helper's folders and socket (`~/.config/polycarp/browser`,
-`/tmp/polycarp-bridge-<user>`) are still Polycarp's, so `tychicus install` rewrites Polycarp's launchers on a computer
-that has both; moving them is its own change.
+signature or macOS notarization yet.
 
 **Proof.** `cli/test/release-install.test.mjs` (a changed archive or extension zip, an unlisted archive, no SHA256SUMS, gh refusing and
 verifying, idempotence, the pinned ID), `test/native-host-name.test.mjs`, `cli/test/local-studio-plugins.test.mjs`,
 `scripts/validate-local-studio-plugins.sh`, and CI's `clean-install` (`cli/test/clean-install.mjs`).
 
-## D55. The market eval holds Tychicus's scores and speeds with floors measured on CI (Claude, 2026-11-18)
+## D55. The market eval holds Local Studio's scores and speeds with floors measured on CI (Claude, 2026-11-18)
 
 **Problem.** "Best on the market" (#30) was a claim from one study on one machine. The task set and the speed check ran
-in CI, but the speed gate was two fixed numbers (150 ms click, 100 ms fill) far above what Tychicus measures (about
+in CI, but the speed gate was two fixed numbers (150 ms click, 100 ms fill) far above what Local Studio measures (about
 75 ms), so a regression to twice as slow passed. dom-bench had its own floor, and nothing stopped a pull request from
 lowering either.
 
@@ -1924,9 +1922,9 @@ at about 60 ms: Chromium holds the page's tasks after a discrete input until a f
 **Proof.** `cli/test/e2e-bridge.test.mjs` "D56: ..." (two tests) and `test/settle.test.mjs` "D56: Page.windowOpen ...";
 removing the Resource Timing rule or the `Page.windowOpen` handling fails them.
 
-## D57. One command installs the helper; the updater reads Tychicus's releases and defers to it (Claude, 2026-11-21)
+## D57. One command installs the helper; the updater reads Local Studio's releases and defers to it (Claude, 2026-11-21)
 
-**Context.** #44: rivals install in one step, Tychicus took three. #13: the updater read the repository archived at the
+**Context.** #44: rivals install in one step, Local Studio took three. #13: the updater read the repository archived at the
 rename and expected a minisigned zip that release.yml doesn't publish.
 
 **Decision.**
@@ -1934,14 +1932,14 @@ rename and expected a minisigned zip that release.yml doesn't publish.
   attested like the archives. They find the version from the release's own `SHA256SUMS` (the archive name carries it),
   then download from that version's tag, so no API call and no JSON parsing in sh.
 - With `gh` on PATH, a failed `gh attestation verify` stops the install, including a `gh` that isn't signed in, the
-  same as `install --release` (release.ts). `TYCHICUS_GH=none` skips it on purpose, and the script says so.
+  same as `install --release` (release.ts). `LOCAL_STUDIO_BROWSER_GH=none` skips it on purpose, and the script says so.
 - They refuse root, and an elevated PowerShell, unless given `--allow-root`: the helper installs into one person's
   home and needs no rights beyond it.
-- The test-only `TYCHICUS_INSTALL_BASE_URL` accepts only a loopback http address, so it can't send a real install to
+- The test-only `LOCAL_STUDIO_BROWSER_INSTALL_BASE_URL` accepts only a loopback http address, so it can't send a real install to
   another host.
-- The welcome learns the helper's state from `chrome.storage.session` (`tychicus.hostConnected`), written by the
+- The welcome learns the helper's state from `chrome.storage.session` (`local-studio.hostConnected`), written by the
   worker when a host first talks and when the port closes, so it changes without a reload.
-- The updater reads baney75/tychicus and counts only releases with a `tychicus-<version>` asset. A release with only
+- The updater reads baney75/local-studio and counts only releases with a `local-studio-browser-<version>` asset. A release with only
   release.yml's attested archives is reported by the check, and `update` refuses to install it in place and prints the
   one command. It doesn't install attested archives itself: that needs the channel design #13 waits on.
 
@@ -1955,7 +1953,7 @@ Releases exist for darwin-arm64, linux-x64 and win-x64 only; the scripts name th
 
 Issue #45. Three defaults:
 
-- A tab given to the side panel ("Give this tab to Tychicus") starts a new panel chat on it and stays out of any tab group,
+- A tab given to the side panel ("Give this tab to Local Studio") starts a new panel chat on it and stays out of any tab group,
   as every panel chat's tabs do. Only a tab given to an agent joins that agent's group, and the agent hears of it in
   `tabs_context`.
 - `tabs_show` with `wait:true` (the hand-back) does not activate the tab or focus the window. The person sees Continue on the
@@ -1964,13 +1962,13 @@ Issue #45. Three defaults:
 - The wait guidance lives in the `tabs_show` description, not the MCP instructions, so the instructions stay inside their
   3,210-byte budget. The tools/list budget in `cli/test/mcp.test.mjs` rises to 33,832 bytes for the two new parameters.
 
-## D59. One tunnel per machine, shared with Local Studio (Claude, 2026-11-21)
+## D59. One tunnel per machine, shared with the Local Studio app (Claude, 2026-11-21)
 
-**Decision.** Local Studio owns the one tunnel on a computer, on every route (hosted, Cloudflare, tailnet), and writes the
-route record. Tychicus only reads the record and joins (`remote join`); `remote setup` joins where a record exists and
-otherwise defers to `local-studio tunnel setup` for a Cloudflare or tailnet route. Local Studio's waitlist answer (stable
-and nightly) or a build without tunnel setup leaves Tychicus its own route, and a Local Studio folder alone never
-diverts setup, since `install --local-studio` makes one. Standalone Tychicus keeps its own
+**Decision.** The app owns the one tunnel on a computer, on every route (hosted, Cloudflare, tailnet), and writes the
+route record. The browser helper only reads the record and joins (`remote join`); `remote setup` joins where a record exists and
+otherwise defers to `local-studio tunnel setup` for a Cloudflare or tailnet route. A waitlist answer, or an app
+without tunnel setup, leaves the helper its own route, and a `~/.local-studio` folder alone never
+diverts setup. Standalone, the helper keeps its own
 route with the same exact paths: a Cloudflare ingress of its nine paths then 404, or nine `tailscale serve` mounts on
 443. Aliases let the joined route keep answering an older name, with OAuth and tokens bound to each host.
 
@@ -1983,11 +1981,11 @@ apps share one address without either catching the other's traffic. Design: bane
 
 **Decision.** The default site access mode is `by_model` ("Match the model"), used whenever nothing is stored. A bridge
 client on a frontier model behaves as in `allow_all`; one on a small or unknown model behaves as in `ask`. A stored
-`ask` or `allow_all` keeps its meaning for every client. What is refused or asked in every mode stays so: Tychicus's
+`ask` or `allow_all` keeps its meaning for every client. What is refused or asked in every mode stays so: Local Studio's
 own pages, guarded hosts (the approval page and local services) and upload questions.
 
-The tier comes from the client's hello (`tier`, and `model` when known). `tychicus mcp` sets it with
-`sessionTier` in `cli/src/model-tier.ts`: a model named in `TYCHICUS_MODEL` (or `POLYCARP_MODEL`) decides it through
+The tier comes from the client's hello (`tier`, and `model` when known). `local-studio-browser mcp` sets it with
+`sessionTier` in `cli/src/model-tier.ts`: a model named in `LOCAL_STUDIO_BROWSER_MODEL` (or `LOCAL_STUDIO_BROWSER_MODEL`) decides it through
 `modelTier`; without one, a session on the small tool profile is small (checked first, so a local model run under
 Claude Code asks). Claude Code and Codex, by their initialize name, are rated by the model they run: the `--model`
 or `-m` their process (or one of its two parents) was started with, then `ANTHROPIC_MODEL`, then their own config
@@ -2007,7 +2005,7 @@ and up are frontier, older ones small, a bare opus, sonnet or fable alias fronti
 unknown); anything else is unknown.
 
 **Why.** The owner asked that agents on smart models get full access by default and that small or unknown models ask
-before risky actions; for Tychicus the risky action is opening a site the user has not allowed. Frontier means about 75
+before risky actions; for Local Studio the risky action is opening a site the user has not allowed. Frontier means about 75
 or more on Vals.ai SWE-bench Verified: Opus 4.5 76.4, Sonnet 4.6 77.4, GPT-5.2 75.8, Gemini 3 Pro 76.4, Gemini 3 Flash
 75.0, Grok 4.5 86.6, DeepSeek V4 Pro 96.4, Kimi K2.6 76.2, GLM 5.3 95.4, MiniMax M3 75.0, Qwen 3.8 Max 85.6. Below it:
 Haiku 4.5 66.6, Sonnet 4.5 70.0, GPT-5.1 69.8, GPT-5 mini 60.8, Grok 4 57.8, DeepSeek V3.2 67.6, Kimi K2.5 70.0, GLM 5
@@ -2028,9 +2026,9 @@ needs a token, so a signed-out gh can't.
 github.com` and read only its exit code: zero means signed in (a stored account, or `GH_TOKEN`/`GITHUB_TOKEN`); any
 other result, a timeout included, means gh can't check. Then the install checks `SHA256SUMS` only and says gh is
 installed but not signed in and that `gh auth login` turns the check on; `ReleaseCheck.attestation` is
-`gh-signed-out`. The scripts run the release's program with `TYCHICUS_GH=none` after that answer, so a program from
+`gh-signed-out`. The scripts run the release's program with `LOCAL_STUDIO_BROWSER_GH=none` after that answer, so a program from
 an older release doesn't try the check again and refuse (install.ps1 restores the variable, since `irm | iex` runs in
-the caller's session). A signed-in gh that refuses an artifact still refuses the whole install, and `TYCHICUS_GH=none`
+the caller's session). A signed-in gh that refuses an artifact still refuses the whole install, and `LOCAL_STUDIO_BROWSER_GH=none`
 and `--skip-attestation` are unchanged.
 
 **Why.** The check is extra assurance when gh can give it, not a gate that a missing sign-in closes. gh's English is never parsed, so a reworded message can't change the outcome.
@@ -2038,8 +2036,8 @@ and `--skip-attestation` are unchanged.
 ## D62. Input actions draw the tab, settle stops at the drained look, and page scripts are installed once (Claude, 2026-11-22)
 
 **Context.** The market eval's speed run (`evals/market/rivals/run.mjs`, same machine, same session) measured
-Tychicus's medians at click 71 ms, fill 43 ms and first page text 112 ms; agent-browser's were 24, 9 and 41. A hop
-trace (`TYCHICUS_TRACE`, `cli/src/hop-trace.ts`) put the time in four places, not in the MCP, socket or native
+Local Studio's medians at click 71 ms, fill 43 ms and first page text 112 ms; agent-browser's were 24, 9 and 41. A hop
+trace (`LOCAL_STUDIO_BROWSER_TRACE`, `cli/src/hop-trace.ts`) put the time in four places, not in the MCP, socket or native
 messaging hops (about 1 ms each way together):
 1. After a click or a key, Chromium holds the page's deferrable tasks until the next frame or 50 ms
    (`DeferRendererTasksAfterInput`, `kDiscreteInputResponseDeadline`). An agent's tab is out of sight and draws no
@@ -2092,23 +2090,23 @@ calls, is the cost. Both were left out.
 **Why.** Each cost was a fixed wait or repeated work that no page needed, and each fix keeps what the result reports.
 The dom-bench floor and the market tasks gate it.
 
-**Results.** The rivals harness, 3 reps, same session, load 16: Tychicus click 27 ms, fill 16, first text 48, start
+**Results.** The rivals harness, 3 reps, same session, load 16: Local Studio click 27 ms, fill 16, first text 48, start
 1769; agent-browser 20, 9, 43 and 2049. Tasks 30/30 for both, dom-bench 54/54. The hop trace's click fell from 67.7 to
 29.9 ms, fill from 41.1 to 15.4 and navigate from 93.3 to 46.3. What keeps click, fill and first text above
 agent-browser's, which reports no changes and does not settle, is in `docs/verification/speed-trace.md`.
 
 ## D63. The Linux helper: agent windows by workspace or by process, hands.json for access, no physical input (Claude, 2026-11-22)
 
-**Context.** Issue #27 asks for `tychicus-hands` on Linux. Linux has no lend sheet and no one way to keep an app off
+**Context.** Issue #27 asks for `local-studio-computer` on Linux. Linux has no lend sheet and no one way to keep an app off
 the person's screen: Hyprland and Sway have workspaces another program can use, X11 window managers have none that
-stays hidden, and GNOME and KDE under Wayland give another program no window control at all. Tychicus had no access
-setting for computer use outside Polycarp's Mac app.
+stays hidden, and GNOME and KDE under Wayland give another program no window control at all. Local Studio had no access
+setting for computer use outside Local Studio's Mac app.
 
 **Decision.**
-- Which windows are an agent's: on Hyprland and Sway, those on the agent workspace (`special:tychicus`,
-  `tychicus-agent`); everywhere, those of processes an agent started (recorded in Tychicus's state folder). Every other
+- Which windows are an agent's: on Hyprland and Sway, those on the agent workspace (`special:local-studio-browser`,
+  `local-studio-agent`); everywhere, those of processes an agent started (recorded in Local Studio's state folder). Every other
   window is the person's.
-- Access is `hands.json` in Tychicus's config folder: `access` (`read_only`, `default`, `full`; an unknown value reads
+- Access is `hands.json` in Local Studio's config folder: `access` (`read_only`, `default`, `full`; an unknown value reads
   as `default`) and `apps`, read on every call. A file that is there but can't be read or parsed reads as `read_only`:
   a typo must never widen what the person chose. Under `default` an agent uses only its own windows and may start editors,
   calculators and viewers plus the listed apps. `full` opens every window to an agent on this computer. A connector is
@@ -2121,13 +2119,13 @@ setting for computer use outside Polycarp's Mac app.
   the person's later launches into the agent's process.
 - Pictures under `default` only when nothing else can be in them: X11 checks the stacking order; Hyprland and Sway
   can't (layer surfaces), so they need `full`. On GNOME and KDE, `open` needs `full`.
-- Opening: Hyprland's `exec [workspace special:tychicus silent]`; on Sway the helper makes a Wayland socket for the app
+- Opening: Hyprland's `exec [workspace special:local-studio-browser silent]`; on Sway the helper makes a Wayland socket for the app
   through security-context-v1, tagged with a random instance id for this launch, and adds
-  `for_window [sandbox_instance_id="<id>"] move container to workspace tychicus-agent` and `no_focus` for the same id
+  `for_window [sandbox_instance_id="<id>"] move container to workspace local-studio-agent` and `no_focus` for the same id
   before the app starts, so its dialogs follow it and nothing takes focus. Sway keeps rules for its whole session, so
   they name the launch, not a process id a later app of the person's could reuse; the app runs without `DISPLAY`, so it
   can't map through Xwayland outside the rules. Sway before 1.10 (Ubuntu 24.04 ships 1.9) has no sandbox criteria:
-  there `tychicus-hands hold` starts the app stopped, adds `[pid=N]` rules, lets it run and never reaps it, so the pid
+  there `local-studio-computer hold` starts the app stopped, adds `[pid=N]` rules, lets it run and never reaps it, so the pid
   stays taken (a zombie once the app exits) until Sway's process exits and its rules with it. The holder ends on that
   process (its pid and start time, from the socket's peer credentials), never on a missed IPC reply, and ignores
   SIGTERM, SIGHUP and SIGINT. Once a rule may name the pid, a failure kills the app unstarted and keeps holding. Rules
@@ -2139,7 +2137,7 @@ setting for computer use outside Polycarp's Mac app.
   (`drag`, right clicks, keys with no accessibility meaning) answers `not_supported`.
 
 **Why.** The person's typing and pointer must never be shared with an agent, so input that could land in their window
-is out even where it would work most of the time. A file in the config folder is what `tychicus` already uses for
+is out even where it would work most of the time. A file in the config folder is what `local-studio-browser` already uses for
 settings, and reading it on every call makes a narrowing apply at once.
 
 ## D64. Feed filters are a site edit kind with their own tool, run by the extension's own content script (Claude, 2026-11-23)
@@ -2194,10 +2192,10 @@ less, warm start and reset 1 s or less, idle CPU 5% or less, no telemetry, no fo
 Linux guest on this Mac.
 
 **Decision.**
-- *A helper per guest, with no window.* `tychicus-vm` (`vm/mac`, Swift) runs one guest on Virtualization.framework and
+- *A helper per guest, with no window.* `local-studio-vm` (`vm/mac`, Swift) runs one guest on Virtualization.framework and
   never starts an NSApplication, so it has no Dock icon and cannot take focus. `vm/mac/build.sh` signs it ad hoc with
   `com.apple.security.virtualization`; the CLI builds it once per helper version from a checkout and keeps it in
-  `~/.local/share/tychicus/vm/bin`. It answers one JSON line per connection on `<guest>/control.sock` (mode 0600) and
+  `~/.local/share/local-studio-browser/vm/bin`. It answers one JSON line per connection on `<guest>/control.sock` (mode 0600) and
   blocks in `accept` and `read` between requests.
 - *The image.* Debian 13 `generic` for arm64, pinned to release 20261123-2671 by URL and SHA-512, extracted with holes
   (about 1.4 GB of a 3 GB disk) and kept read-only under `base/`. A guest runs on an APFS clone (`cp -c`) grown to 8 GB.
@@ -2235,30 +2233,14 @@ through the CLI, with the 1-minute load between 21 and 27 from other builds: col
 the ready point 0.79 s, from a saved session 0.82 s, reset 0.73 s with the guest's file gone each time, helper idle CPU
 0.00% over 30 s (the guest's VM process 0.50%), 0 network sockets in the helper, 0 focus changes. The first boot of a new
 guest took 15.9 s. On `genericcloud` at load 5 to 9, earlier the same day, the same bench gave cold start 4.02 s, warm
-starts 0.69 s and 0.65 s, reset 0.61 s. The bench appends each run to `vm-bench.jsonl` in Tychicus's state folder and
+starts 0.69 s and 0.65 s, reset 0.61 s. The bench appends each run to `vm-bench.jsonl` in Local Studio's state folder and
 exits 1 on a missed target.
 
-## D65. `setup --agents` renames an old name for Tychicus to `tychicus` in the same run (Claude, 2026-11-24)
+## D65. Withdrawn: `setup --agents` renamed an old entry in the same run (Claude, 2026-11-24)
 
-**Context.** The move from Polycarp (`cli/src/agent-migration.ts`) kept each moved entry's old name, `polycarp` or
-`tabkyra`, as a temporary alias, so fleet rules naming "the polycarp MCP server" kept working, and left the rename to a
-separate `setup --agents --finish` to run "once nothing names them". Nothing ever prompted it: on the owner's Mac every
-agent (Claude Code, Codex, OpenCode, Cursor, OMP) still reached Tychicus as `polycarp`, `tychicus doctor` marked that
-"ok", and `setup --agents` said each agent was fine. Tychicus no longer depends on Polycarp and should be reached under
-its own name.
+There is one name now and no rename to run; the code went with D72's names (2026-11-25).
 
-**Decision.** `setup --agents`, and the agent step of `setup`, run the move and then the finish, each with its own
-plan, diff and question (`--yes` answers both). The finish's rules are unchanged: an alias is renamed when no `tychicus`
-entry is there; removed when a `tychicus` entry matches it in every field; otherwise both are left, the fields named,
-and the step exits 1. `--agents --finish` still runs the rename alone. `tychicus doctor` warns about any alias with the
-one fix `tychicus setup --agents`. After a rename, setup says that rules, hooks and prompts naming the old server (a
-Claude Code permission rule for `mcp__polycarp`) need the new name. Tychicus does not read or edit those rules: per the
-names section of AGENTS.md they are not its files.
-
-**Why.** A rename that waits for the user to decide when "nothing names" an alias never happens. A permission rule
-that names the old server stops matching after the rename; setup names that cost at the moment it happens.
-
-## D67. One permission mode for all of Tychicus: Manual, Auto (default), Yolo (Claude, 2026-11-24)
+## D67. One permission mode for all of Local Studio: Manual, Auto (default), Yolo (Claude, 2026-11-24)
 
 **Context.** The owner asked for three modes across browser, computer use and VMs: "Auto by default, they can select
 Yolo and they can select manual" (#33, 2026-11-18). 1.4.0's default, "Match the model" (D60), lets an agent on a
@@ -2298,9 +2280,9 @@ The ask is the one Manual uses for a site: MCP elicitation in the agent's harnes
 and the same card under "Waiting for your answer" in Settings > Agents. For an action it offers allow once, allow on this site (risky actions there stop asking; a
 separate list from the sites an agent may open) and deny. The answer has 60 seconds, inside the bridge's 90-second
 limit for a call; no answer is a no, and the tool result says what was not done and how the person can allow it.
-`TYCHICUS_AUTO_ALLOW` answers site questions only, never an action question, as it never answered an upload.
+`LOCAL_STUDIO_BROWSER_AUTO_ALLOW` answers site questions only, never an action question, as it never answered an upload.
 
-A remote session says so in its hello (`remote`, set by the CLI for a session through `tychicus serve` and for a scoped
+A remote session says so in its hello (`remote`, set by the CLI for a session through `local-studio-browser serve` and for a scoped
 one). The bridge runs it in Auto when the mode is Yolo, and refuses `permission.respond`, `permission.allow` and
 `permission.setMode` from it, so it can't answer its own question or widen its own reach. A CLI from before `remote` can't say it, but `serve` has
 always named its sessions `remote-<caller>`, so the bridge goes by that name too. The MCP server puts no site question
@@ -2338,20 +2320,20 @@ limits), and `cli/test/e2e-bridge.test.mjs` (a password refused in a page, a sha
 
 ## D68. The Mac helper ships in the darwin archive, signed ad hoc, with its engine linked in (Claude, 2026-11-24)
 
-**Context.** On a Mac, computer use needs Tychicus's own `tychicus-hands` (issue #27) installed. The owner chose ad
+**Context.** On a Mac, computer use needs Local Studio's own `local-studio-computer` (issue #27) installed. The owner chose ad
 hoc signing for now: no Developer ID. The release workflow builds on Linux, and the helper needs a Mac to build and
 sign. The helper linked agent-desktop's engine as a dylib beside it.
 
 **Decision.**
 - A `hands-mac` job in `release.yml` builds the helper from the tag on a macOS runner with `hands/mac/scripts/package.sh`
-  and hands it to the release job, which puts it in the darwin archive as `bin/tychicus-hands`, so `SHA256SUMS` and the
+  and hands it to the release job, which puts it in the darwin archive as `bin/local-studio-computer`, so `SHA256SUMS` and the
   attestation cover it.
-- It is signed `codesign --force --sign - --options runtime --identifier com.tychicus.hands`. With the hardened runtime,
+- It is signed `codesign --force --sign - --options runtime --identifier com.localstudio.computer`. With the hardened runtime,
   library validation refused the ad hoc engine dylib ("different Team IDs"), so the engine is now built as a static
   library (`cargo rustc --crate-type staticlib`, no patch to the crate) and linked in. The alternatives were dropping
   the hardened runtime or adding `com.apple.security.cs.disable-library-validation`; both would let code be loaded into a
   program that holds the Accessibility grant (`DYLD_INSERT_LIBRARIES`, or a swapped dylib beside it).
-- `tychicus install --release` copies it to `~/.local/bin/tychicus-hands` on macOS only: one fixed path, so the
+- `local-studio-browser install --release` copies it to `~/.local/bin/local-studio-computer` on macOS only: one fixed path, so the
   Accessibility list keeps one entry, and a reinstall of the same bytes leaves the file alone. A changed helper goes in
   with a rename, so a running copy keeps its file.
 - The helper names the program macOS checks the grant against (the responsible process, from libsystem's
@@ -2410,15 +2392,81 @@ domain. The relay Worker in baney75/local-studio-tunnels (`relay/`) needs neithe
   Tailscale or Cloudflare. `--tailscale`, `--tailnet`, `--cloudflare` and `--public-url` keep their routes, and plain
   setup on a route that is on keeps it.
 - Setup drives the person's own `wrangler` at one pinned version through `npx`: whoami, login in their terminal,
-  deploy, and `secret put RELAY_KEY` with the key on stdin. Tychicus never reads wrangler's sign-in.
+  deploy, and `secret put RELAY_KEY` with the key on stdin. Local Studio never reads wrangler's sign-in.
 - Every setup run makes a new key, saved in `remote.json` at 0600.
 - The relay forwards serve's nine paths and `/v1/health` only, so a hub stays off it.
 - `remote off` leaves the Worker on the account and prints the delete command. Deleting it can't be undone.
-- D59's handling of a Local Studio that gates tunnel setup is gone: such a build is a refusal, like any
-  `local-studio tunnel setup` that answers JSON and fails. A tailnet route it left to Tychicus stays Tychicus's own.
+- D59's handling of an app that gates tunnel setup is gone: such a build is a refusal, like any
+  `local-studio tunnel setup` that answers JSON and fails.
 - The relay needs Node.js 22 or later for its built-in WebSocket. Setup refuses older ones with Node's download page.
 
 **Why.**
 - A workers.dev address is the only route with neither a domain nor a second account to make.
 - A new key each run means a `remote.json` copied elsewhere stops working at the next setup.
 - Leaving the Worker matches the Cloudflare tunnel route, which leaves its tunnel and record.
+
+## D71. The browser keeps no list, lint or copy of the skills (Donovan's skill store spec, 2026-11-24; details by Claude, 2026-11-25)
+
+**Context.** Local Studio has one skill store, searched by `skill_search`. The browser had its own: 43 skills compiled into
+the CLI, a catalog, a lint with red-team tests, and `local-studio-browser skill` to install copies in other agents' folders.
+
+**Decision.**
+- The skills move to `skills/`, with `asks.txt` and `where.txt` beside each. The app ships that folder.
+  `local-studio-browser` moves with them. `kyraskillmaker` goes: `@create` and `local-studio skills create` write a skill.
+  `browser-use` is a plugin's skill and stays in `plugins/`.
+- The whole `local-studio-browser skill` command goes, with the catalog and the lint. It answers with where skills are now, exit 2.
+- `local-studio-browser skill refresh` alone still answers, with nothing refreshed and exit 0, because a helper from an earlier version
+  runs it at the end of an update to this one.
+- Copies earlier versions installed in Claude Code, Codex and OpenCode are left where they are.
+- The side panel's "/" menu is still made from the folder at build time, until the panel reads the store.
+
+**Why.**
+- Two indexes disagree as soon as a skill is edited in one of them.
+- A copy in another agent's folder goes stale with no one to refresh it, and the store reads those folders anyway, as personal skills.
+- A lint of words in one repository couldn't check the skills people write or plugins bring. Review is the gate for the app's
+  own, and the store says where each skill comes from.
+
+**Proof.** `cli/test/skill.test.mjs`, `cli/test/skills.test.mjs`, and `scripts/tests/skills-recall-test.sh` at the root.
+
+## D72. The panel and Settings show less, and a model is connected from the home screen (Donovan, 2026-11-25; details by Claude)
+
+**Context.** Donovan: "All of the ui and ux needs to be less cluttered" and easier to link subscriptions to, with the skills
+organized. The panel had a welcome dialog, eleven settings tabs built at once, and provider sign-in three clicks deep.
+
+**Decision.**
+- The home screen is one list: the Local Studio app when it is open, ChatGPT and GitHub Copilot plans, an API key, a model on
+  this computer. Once something is connected the list gives way to three starters. The welcome dialog is gone.
+- Settings is ten sections in three groups, each with its state on its row, and a section mounts the first time it opens. One-line notes
+  under a control replace paragraphs; what a sign-in sends and to whom stays one disclosure, "About these sign-ins".
+- Which sign-ins exist is unchanged: API keys, and the two a provider documents for other apps (docs/auth-policy.md).
+- Skills are grouped by task in `src/composer/skill-groups.ts`, not in their frontmatter, which the lint holds to name,
+  description and license.
+- No favicon service: asking Google for a site's icon told it which sites a person opens. Icons are drawn locally.
+
+**Proof.** `cli/test/e2e-panel.test.mjs` (home list, sections readable at 320 px, Esc path), `test/privacy-hosts.test.mjs`,
+`scripts/settings-speed.mjs` against its floor.
+
+## D73. Agents restyle sites, the person undoes it in one click, and the changes outlive the browser (Donovan, 2026-11-25; details by Claude)
+
+**Context.** Donovan asked that agents easily modify sites and save it, "maybe it modifies an x feed for someone, or youtube, or
+colors or themes, few clicks as possible to use and strong link to local studio". Hide, block, filter and script existed;
+colors and layout needed a script, which is off until the person turns it on.
+
+**Decision.**
+- *A new kind, `style`, in `site_edit`.* The value is CSS, since models write it well. It is parsed and rebuilt from lists of
+  allowed properties and functions (`src/site-edits/style.ts`), never passed through: no `url()`, `attr()`, `content`, at-rules,
+  escapes, position or stacking, negative layout lengths, or opacity under 0.2. So a style can't send page data out, draw text,
+  or cover or hide a button. It applies at once, like hide, because it is data. `dark` is a ready-made one.
+- *`update` changes a saved hide, style, block or filter in place*, so a theme is tuned, not stacked. An edit the person turned off
+  stays off. A script is never updated.
+- *One card per site after a change*, with Undo and Keep, in every open panel of that browser.
+- *Change this site* is on the empty chat, under More and on the page menu. It opens Settings > Sites at that site.
+- *The panel's own agent has it too*, as one tool, for sites open in its own tabs only.
+- *Saved by the helper* in `~/.local-studio/browser/sites.json` (0600), by browser id. A browser with none of its own takes the newest
+  list there through every check again, with scripts off. Export and import use the same document and the same checks.
+- *No agent, command, file or import turns a script on.* Turn on asks for the browser's permission in the same click.
+
+**Why.** Rebuilding from a list fails closed: a property or function nobody listed is refused. The alternative, a blocklist
+over raw CSS, misses the next way to fetch. One document for the file, export and import leaves one reader to check.
+
+**Proof.** `test/site-styles.test.mjs`, `test/site-edits.test.mjs`, `test/site-saved.test.mjs`, `cli/test/sites.test.mjs`, `cli/test/e2e-panel.test.mjs` ("Change this site").

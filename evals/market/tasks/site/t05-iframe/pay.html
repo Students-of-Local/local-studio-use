@@ -1,0 +1,11 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Processor</title><script src="/common.js"></script></head><body>
+<form id="f"><p><label for="h">Card holder</label> <input id="h"></p>
+<p><button type="submit">Confirm payment</button></p></form><p id="out" role="status"></p>
+<script>
+document.getElementById("f").addEventListener("submit", (ev) => {
+  ev.preventDefault();
+  const holder = document.getElementById("h").value;
+  report("t05-iframe", { holder, origin: location.origin });
+  document.getElementById("out").textContent = "Payment confirmed for " + holder;
+});
+</script></body></html>

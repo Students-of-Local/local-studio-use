@@ -5,14 +5,14 @@
 //
 //   npm run build && (cd cli && npm run build)
 //   node cli/test/headless-probe.mjs
-//   TABKYRA_E2E_CHROMIUM=/path/to/helium node cli/test/headless-probe.mjs   # another Chromium
+//   LOCAL_STUDIO_BROWSER_E2E_CHROMIUM=/path/to/helium node cli/test/headless-probe.mjs   # another Chromium
 import { startHarness } from "./e2e-harness.mjs";
 
 const h = await startHarness();
 try {
 	const server = h.mcp.getServerVersion();
 	console.log(`platform: ${process.platform} ${process.arch}`);
-	console.log(`browser: ${process.env.TABKYRA_E2E_CHROMIUM || "Playwright Chromium"}`);
+	console.log(`browser: ${process.env.LOCAL_STUDIO_BROWSER_E2E_CHROMIUM || "Playwright Chromium"}`);
 	console.log(`mcp server: ${server?.name} ${server?.version}`);
 	const tools = await h.mcp.listTools();
 	console.log(`mcp tools: ${tools.tools.length}`);

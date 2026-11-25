@@ -1,0 +1,992 @@
+/* Import Claude theme from mini-lit */
+@import "@mariozechner/mini-lit/styles/themes/default.css";
+
+/* Tell Tailwind to scan mini-lit components */
+@source "../node_modules/@mariozechner/mini-lit/dist";
+
+/* Tell Tailwind to scan web-ui components from file: dependency */
+@source "../node_modules/@mariozechner/pi-web-ui/src";
+
+/* Tell Tailwind to scan local components */
+@source "../src/**/*.ts";
+
+/* Import Tailwind */
+/* biome-ignore lint/correctness/noInvalidPositionAtImportRule: fuck you */
+@import "tailwindcss";
+
+/*
+ * Small and large corners. The defaults are mini-lit's (radius minus 4px for small, plus 4px for
+ * large). Tailwind's rounded-sm and rounded-xl and the rules below read these.
+ */
+@theme inline {
+	--radius-sm: var(--tk-radius-sm);
+	--radius-xl: var(--tk-radius-lg);
+}
+
+/* Local Studio's cream and ink (docs/brand/README.md), before the Appearance tokens load or when they can't. */
+:root {
+	--tk-radius-sm: calc(var(--radius) - 4px);
+	--tk-radius-lg: calc(var(--radius) + 4px);
+	--background: #fbf6ee;
+	--foreground: #1f1418;
+	--card: #fffdf9;
+	--popover: #fffdf9;
+	--primary: #b8512a;
+	--primary-foreground: #ffffff;
+	--secondary: #f3eadd;
+	--muted: #f3eadd;
+	--muted-foreground: #76655f;
+	--accent: #eee2d1;
+	--border: #eadfd0;
+	--tk-accent: #b8512a;
+	--tk-accent-deep: #b8512a;
+	/* Accent text on light backgrounds: 4.5:1 or better on the page, the card and the quiet fill. */
+	--tk-accent-text: #a94b28;
+	/* Text and glyphs drawn on --tk-accent. Appearance (src/appearance/tokens.ts) pairs it with the accent per preset. */
+	--tk-on-accent: #ffffff;
+	/* Fixed colors: the recording pill, switch thumbs and their shadow, the success mark. */
+	--tk-on-rec: #fff;
+	--tk-rec: #c9302c;
+	--tk-rec-hover: #a82222;
+	--tk-thumb: #fff;
+	--tk-thumb-shadow: rgb(0 0 0 / 0.3);
+	--tk-success: #1e8a55;
+	--ring: var(--tk-accent-deep);
+	/* The selected Settings chip. Appearance (src/appearance/tokens.ts) sets the same names per preset. */
+	--tk-selected: var(--foreground);
+	--tk-on-selected: var(--background);
+	/* Native controls (checkboxes, the search box's clear button, scrollbars) follow the theme. */
+	color-scheme: light;
+	accent-color: var(--tk-accent-deep);
+	/* Hover is neutral, so a hovered icon never looks switched on; the accent is kept for a real "on" state
+	   (aria-pressed, recording). */
+	--accent-foreground: var(--foreground);
+}
+
+.dark {
+	--background: #120c0f;
+	--foreground: #f3ebdd;
+	--card: #1f151a;
+	--popover: #1f151a;
+	--primary: #dc6f42;
+	--primary-foreground: #120c0f;
+	--secondary: #261a20;
+	--muted: #261a20;
+	--muted-foreground: #9e8d89;
+	--accent: #2e2127;
+	--border: #2a1d23;
+	--input: #2e2127;
+	--tk-accent: #dc6f42;
+	--tk-accent-deep: #dc6f42;
+	--tk-on-accent: #120c0f;
+	--tk-success: #70d194;
+	--ring: var(--tk-accent);
+	--accent-foreground: var(--foreground);
+	/* 4.5:1 or better on the card under the ask chip's tint. */
+	--tk-accent-text: #dd754a;
+	color-scheme: dark;
+	accent-color: var(--tk-accent);
+}
+
+/* --tk-font-size, when set, goes on the root too, so rem text (Tailwind's text-sm and the like) scales with it. Unset: unchanged. */
+html {
+	font-size: var(--tk-font-size, 100%);
+}
+
+body {
+	font-size: var(--tk-font-size, 16px);
+	-webkit-font-smoothing: antialiased;
+}
+
+/* Smooth color transitions for theme switching */
+*,
+*::before,
+*::after {
+	transition:
+		background-color var(--tk-motion-slow, 0.3s) var(--tk-ease, ease),
+		color var(--tk-motion-slow, 0.3s) var(--tk-ease, ease),
+		border-color var(--tk-motion-slow, 0.3s) var(--tk-ease, ease),
+		fill var(--tk-motion-slow, 0.3s) var(--tk-ease, ease),
+		stroke var(--tk-motion-slow, 0.3s) var(--tk-ease, ease);
+}
+
+* {
+	scrollbar-width: thin;
+	scrollbar-color: var(--color-border) transparent;
+}
+
+*::-webkit-scrollbar {
+	width: 8px;
+	height: 8px;
+}
+
+*::-webkit-scrollbar-track {
+	background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+	background-color: var(--color-border);
+	border-radius: 4px;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+	background-color: transparent;
+}
+
+/* Welcome message animations */
+@keyframes fadeInUp {
+	from {
+		opacity: 0;
+		transform: translateY(30px);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}
+
+/* Centers the welcome between the header and the composer, whatever their heights.
+   1rem is the top padding of the list inside the scroller. */
+agent-interface .overflow-y-auto:has(.welcome-container) {
+	container-type: size;
+}
+
+.welcome-container {
+	min-height: calc(100cqb - 1rem);
+	position: relative;
+	animation: fadeInUp 0.8s ease-out;
+}
+
+.tutorial-pill {
+	background: var(--color-card);
+	border: 1px solid var(--color-border);
+}
+
+.tutorial-pill:hover {
+	background: var(--color-secondary);
+	border-color: color-mix(in srgb, var(--tk-accent) 55%, transparent);
+}
+
+.tutorial-pill:focus-visible {
+	outline: 2px solid var(--color-ring);
+	outline-offset: 2px;
+}
+
+.tk-starter-icon {
+	color: var(--tk-accent-text);
+}
+
+/* A person's own message, on the quiet fill. */
+.user-message-container {
+	position: relative;
+	background: var(--color-secondary);
+	border: 1px solid var(--color-border);
+	max-width: 100%;
+}
+
+/* ask_user question card (src/ask/AskCard.ts): the accent marks the choice. */
+.tk-ask-card {
+	border: 1px solid var(--color-border);
+	border-left: 3px solid var(--tk-accent);
+	border-radius: var(--radius);
+	background: var(--color-card);
+	color: var(--color-card-foreground);
+	padding: 0.75rem 0.875rem;
+	box-shadow: var(--shadow-xs);
+}
+
+.tk-ask-card.tk-ask-done {
+	border-left-color: var(--color-border);
+	box-shadow: none;
+}
+
+.tk-ask-card fieldset {
+	border: 0;
+	padding: 0;
+	margin-inline: 0;
+}
+
+.tk-ask-icon {
+	display: inline-flex;
+	color: var(--tk-accent-deep);
+}
+
+.dark .tk-ask-icon {
+	color: var(--tk-accent);
+}
+
+.tk-ask-chip {
+	display: inline-block;
+	max-width: 100%;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	vertical-align: middle;
+	font-size: 0.6875rem;
+	font-weight: 600;
+	letter-spacing: 0.04em;
+	text-transform: uppercase;
+	padding: 0.0625rem 0.4375rem;
+	border-radius: 999px;
+	color: var(--tk-accent-text);
+	background: color-mix(in srgb, var(--tk-accent) 14%, transparent);
+}
+
+.tk-ask-option {
+	display: flex;
+	align-items: flex-start;
+	gap: 0.625rem;
+	width: 100%;
+	text-align: left;
+	padding: 0.5rem 0.625rem;
+	border: 1px solid var(--color-border);
+	border-radius: calc(var(--radius) - 2px);
+	background: var(--color-background);
+	cursor: pointer;
+}
+
+.tk-ask-option:hover:not(:disabled) {
+	border-color: color-mix(in srgb, var(--tk-accent) 55%, transparent);
+}
+
+.tk-ask-option:focus-visible,
+.tk-ask-other:focus-within {
+	outline: 2px solid var(--color-ring);
+	outline-offset: 1px;
+}
+
+.tk-ask-option[aria-checked="true"] {
+	border-color: var(--tk-accent);
+	background: color-mix(in srgb, var(--tk-accent) 10%, transparent);
+}
+
+.tk-ask-other {
+	align-items: center;
+	cursor: text;
+}
+
+.tk-ask-mark {
+	flex-shrink: 0;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 1rem;
+	height: 1rem;
+	margin-top: 0.125rem;
+	border: 1.5px solid var(--color-muted-foreground);
+	border-radius: 999px;
+	color: var(--tk-on-accent);
+	background: transparent;
+	cursor: pointer;
+}
+
+.tk-ask-other .tk-ask-mark {
+	margin-top: 0;
+}
+
+.tk-ask-mark-box {
+	border-radius: 4px;
+}
+
+[aria-checked="true"] > .tk-ask-mark,
+.tk-ask-mark[aria-checked="true"] {
+	border-color: var(--tk-accent);
+	background: var(--tk-accent);
+}
+
+.tk-ask-answer {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.25rem;
+	max-width: 100%;
+	font-size: 0.8125rem;
+	font-weight: 500;
+	padding: 0.125rem 0.5rem;
+	border-radius: var(--tk-radius-sm);
+	color: var(--color-foreground);
+	background: color-mix(in srgb, var(--tk-accent) 12%, transparent);
+	overflow-wrap: anywhere;
+}
+
+.tk-ask-btn {
+	font-size: 0.8125rem;
+	font-weight: 500;
+	padding: 0.3125rem 0.875rem;
+	border-radius: calc(var(--radius) - 2px);
+	cursor: pointer;
+}
+
+.tk-ask-btn:disabled {
+	opacity: 0.5;
+	cursor: default;
+}
+
+.tk-ask-btn-ghost {
+	color: var(--color-muted-foreground);
+	background: transparent;
+}
+
+.tk-ask-btn-ghost:hover:not(:disabled) {
+	color: var(--color-foreground);
+	background: var(--color-secondary);
+}
+
+.tk-ask-btn-primary {
+	color: var(--tk-on-accent);
+	background: var(--tk-accent);
+}
+
+.tk-ask-btn-primary:hover:not(:disabled) {
+	/* Not a mix toward the text color: that lowers the text contrast, and a mid-gray accent fell under 4.5:1. */
+	background: var(--tk-accent);
+	box-shadow: inset 0 0 0 2px var(--tk-on-accent);
+}
+
+/* Choices answer the click at once; the page-wide 0.3 s fade made them look unselected. */
+.tk-ask-card *,
+.tk-ask-card *::before,
+.tk-ask-card *::after {
+	transition-duration: var(--tk-motion-fast, 0.08s);
+}
+
+/* ---- Side panel header (src/sidepanel.ts, src/components/HeaderMenu.ts) ---- */
+.tk-icon-btn {
+	position: relative;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 2rem;
+	height: 2rem;
+	flex-shrink: 0;
+	border-radius: calc(var(--radius) - 2px);
+	color: var(--color-muted-foreground);
+	cursor: pointer;
+}
+
+.tk-icon-btn:hover,
+.tk-icon-btn[aria-expanded="true"] {
+	color: var(--color-foreground);
+	background: var(--color-secondary);
+}
+
+.tk-icon-btn:focus-visible,
+.tk-menu-item:focus-visible,
+.tk-header-pill:focus-visible {
+	outline: 2px solid var(--color-ring);
+	outline-offset: 1px;
+}
+
+/* A tooltip on hover (after a short pause) and at once on keyboard focus. The native title
+   tooltip took a second, never showed on focus, and the icons had no other label. */
+[data-tip]::after {
+	content: attr(data-tip);
+	position: absolute;
+	top: calc(100% + 6px);
+	left: 50%;
+	transform: translateX(-50%);
+	z-index: 60;
+	width: max-content;
+	max-width: 14rem;
+	padding: 0.25rem 0.5rem;
+	border-radius: var(--tk-radius-sm);
+	font-size: 0.75rem;
+	font-weight: 500;
+	line-height: 1.25;
+	white-space: normal;
+	text-align: left;
+	color: var(--color-popover-foreground);
+	background: var(--color-popover);
+	border: 1px solid var(--color-border);
+	box-shadow: var(--shadow-md);
+	opacity: 0;
+	visibility: hidden;
+	pointer-events: none;
+	transition:
+		opacity var(--tk-motion-fast, 0.12s) ease,
+		visibility 0s linear var(--tk-motion-fast, 0.12s);
+}
+
+[data-tip]:hover::after {
+	opacity: 1;
+	visibility: visible;
+	transition-delay: 0.45s;
+}
+
+[data-tip]:focus-visible::after {
+	opacity: 1;
+	visibility: visible;
+	transition-delay: 0s;
+}
+
+/* No tooltip over an open menu. */
+[data-tip][aria-expanded="true"]::after {
+	display: none;
+}
+
+/* Buttons at the panel's right edge open their tooltip leftward, so it never clips. */
+.tk-tips-end [data-tip]::after {
+	left: auto;
+	right: 0;
+	transform: none;
+}
+
+.tk-menu {
+	position: absolute;
+	top: calc(100% + 4px);
+	right: 0;
+	z-index: 70;
+	min-width: 15.5rem;
+	padding: 0.25rem;
+	border-radius: var(--radius);
+	color: var(--color-popover-foreground);
+	background: var(--color-popover);
+	border: 1px solid var(--color-border);
+	box-shadow: var(--shadow-lg);
+}
+
+.tk-menu-item {
+	display: flex;
+	align-items: center;
+	gap: 0.625rem;
+	width: 100%;
+	min-height: 2rem;
+	padding: 0.375rem 0.5rem;
+	border-radius: var(--tk-radius-sm);
+	font-size: 0.875rem;
+	cursor: pointer;
+}
+
+.tk-menu-item:hover,
+.tk-menu-item:focus-visible {
+	background: var(--color-secondary);
+}
+
+/* A list of rows in one card: Settings, the connect list, skills. */
+.tk-list {
+	border: 1px solid var(--border);
+	border-radius: var(--radius-lg, 0.625rem);
+	background: var(--card);
+	overflow: hidden;
+}
+
+.tk-list > * + * {
+	border-top: 1px solid var(--border);
+}
+
+/* Rows inside an opened row: one step in, the same lines. */
+.tk-list-inner {
+	border-top: 1px solid var(--border);
+	background: var(--background);
+}
+
+.tk-list-inner > * + * {
+	border-top: 1px solid var(--border);
+}
+
+.tk-row {
+	display: flex;
+	align-items: center;
+	gap: 0.75rem;
+	width: 100%;
+	min-height: 2.75rem;
+	padding: 0.5rem 0.75rem;
+	text-align: left;
+	color: var(--foreground);
+}
+
+.tk-row-link {
+	cursor: pointer;
+	outline: none;
+}
+
+.tk-row-link:hover {
+	background: var(--accent);
+}
+
+.tk-row-link:focus-visible {
+	box-shadow: inset 0 0 0 2px var(--ring);
+}
+
+.tk-row-icon,
+.tk-row-chevron {
+	display: inline-flex;
+	flex-shrink: 0;
+	color: var(--muted-foreground);
+}
+
+.tk-row-name {
+	flex: 1;
+	min-width: 0;
+	overflow: hidden;
+	font-size: 0.875rem;
+	font-weight: 500;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+/* The state gives way before the name does: a long one is cut, never wrapped. */
+[data-section] .tk-row-name {
+	flex: 1 0 auto;
+}
+
+.tk-row-state {
+	min-width: 0;
+	overflow: hidden;
+	font-size: 0.75rem;
+	color: var(--muted-foreground);
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+/* The one control at a row's end. */
+.tk-row-button {
+	display: inline-flex;
+	align-items: center;
+	flex-shrink: 0;
+	min-height: 2rem;
+	padding: 0 0.625rem;
+	border: 1px solid var(--input);
+	border-radius: var(--radius-md, 0.375rem);
+	font-size: 0.75rem;
+	font-weight: 500;
+	color: var(--foreground);
+	cursor: pointer;
+	outline: none;
+}
+
+.tk-row-button:hover:not(:disabled) {
+	background: var(--accent);
+}
+
+.tk-row-button:focus-visible {
+	box-shadow: 0 0 0 2px var(--ring);
+}
+
+.tk-row-button:disabled {
+	opacity: 0.6;
+	cursor: default;
+}
+
+/* A disclosure: what it opens is worth reading, not worth always showing. */
+.tk-more > summary {
+	width: fit-content;
+	padding: 0.25rem 0;
+	border-radius: var(--radius-sm, 0.25rem);
+	color: var(--muted-foreground);
+	cursor: pointer;
+	outline: none;
+}
+
+.tk-more > summary:hover {
+	color: var(--foreground);
+}
+
+.tk-more > summary:focus-visible {
+	box-shadow: 0 0 0 2px var(--ring);
+}
+
+/* Labeled header buttons: "Share this tab" (only when it would do something) and the
+   recording state. */
+.tk-header-pill {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.375rem;
+	height: 1.75rem;
+	padding: 0 0.625rem;
+	border-radius: 999px;
+	font-size: 0.75rem;
+	font-weight: 600;
+	white-space: nowrap;
+	cursor: pointer;
+}
+
+.tk-rec-pill {
+	color: var(--tk-on-rec);
+	background: var(--tk-rec);
+}
+
+.tk-rec-pill:hover {
+	background: var(--tk-rec-hover);
+}
+
+.tk-rec-dot {
+	width: 0.5rem;
+	height: 0.5rem;
+	border-radius: 999px;
+	background: var(--tk-on-rec);
+	animation: tk-rec-blink 1.2s ease-in-out infinite;
+}
+
+@keyframes tk-rec-blink {
+	50% {
+		opacity: 0.35;
+	}
+}
+
+/* The off switch's track is --input, which tokens.ts derives to 3:1 against the page and the card in
+   every preset and mode (test/appearance.test.mjs). */
+/* Checkboxes, switches and radio buttons share one look in both themes. Bare native checkboxes
+   were small grey squares beside the CORS proxy's switch. An on/off setting is a switch
+   (.tk-switch, the same size as that switch); a box that picks items from a list stays a
+   checkbox. Each one is still a native input, so its label, the Space key and change events work
+   as before. */
+:root {
+	--tk-control-off: var(--input);
+	--tk-control-on: var(--tk-accent-deep);
+}
+.dark {
+	--tk-control-off: var(--input);
+	--tk-control-on: var(--tk-accent);
+}
+
+input[type="checkbox"].tk-switch,
+button[role="switch"] {
+	appearance: none;
+	position: relative;
+	flex-shrink: 0;
+	width: 2.75rem;
+	height: 1.5rem;
+	border: 0;
+	border-radius: 9999px;
+	background: var(--tk-control-off);
+	cursor: pointer;
+	transition: background-color var(--tk-motion-fast, 0.15s) ease;
+}
+input[type="checkbox"].tk-switch {
+	margin: 0;
+}
+input[type="checkbox"].tk-switch::before {
+	content: "";
+	position: absolute;
+	top: 0.125rem;
+	left: 0.125rem;
+	width: 1.25rem;
+	height: 1.25rem;
+	border-radius: 9999px;
+	background: var(--tk-thumb);
+	box-shadow: 0 1px 2px var(--tk-thumb-shadow);
+	transition: transform var(--tk-motion-fast, 0.15s) ease;
+}
+input[type="checkbox"].tk-switch:checked,
+button[role="switch"][data-state="checked"] {
+	background: var(--tk-control-on);
+}
+input[type="checkbox"].tk-switch:checked::before {
+	transform: translateX(1.25rem);
+}
+/* mini-lit's switch (the CORS proxy) draws its own thumb; only its track colour is set above. */
+button[role="switch"] > span {
+	background: var(--tk-thumb);
+	margin-left: 0.125rem;
+}
+
+/* The browser's side margins go, in the base layer, so a utility such as space-x-2 still spaces
+   a box from its label. */
+@layer base {
+	input[type="checkbox"],
+	input[type="radio"] {
+		margin-inline: 0;
+	}
+}
+input[type="checkbox"]:not(.tk-switch),
+input[type="radio"] {
+	appearance: none;
+	display: inline-grid;
+	place-content: center;
+	flex-shrink: 0;
+	width: 1.125rem;
+	height: 1.125rem;
+	margin-block: 0.0625rem 0;
+	border: 1.5px solid var(--muted-foreground);
+	border-radius: 0.3rem;
+	background: var(--background);
+	cursor: pointer;
+}
+input[type="radio"] {
+	border-radius: 9999px;
+}
+input[type="checkbox"]:not(.tk-switch):checked,
+input[type="radio"]:checked {
+	border-color: var(--tk-control-on);
+}
+input[type="checkbox"]:not(.tk-switch):checked {
+	background: var(--tk-control-on);
+}
+input[type="checkbox"]:not(.tk-switch):checked::before {
+	content: "";
+	width: 0.75rem;
+	height: 0.75rem;
+	background: var(--tk-thumb);
+	mask:
+		url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath d='M2.5 6.2 5 8.7 9.6 3.6' fill='none' stroke='%23000' stroke-width='1.9' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")
+		center / contain no-repeat;
+}
+.dark input[type="checkbox"]:not(.tk-switch):checked::before {
+	background: var(--foreground);
+}
+input[type="radio"]:checked::before {
+	content: "";
+	width: 0.5rem;
+	height: 0.5rem;
+	border-radius: 9999px;
+	background: var(--tk-control-on);
+}
+input[type="checkbox"]:focus-visible,
+input[type="radio"]:focus-visible,
+button[role="switch"]:focus-visible {
+	outline: 2px solid var(--ring);
+	outline-offset: 2px;
+}
+input[type="checkbox"]:disabled,
+input[type="radio"]:disabled,
+button[role="switch"]:disabled {
+	opacity: 0.5;
+	cursor: not-allowed;
+}
+
+/* High contrast (forced colors) replaces background colors, which carry every state above. The
+   checkboxes and radios go back to the system's own; the switches keep their shape in system
+   colors, on Highlight when on. */
+@media (forced-colors: active) {
+	input[type="checkbox"]:not(.tk-switch),
+	input[type="radio"] {
+		appearance: auto;
+	}
+	input[type="checkbox"]:not(.tk-switch):checked::before,
+	input[type="radio"]:checked::before {
+		content: none;
+	}
+	input[type="checkbox"].tk-switch,
+	button[role="switch"] {
+		forced-color-adjust: none;
+		border: 1px solid ButtonText;
+		background: ButtonFace;
+	}
+	input[type="checkbox"].tk-switch::before,
+	button[role="switch"] > span {
+		background: ButtonText;
+		box-shadow: none;
+	}
+	input[type="checkbox"].tk-switch::before {
+		top: calc(0.125rem - 1px);
+		left: calc(0.125rem - 1px);
+	}
+	input[type="checkbox"].tk-switch:checked,
+	button[role="switch"][data-state="checked"] {
+		background: Highlight;
+	}
+	input[type="checkbox"].tk-switch:checked::before,
+	button[role="switch"][data-state="checked"] > span {
+		background: HighlightText;
+	}
+	input[type="checkbox"].tk-switch:focus-visible,
+	button[role="switch"]:focus-visible {
+		outline-color: Highlight;
+	}
+}
+
+/* A page (Settings, a skill) scrolls under its top bar. Its content has side padding wider than
+   a macOS overlay scrollbar, and the gutter keeps a classic scrollbar off the Save buttons. */
+.tk-page-body {
+	scrollbar-gutter: stable;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	*,
+	*::before,
+	*::after {
+		transition-duration: 0.01ms;
+	}
+	input[type="checkbox"].tk-switch,
+	input[type="checkbox"].tk-switch::before,
+	button[role="switch"],
+	button[role="switch"] > span {
+		transition: none;
+	}
+	.welcome-container,
+	.tutorial-pill::before,
+	.tk-rec-dot {
+		animation: none;
+	}
+	.tutorial-pill:hover {
+		transform: none;
+	}
+	[data-tip]:hover::after {
+		transition-delay: 0.45s;
+		transition-duration: 0s;
+	}
+}
+
+/* ---- Runs view (src/runs/panel.ts): each run, its status and its step timeline ---- */
+.tk-run {
+	border: 1px solid var(--color-border);
+	border-radius: var(--radius);
+	background: var(--color-card);
+	color: var(--color-card-foreground);
+}
+
+.tk-run[data-status="waiting"] {
+	border-left: 3px solid var(--tk-accent);
+}
+
+.tk-run-head {
+	display: flex;
+	align-items: flex-start;
+	gap: 0.375rem;
+	width: 100%;
+	padding: 0.5rem 0.625rem;
+	text-align: left;
+	cursor: pointer;
+	border-radius: var(--radius);
+}
+
+.tk-run-head:hover {
+	background: var(--color-secondary);
+}
+
+.tk-run-head:focus-visible,
+.tk-run-step-row:focus-visible {
+	outline: 2px solid var(--color-ring);
+	outline-offset: -2px;
+}
+
+.tk-run-chevron {
+	display: inline-flex;
+	margin-top: 0.1875rem;
+	color: var(--color-muted-foreground);
+	transition: transform var(--tk-motion-fast, 0.08s);
+}
+
+.tk-run-head[aria-expanded="true"] .tk-run-chevron {
+	transform: rotate(90deg);
+}
+
+.tk-run-who {
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	font-size: 0.8125rem;
+	font-weight: 600;
+}
+
+.tk-run-status {
+	flex-shrink: 0;
+	margin-left: auto;
+	font-size: 0.6875rem;
+	font-weight: 600;
+	padding: 0.0625rem 0.4375rem;
+	border-radius: 999px;
+	color: var(--color-muted-foreground);
+	background: var(--color-secondary);
+}
+
+.tk-run-status[data-status="running"] {
+	color: var(--color-primary);
+	background: color-mix(in srgb, var(--color-primary) 14%, transparent);
+}
+
+.tk-run-status[data-status="waiting"] {
+	color: var(--tk-accent-text);
+	background: color-mix(in srgb, var(--tk-accent) 22%, transparent);
+}
+
+.tk-run-status[data-status="failed"] {
+	color: var(--color-destructive);
+	background: color-mix(in srgb, var(--color-destructive) 14%, transparent);
+}
+
+.tk-run-meta {
+	display: flex;
+	gap: 0.375rem;
+	min-width: 0;
+	margin-top: 0.125rem;
+	font-size: 0.75rem;
+	color: var(--color-muted-foreground);
+}
+
+.tk-run-steps {
+	margin: 0 0.625rem 0.5rem 1.625rem;
+	padding-left: 0.625rem;
+	border-left: 1px solid var(--color-border);
+}
+
+.tk-run-dropped {
+	padding: 0.25rem 0;
+	font-size: 0.75rem;
+	color: var(--color-muted-foreground);
+}
+
+.tk-run-step-row {
+	display: grid;
+	grid-template-columns: auto auto minmax(0, 1fr) auto;
+	align-items: center;
+	gap: 0.375rem;
+	width: 100%;
+	padding: 0.25rem 0.25rem 0 0;
+	text-align: left;
+	font-size: 0.75rem;
+	border-radius: var(--tk-radius-sm, 4px);
+}
+
+.tk-run-step-row:not(:disabled) {
+	cursor: pointer;
+}
+
+.tk-run-step-row:not(:disabled):hover {
+	background: var(--color-secondary);
+}
+
+.tk-run-step-mark {
+	display: inline-flex;
+	color: var(--color-primary);
+}
+
+.tk-run-step[data-ok="false"] .tk-run-step-mark {
+	color: var(--color-destructive);
+}
+
+.tk-run-step-tool {
+	font-family: var(--font-mono, ui-monospace, monospace);
+	font-weight: 600;
+}
+
+.tk-run-step-target {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	color: var(--color-muted-foreground);
+}
+
+.tk-run-step-ms {
+	font-variant-numeric: tabular-nums;
+	color: var(--color-muted-foreground);
+}
+
+.tk-run-step-result {
+	padding: 0 0 0.25rem 1.125rem;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	font-size: 0.75rem;
+	color: var(--color-muted-foreground);
+}
+
+.tk-run-report {
+	margin: 0 0 0.375rem 1.125rem;
+	padding: 0.5rem;
+	max-height: 14rem;
+	overflow: auto;
+	white-space: pre-wrap;
+	word-break: break-word;
+	font-family: var(--font-mono, ui-monospace, monospace);
+	font-size: 0.6875rem;
+	border-radius: var(--tk-radius-sm, 4px);
+	background: var(--color-secondary);
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.tk-run-chevron {
+		transition: none;
+	}
+}

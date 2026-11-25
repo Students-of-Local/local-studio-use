@@ -1423,7 +1423,7 @@ AdResult ad_snapshot(const struct AdAdapter *adapter,
 /**
  * Like `ad_snapshot`, but for one exact window: `window_id` is the engine window id
  * (`w-<CGWindowID>`). Never falls back to the app focused window.
- * Tychicus addition (engine/patches/0001-ffi-snapshot-window.patch).
+ * Local Studio addition (engine/patches/0001-ffi-snapshot-window.patch).
  */
 AdResult ad_snapshot_window(const struct AdAdapter *adapter,
                             const char *app,
@@ -1437,7 +1437,7 @@ AdResult ad_snapshot_window(const struct AdAdapter *adapter,
 /**
  * Reads one property (`text`, `value`, `title`, `bounds`, `role`, `states`) of a
  * snapshot-qualified ref from the live element. `*out` is a JSON envelope; free it
- * with `ad_free_string`. Tychicus addition (engine/patches/0001-ffi-snapshot-window.patch).
+ * with `ad_free_string`. Local Studio addition (engine/patches/0001-ffi-snapshot-window.patch).
  */
 AdResult ad_get_ref(const struct AdAdapter *adapter,
                     const char *ref_id,

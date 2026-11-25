@@ -6,10 +6,10 @@ Everything the developer dashboard asks for, ready to paste. Reasons for each pe
 Build the zip:
 
 ```bash
-scripts/build-store.sh "$HOME/Downloads/tychicus-store"
+scripts/build-store.sh "$HOME/Downloads/local-studio-store"
 ```
 
-It writes `tychicus-<version>-store.zip` (the version is `static/manifest.chrome.json`'s, which must equal
+It writes `local-studio-browser-<version>-store.zip` (the version is `static/manifest.chrome.json`'s, which must equal
 `package.json`'s). The build refuses a zip whose manifest has a `key`, a name other than Local Studio, a missing icon, or a
 permission with no row in permissions.md.
 
@@ -17,15 +17,13 @@ permission with no row in permissions.md.
 
 1. Build the zip and upload it as a draft. Don't submit it yet. Google assigns the store id.
 2. Put that id in `STORE_EXTENSION_ID` in `cli/src/install.ts` (it is `""` now) and merge. That one constant is where
-   the store id is pinned: the native host manifest `tychicus install` writes allows it (`extensionOrigins`), and the
+   the store id is pinned: the native host manifest `local-studio-browser install` writes allows it (`extensionOrigins`), and the
    host refuses any other caller (`callerRefusal` in `cli/src/host.ts`). The unpacked copy's id stays
    `igjafcggmahiboobmnhfkndodphjdnhg` in `src/bridge/extension-id.json`, fixed by the manifest key the zip leaves out.
    `test/store-origins.test.mjs` covers both ids.
-3. Release the helper from that commit with `./release.sh patch` (it tags `v<version>`, and
-   `.github/workflows/release.yml` builds the helper with the id in it). People who installed before run the
-   one install command again (or `tychicus install --release <folder>`), which rewrites the host manifest to allow
-   the store copy. Until this step, a store copy finds no helper it may talk to: Chrome refuses the connection
-   because the host manifest doesn't list its id, so its welcome screen keeps showing the install command.
+3. Release the app from that commit. People turn Browser use off and on once in the app's settings, which rewrites the host
+   manifest to allow the store copy. Until this step, a store copy finds no helper it may talk to: Chrome refuses the
+   connection because the host manifest doesn't list its id, so its welcome screen keeps showing Get the app.
 4. Submit the draft for review.
 
 ## Store listing tab
@@ -51,17 +49,11 @@ What it does well:
 
 • Its own tab group. Each agent works in a group of its own tabs, marked while it works, with a pointer that shows what it is doing and a "Take over" button.
 • Background tabs, no stolen focus. The agent acts in its tabs without bringing them to the front, so you can keep typing somewhere else.
-• The agents you already use. Claude Code, Codex, Cursor, OpenCode, pi and any other MCP agent drive your browser through the free Local Studio helper on your computer. With the helper and your own Tailscale or Cloudflare tunnel, claude.ai, ChatGPT and grok.com can use it too.
+• The agents you already use. Claude Code, Codex, Cursor, OpenCode, pi and any other MCP agent drive your browser through the Local Studio app on your computer. With it and your own Tailscale or Cloudflare tunnel, claude.ai, ChatGPT and grok.com can use it too.
 • Local models through the Local Studio app. With the app on your computer, the side panel chats on your local models and the plans you signed in to there, with no API key or sign-in in the extension.
 • Or bring an API key from Anthropic, OpenAI, Google, OpenRouter and others, or use a free OpenRouter key.
 
-Set up the helper in one command. The welcome screen shows the one for your computer with a Copy button, and shows the helper connected as soon as it runs.
-
-On macOS or Linux, in a terminal:
-curl -fsSL https://github.com/baney75/tychicus/releases/latest/download/install.sh | sh
-
-On Windows, in PowerShell:
-irm https://github.com/baney75/tychicus/releases/latest/download/install.ps1 | iex
+The helper comes with the Local Studio app: turn on Browser use in its settings, and the welcome screen shows the helper connected.
 
 You stay in charge:
 
@@ -71,19 +63,19 @@ You stay in charge:
 
 No account, no analytics, and open source under the AGPL-3.0. Local Studio runs no servers of its own. Your chats and settings stay on your computer, and your messages, and what the agent reads, go only to the AI you picked.
 
-The browser tools come three ways: with the Local Studio app, as a helper you install on its own, and as this Chrome extension. The extension works with or without the app.
+The extension works with or without the app.
 
 A note on provider terms: using a consumer chat subscription through automation may break that provider's terms of service. Some allow it, some forbid it, and terms change. Local Studio doesn't decide this for you. Read your provider's terms before you connect a subscription; API keys under a developer agreement are the safer route where terms are unclear.
 
 Chats through the Local Studio app need macOS or Linux for now.
 
-Source: https://github.com/baney75/tychicus
+Source: https://github.com/baney75/local-studio/tree/main/browser
 Built on 0xSero's agent bridge and Mario Zechner's Sitegeist.
 ```
 
-**Homepage:** https://github.com/baney75/tychicus
+**Homepage:** https://github.com/baney75/local-studio/tree/main/browser
 
-**Support:** https://github.com/baney75/tychicus/issues
+**Support:** https://github.com/baney75/local-studio/issues
 
 **Images:**
 
@@ -121,7 +113,7 @@ Leave the other boxes empty.
 **Certify all three:** not sold to third parties, not used or transferred for purposes unrelated to the single purpose,
 not used to determine creditworthiness or for lending.
 
-**Privacy policy:** https://github.com/baney75/tychicus/blob/main/PRIVACY.md
+**Privacy policy:** https://github.com/baney75/local-studio/blob/main/browser/PRIVACY.md
 
 ## Distribution tab
 
@@ -137,5 +129,5 @@ No account is needed.
 3. Ask: "Open example.com and tell me what the page says."
 4. If it asks about example.com, allow it (small and unknown models ask first). A new tab group opens, and the agent reads the page in it.
 
-Connecting a coding agent needs the free Local Studio helper. The welcome shows the command that installs it (curl -fsSL https://github.com/baney75/tychicus/releases/latest/download/install.sh | sh on macOS and Linux). It isn't required to review the side panel.
+Connecting a coding agent needs the free Local Studio app. It isn't required to review the side panel.
 ```

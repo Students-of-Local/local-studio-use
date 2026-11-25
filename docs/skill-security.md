@@ -2,24 +2,23 @@
 
 A skill is text an agent follows with the user's sign-in. A bad skill is a prompt
 injection that never expires: it runs in every session that loads it. This document is
-the threat model for skills and the gates every skill passes.
+the threat model for the app's skills (`skills/`) and what stands in the way.
 
-## What a lint can and can't do
+## Defenses
 
 No text filter makes prompt injection impossible. Language models follow instructions
 wherever they appear, and an attacker can always phrase an instruction a pattern has
-never seen. Tychicus makes injection hard to land and cheap to catch by layering
-these defenses:
+never seen. So a skill is made hard to slip in and cheap to review:
 
-1. **Skills ship only through review.** Bundled skills live in `skills/`, are compiled
-   into the CLI, and change only through a pull request. CODEOWNERS requires a
-   maintainer's review for `skills/`, the lint and CI.
-2. **Every skill passes `tychicus skill lint`,** in CI, at install time for local edits, and on demand. The lint has no allowlist and no per-file exceptions.
-3. **Red-team tests prove the lint still catches each attack** (`cli/test/skill-lint.test.mjs`).
-   Weakening a rule turns CI red.
-4. **A skill is one Markdown file.** Folders hold `SKILL.md` and a license only; scripts,
-   binaries, extra files and symlinks are refused, so nothing outside the reviewed text
-   reaches the model.
+1. **The app's skills ship only through review.** They change only through a pull request, and a
+   change to one gets the maintainer's review like a security change.
+2. **A skill is text.** A folder holds `SKILL.md`, the short lists it is found by (`asks.txt`,
+   `where.txt`, `names.txt`) and a license. Scripts, binaries and symbolic links are refused in review.
+   The store follows no link in the app's folder and reads no file over 256 KB.
+3. **Someone else's skill can't pass as yours.** The store says where each skill comes from (yours, the
+   project's, a plugin's, Local Studio's), and a remote or scoped session is given only the app's.
+4. **A skill you save is shown first.** `local-studio skills create` prints it and marks lines that may
+   be private; nothing is written until you save it.
 5. **Agents never see secrets.** The `proton-pass` skill routes credentials through the
    password manager's own injection (`pass-cli run`, `op run`, `bws run`). A model that
    holds only `pass://` references has nothing to leak.
@@ -29,84 +28,28 @@ these defenses:
 7. **Actions under the user's sign-in need the user's yes,** and site access is
    allowlisted per host (README, Safety model).
 
-## The lint rules
+## What a reviewer looks for
 
-| Rule | Catches |
-| --- | --- |
-| `hidden-text` | Invisible format characters, bidi overrides, Unicode tag characters, filler characters, carriage returns, lookalike letters (mixed scripts, fullwidth, mathematical, stacked accents), HTML comments and any HTML tag, in code fences too (inline code spans excepted) |
-| `override-instructions` | "Ignore/disregard ... previous/system instructions" |
-| `role-hijack` | Fake `system:`, `developer:` or `user:` turns, role tags, "you are now", "developer mode" |
-| `conceal-from-user` | "Without telling the user", "without asking", "don't tell the user", "secretly", "quietly", "silently" |
-| `remote-code` | Downloads or decoded data piped, substituted (`$(curl ...)`, `<(curl ...)`) or `eval`ed into a shell or interpreter; a download saved as a script or executable; `iex (irm ...)`; `npx ...@latest` |
-| `remote-instructions` | Following instructions fetched from a URL at run time, in either word order |
-| `secret-exfiltration` | Printing, posting, saving or returning passwords, keys, tokens, cookies, card numbers; secret environment variables by name (`$OPENAI_API_KEY`); dumping the environment (`printenv`) |
-| `credential-files` | Reading `~/.ssh`, `~/.aws`, `.env`, browser cookie and login stores, keychain dumps |
-| `config-tamper` | Agent settings, hooks, MCP config, shell startup files, cron, launch agents; writing `rsi.json`, `skills-local`, `skill-history`, a harness's skills folder, `AGENTS.md` or `CLAUDE.md` |
-| `safety-bypass` | `--dangerously-*`, `--no-verify`, `tychicus allow-all`, disabling prompts or sandboxes |
-| `encoded-blob` | Base64 or similar strings of 100+ characters |
-| `remote-image` | Any image that isn't a relative path inside the skill, including reference-style images |
-| `suspicious-link` | Plain http, raw IPs, link shorteners, punycode, protocol-relative `//host`, `data:`/`javascript:`/`file:` URLs, credentials in URLs |
-| `structure` | Missing `## When to use`, numbered `## Steps`, `## Done when`; an unclosed fence; text on a fence line |
-| `frontmatter` | Any line that isn't `key: value` for `name`, `description` or `license`; quoted values; duplicates; a name not matching its folder; a missing "Use when" |
-| `file-type` | Anything in a skill folder besides `SKILL.md` and a license (which is linted too); loose files beside skill folders; any symbolic link |
-
-Rules that name a dangerous act (`secret-exfiltration`, `remote-code`, `credential-files`,
-`config-tamper`, `safety-bypass`, `remote-instructions`) allow a clause that opens by
-forbidding it: "Never print the password", "Don't read ~/.ssh". Only "never", "don't",
-"do not", "must not" and "mustn't" count, and at most three words may sit between them and
-the act, all from a short list of plain verbs and determiners. Anything else ("refuse to",
-"be afraid to", "hesitate to", "not") can turn the prohibition around, so it doesn't count.
-Every match is checked on its own. Clauses end at punctuation, slashes, dashes and at
-"and", "or", "but", "then", "if", "when", "so", "unless", "otherwise" and "instead".
-
-The instruction rules read logical lines: a sentence wrapped across lines is checked as
-one sentence (a line that opens with a role such as `system:` always starts its own), after folding fullwidth and mathematical letters to plain ones and dropping
-stacked accents.
-
-Every line is checked, including fence lines and code blocks. A model reads the raw file,
-so a fence doesn't change what it will follow. Fences are tracked the way CommonMark reads
-them (at most three spaces of indent, closed by the same character), so an indented
-look-alike fence can't hide HTML from the markup check, and escaped backticks don't open a
-code span. Skills describe attacks; they never quote
-them. Frontmatter is parsed strictly: one `key: value` per line, allowed keys only, no
-quotes, no YAML syntax, no duplicates, and no `: `, ` #`, trailing `:` or tab inside a
-value, which YAML would read as a mapping or a comment.
-
-## Local edits
-
-A local copy in `~/.config/tychicus/skills-local/` is used only while `index.json` records
-it, it passes lint, it isn't a protected skill (`rsi`, `kyraskillmaker`), it keeps every
-section of the bundled text and adds none, since a new section could override a protected
-one, and its protected sections (safety, rules, ethics, purpose check, limits, done when) are
-exactly the bundled ones, because an added line can cancel a rule as surely as a removed one.
-Headings inside code fences don't count. The CLI never writes through a symbolic link, in
-skills-local or in a harness's skills folder. Skill names are checked before they reach a
-path. `tychicus skill install` keeps using the edit while it passes lint, and warns when the
-bundled skill has changed since the edit was based on it. `tychicus skill revert <name>`
-returns to the bundled text.
+Hidden text (invisible and bidi characters, lookalike letters, HTML comments), instruction
+overrides and fake turns, concealment from the user, downloads run as code, instructions
+fetched at run time, secrets or credential files read, printed or posted, agent or shell
+settings written, safety switches turned off, encoded blobs, remote images and links that
+hide where they go. A prohibition ("never print the password") is fine; check that an
+exception in the same sentence doesn't turn it around. Skills describe attacks; they never
+quote them, not even in a code fence, because a model reads the raw file.
 
 ## Limits
 
-- Known gaps, tracked as issues: `config-tamper` doesn't yet catch a shell redirect or
-  `install`/`ln`/`rsync` into an installed skill folder; `remote-code` doesn't yet catch an
-  extensionless download that a later line runs; and package runners (`npx`, `uvx`,
-  `pipx run`) without a pinned version aren't flagged. The negation check also accepts
-  "never ... except <secret>" and "never hide <secret>" phrasings, and a secret
-  environment variable passed to a network tool without a listed verb isn't flagged.
-  Review must catch these by hand until the rules land.
-- CODEOWNERS asks for a maintainer's review on the paths that control skills. It blocks a
-  merge only if branch protection requires code-owner review.
-- The skills CI job also lints with the base branch's lint whenever the base has one, so a
-  pull request that weakens the lint must still pass the old lint. That step lives in the
-  pull request's own copy of `ci.yml`, so it is only as strong as the CODEOWNERS review of
-  `.github/`. A ruleset with a required workflow the pull request can't edit would close
-  that gap.
+- `scripts/tests/skills-text-test.sh` refuses hidden characters, lookalike letters, HTML comments, links and other files
+  in the app's skills. Nothing checks what the words say: review is the gate (D71).
+- A required review blocks a merge only if branch protection asks for it.
 - An agent with a shell runs as the user and can write any file the user can, skills
-  included. The lint stops a skill's text from telling an agent to do that; the harness's own permission prompts are what stop a hijacked agent.
+  included. The harness's own permission prompts are what stop a hijacked agent.
+- A skill of the user's own, or a plugin's, is as trusted as the folder it is in.
 
 ## Sources studied
 
-The bundled skills were written for Tychicus, not forked. One is adapted:
+The bundled skills were written for Local Studio, not forked. One is adapted:
 `visual-explainer` rewrites the rules of nicobailon/visual-explainer (MIT) into one
 `SKILL.md`, with the MIT notice in its folder. Its kit scripts, renderer, CDN libraries,
 reader-reply loop and the reference that fetched older recipes from GitHub at run time
@@ -120,7 +63,7 @@ reasons given:
 | bitwarden/agent-access examples | Returns the password to the agent; install fetches the skill at run time |
 | NousResearch hermes-agent 1password skill | Stores a service token in a dotfile; examples print secrets |
 | uditgoenka/autoresearch (MIT) | Sends optional outbound webhooks; ML-specific loop |
-| snyk/agent-scan (Apache-2.0) | Sends skill content to a remote API; Tychicus's gate runs offline |
+| snyk/agent-scan (Apache-2.0) | Sends skill content to a remote API |
 
 Note for anyone adding a Bitwarden route: `@bitwarden/cli` 2026.4.0 on npm carried a
 credential stealer (StepSecurity, 2026-04-23). Pin a known-good version.

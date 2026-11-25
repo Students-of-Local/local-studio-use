@@ -20,7 +20,7 @@ evidenced, checked, approved and reversible.
 
 ## Settings
 
-Read `~/.config/tychicus/rsi.json` if it exists. Missing keys take these defaults:
+Read `~/.local-studio/browser/rsi.json` if it exists. Missing keys take these defaults:
 
 | Key | Default | Meaning |
 | --- | --- | --- |
@@ -120,10 +120,10 @@ the menu re-renders on hover.
 
 1. Lesson: "When a menu re-renders on hover, use `find` with the item's text right before
    `click`, because hover-driven menus replace their refs."
-2. Target: the polycarp-browser skill's "Stale refs" section. Put its SKILL.md with
+2. Target: the local-studio-browser skill's "Stale refs" section. Put its SKILL.md with
    one new bullet there in `draft.md`, with its asks and where.
 3. `local-studio skills create draft.md` prints it, calls no line private and says "not saved".
 4. Review is off: show the user the diff. They say yes.
 5. The same command with `--save` prints the folder it saved and the one it is used instead of.
-6. Tell the user: "Added a rule to the polycarp-browser skill for hover menus that drop their refs.
+6. Tell the user: "Added a rule to the local-studio-browser skill for hover menus that drop their refs.
    Undo it by deleting the folder above. Propose it upstream?"

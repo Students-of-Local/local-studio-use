@@ -14,7 +14,7 @@ A web assistant reaches this computer through a relay or tunnel on the person's 
 - The user asks for a tunnel, on Cloudflare or Tailscale, for Local Studio.
 - A connector stopped working.
 
-For driving the browser from an agent on this computer, use the `polycarp-browser` skill. No tunnel is needed.
+For driving the browser from an agent on this computer, use the `local-studio-browser` skill. No tunnel is needed.
 
 ## Rules
 
@@ -26,19 +26,19 @@ For driving the browser from an agent on this computer, use the `polycarp-browse
 
 ## Steps
 
-1. **Read the state.** Run `tychicus remote status --json`. Read `state`, `connectorUrl` and `routes`.
+1. **Read the state.** Run `local-studio-browser remote status --json`. Read `state`, `connectorUrl` and `routes`.
 2. **If `state` is `on`,** give the person `connectorUrl` and go to step 6.
-3. **If `connectorUrl` is null, nothing is set up: suggest the relay,** whatever `state` says about Tailscale. It needs no domain: a free Worker on the person's own Cloudflare account, at `https://tychicus-relay.<subdomain>.workers.dev`. It needs Node.js 22 or later. Other routes: Tailscale Funnel (no domain, `--tailscale`) or a Cloudflare tunnel on their domain (`--cloudflare <name>`). The side panel's Settings > Agents has these steps as buttons.
-4. **Relay.** The person runs `tychicus remote setup --no-passcode` in their own terminal: wrangler opens Cloudflare's sign-in in their browser, and setup may open a page to pick a workers.dev subdomain. Your shell has no terminal, so `--json` answers `cloudflare_login` until they have done that once. When they say it finished, read the status again. Only if `connectorUrl` is still null, with their yes, run `tychicus remote setup --no-passcode`.
-5. **Tailscale or Cloudflare tunnel.** The person installs Tailscale and signs in, or installs `cloudflared` and runs `tychicus remote cloudflare login`. Then, with their yes, run `tychicus remote setup --no-passcode --tailscale` (on `funnel_not_allowed`, give them `adminUrl` and run it again once they allow it) or `--cloudflare tychicus.example.com`.
+3. **If `connectorUrl` is null, nothing is set up: suggest the relay,** whatever `state` says about Tailscale. It needs no domain: a free Worker on the person's own Cloudflare account, at `https://local-studio-browser-relay.<subdomain>.workers.dev`. It needs Node.js 22 or later. Other routes: Tailscale Funnel (no domain, `--tailscale`) or a Cloudflare tunnel on their domain (`--cloudflare <name>`). The side panel's Settings > Connections has these steps as buttons.
+4. **Relay.** The person runs `local-studio-browser remote setup --no-passcode` in their own terminal: wrangler opens Cloudflare's sign-in in their browser, and setup may open a page to pick a workers.dev subdomain. Your shell has no terminal, so `--json` answers `cloudflare_login` until they have done that once. When they say it finished, read the status again. Only if `connectorUrl` is still null, with their yes, run `local-studio-browser remote setup --no-passcode`.
+5. **Tailscale or Cloudflare tunnel.** The person installs Tailscale and signs in, or installs `cloudflared` and runs `local-studio-browser remote cloudflare login`. Then, with their yes, run `local-studio-browser remote setup --no-passcode --tailscale` (on `funnel_not_allowed`, give them `adminUrl` and run it again once they allow it) or `--cloudflare local-studio.example.com`.
 6. **Have the person add the connector.**
    - claude.ai: Settings > Connectors > Add custom connector, paste the address.
    - ChatGPT: Settings > Apps & Connectors, turn on dev mode, Create, paste the address, OAuth.
    - grok.com: grok.com/connectors > New Connector > Custom, paste the address.
-7. **Tell them what the approval page asks.** A page from this computer opens. They check the name and tick what it may do. A new connector needs a one-time connect code, which lasts ten minutes: in the Local Studio side panel's Settings > Agents, under "Use Tychicus from Claude, ChatGPT and Grok", they press New code (on a hub, Get a connect code), or in their own terminal they run `tychicus token approval-code`. Later approvals of that connector take the code or their passcode.
+7. **Tell them what the approval page asks.** A page from this computer opens. They check the name and tick what it may do. A new connector needs a one-time connect code, which lasts ten minutes: in the Local Studio side panel's Settings > Connections, under "Use Local Studio from Claude, ChatGPT and Grok", they press New code (on a hub, Get a connect code), or in their own terminal they run `local-studio-browser token approval-code`. Later approvals of that connector take the code or their passcode.
    - Browsing permissions are ticked to start with.
    - `computer.read` and `computer.act` are not ticked. They open the agent workspace and apps the person lends, never other windows, even with Full Access on. The apps run as the person, so only for an assistant they'd let sit at their keyboard.
-8. **Check it.** Run `tychicus remote status --json` again.
+8. **Check it.** Run `local-studio-browser remote status --json` again.
 
 ## When something goes wrong
 
@@ -48,7 +48,7 @@ For driving the browser from an agent on this computer, use the `polycarp-browse
 | `cloudflared_missing` | The person installs `cloudflared`. |
 | `cloudflare_login` | The person runs `next.command` in their terminal and signs in. |
 | `cloudflare_account`, `workers_subdomain` | The person picks the account (`--account <id>`) or opens `next.url` to pick a subdomain. |
-| `relay_connector`, `relay_health` | `remote status --json` shows `relay.state` and `next.command`. `unauthorized` or `replaced`: with their yes, `tychicus remote setup --no-passcode --relay <name>`, since plain setup leaves a relay another computer took alone. `outdated` or a stopped connector: with their yes, `tychicus remote fix`. `disconnected` comes back by itself. |
+| `relay_connector`, `relay_health` | `remote status --json` shows `relay.state` and `next.command`. `unauthorized` or `replaced`: with their yes, `local-studio-browser remote setup --no-passcode --relay <name>`, since plain setup leaves a relay another computer took alone. `outdated` or a stopped connector: with their yes, `local-studio-browser remote fix`. `disconnected` comes back by itself. |
 | `cloudflare_dns` | That name is in use or not valid. Ask for another. Never overwrite a record. |
 | `cloudflare_zone` | The sign-in is for another domain. The message says how to sign in again. |
 | `cloudflare_tunnel` | The message names the command. Show it, and run it only with their yes: it deletes a tunnel. |
@@ -57,9 +57,9 @@ For driving the browser from an agent on this computer, use the `polycarp-browse
 | `no_browser_connected` | The person opens their browser with the Local Studio extension. |
 | `problem` | Read `message` and pass it on. |
 
-If an assistant says computer use isn't available, its `computer_status` tool explains why: the computer use helper, `tychicus-hands`, isn't installed on that computer, or isn't answering.
+If an assistant says computer use isn't available, its `computer_status` tool explains why: the computer use helper, `local-studio-computer`, isn't installed on that computer, or isn't answering.
 
-To stop everything: with their yes, `tychicus remote off`. To end one assistant: `tychicus token clients`, then `tychicus token revoke <client id>`.
+To stop everything: with their yes, `local-studio-browser remote off`. To end one assistant: `local-studio-browser token clients`, then `local-studio-browser token revoke <client id>`.
 
 ## Done when
 
@@ -72,7 +72,7 @@ To stop everything: with their yes, `tychicus remote off`. To end one assistant:
 They ask: "I want to use my Mac from claude.ai. I have Cloudflare, with my own domain."
 
 1. `remote status --json` shows `routes.cloudflare` `{"installed":true,"signedIn":false}`.
-2. Say: "Run `tychicus remote cloudflare login` in your terminal. In the page it opens, sign in and pick your domain."
-3. Ask: "Which name? Something like tychicus.yourdomain.com." They say `tychicus.example.com`.
-4. Ask before running `tychicus remote setup --no-passcode --cloudflare tychicus.example.com`. Run it after their yes.
-5. Say: "In claude.ai, add a custom connector with https://tychicus.example.com/mcp. On the page that opens, tick computer use only if you want it there. For the code, press New code in the side panel's Settings > Agents."
+2. Say: "Run `local-studio-browser remote cloudflare login` in your terminal. In the page it opens, sign in and pick your domain."
+3. Ask: "Which name? Something like local-studio-browser.yourdomain.com." They say `local-studio.example.com`.
+4. Ask before running `local-studio-browser remote setup --no-passcode --cloudflare local-studio.example.com`. Run it after their yes.
+5. Say: "In claude.ai, add a custom connector with https://local-studio.example.com/mcp. On the page that opens, tick computer use only if you want it there. For the code, press New code in the side panel's Settings > Connections."

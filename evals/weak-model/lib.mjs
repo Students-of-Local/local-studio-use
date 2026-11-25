@@ -38,7 +38,7 @@ export const safeId = (s) => String(s).replace(/[^a-z0-9_-]/gi, "-").toLowerCase
 export const mountId = (label, taskId, trial) => `${safeId(taskId)}-${safeId(label)}-${trial}`;
 
 /**
- * A Polycarp session name of at most 64 characters: `wm-<task>-<trial>-<hash of label and task>`. A long task id is cut
+ * A Local Studio session name of at most 64 characters: `wm-<task>-<trial>-<hash of label and task>`. A long task id is cut
  * from its start, so the trial and the hash always survive and no two runs share a session.
  */
 export function sessionName(label, taskId, trial) {

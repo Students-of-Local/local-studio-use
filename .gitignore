@@ -1,0 +1,21 @@
+node_modules/
+dist-chrome/
+*.log
+.DS_Store
+sitegeist-latest.zip
+.playwright-mcp/
+*.screenflow/
+*.mp4
+version.json
+docs/*.html
+cli/node_modules
+cli/dist
+# The checkout updater's builds in progress and the build kept for rollback (cli/src/checkout.ts).
+.local-studio-update/
+
+# Pinned upstream checkouts (scripts/setup-siblings.sh): pi-mono and mini-lit.
+vendor/
+
+# The market eval: its run output and the rival tools installed by hand (evals/market/README.md).
+evals/market/results/
+evals/market/rivals/tools/

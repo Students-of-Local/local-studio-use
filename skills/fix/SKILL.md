@@ -68,7 +68,7 @@ For a small lesson from your own work, use `rsi` instead.
 10. **Get the user's yes.** Show the diff and the passing result.
 11. **Save:** the same command with `--save`. It says what the saved skill is used instead of.
     With no shell, send the user the reply text and ask them to send `@create` in the thread.
-12. **Keep or share.** Read `submit` in `~/.config/tychicus/rsi.json`:
+12. **Keep or share.** Read `submit` in `~/.local-studio/browser/rsi.json`:
     - a skill holding personal data is never shared, whatever the setting;
     - `"never"`: keep it local;
     - anything else: ask whether to propose it to the skill library.

@@ -1,19 +1,19 @@
-# Tychicus docs
+# Local Studio docs
 
 Start with the [README](../README.md) for setup and the safety model. Some documents below
-came from Sitegeist, the extension Tychicus is built on. They still describe the side
+came from Sitegeist, the extension Local Studio is built on. They still describe the side
 panel's internals correctly, but they call the product Sitegeist.
 
-## Using Tychicus
+## Using Local Studio
 
-- [../cli/README.md](../cli/README.md): every `tychicus` command, harness setup and site permissions.
-- [updates.md](updates.md): how `tychicus update` verifies signed releases, rollback, and the one-time signing key setup.
+- [../cli/README.md](../cli/README.md): every `local-studio-browser` command, harness setup and site permissions.
+- [updates.md](updates.md): how `local-studio-browser update` verifies signed releases, rollback, and the one-time signing key setup.
 - [auth-policy.md](auth-policy.md): why the side panel takes API keys only, with each provider's terms and the date they were checked.
 
 ## Security
 
 - [../SECURITY.md](../SECURITY.md): how to report a vulnerability privately, and what's in scope.
-- [skill-security.md](skill-security.md): the threat model for skills, every lint rule, local edits, and the known gaps.
+- [skill-security.md](skill-security.md): the threat model for skills, and the known gaps.
 
 ## How it's built
 
@@ -31,7 +31,7 @@ panel's internals correctly, but they call the product Sitegeist.
 - [storage.md](storage.md): the IndexedDB stores for sessions, skills and costs.
 - [settings.md](settings.md): the key-value settings store.
 - [multi-window.md](multi-window.md): window-scoped session locking. The side panel is now bound to a tab, so parts of this are historical (see CHANGELOG).
-- [proxy.md](proxy.md): the CORS proxy design. The OAuth notes describe upstream; Tychicus refuses those tokens.
+- [proxy.md](proxy.md): the CORS proxy design. The OAuth notes describe upstream; Local Studio refuses those tokens.
 - [i18n.md](i18n.md): how user-facing strings are translated with mini-lit.
 
 ## Contributing

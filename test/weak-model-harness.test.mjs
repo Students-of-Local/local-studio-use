@@ -240,7 +240,7 @@ test("claude not on PATH: one clear line, cleanup, then a non-zero exit", async 
 
 // ---------- the copies a run started, known as their answers stream in ----------
 
-const toolUse = (id, name, input) => ({ type: "assistant", message: { content: [{ type: "tool_use", id, name: `mcp__polycarp__${name}`, input }] } });
+const toolUse = (id, name, input) => ({ type: "assistant", message: { content: [{ type: "tool_use", id, name: `mcp__local-studio__${name}`, input }] } });
 const toolResult = (id, text, isError = false) => ({ type: "user", message: { content: [{ type: "tool_result", tool_use_id: id, is_error: isError, content: [{ type: "text", text }] }] } });
 const opened = (data) => JSON.stringify({ ok: true, data });
 

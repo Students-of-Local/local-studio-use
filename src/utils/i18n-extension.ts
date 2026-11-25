@@ -21,7 +21,7 @@ declare module "@mariozechner/mini-lit" {
 		"Click the download button above to view it on your computer.": string;
 		Settings: string;
 
-		// Polycarp extension keys
+		// Local Studio extension keys
 		// Custom provider dialog
 		"A custom provider with that name already exists": string;
 		"API Key (optional)": string;
@@ -116,6 +116,7 @@ declare module "@mariozechner/mini-lit" {
 		"Preparing element selector...": string;
 		About: string;
 		"You steer. Local Studio works the tabs.": string;
+		"Connect a model to chat here": string;
 		"An AI agent in your side panel, and a browser your coding agents can drive.": string;
 		"Built on the work of": string;
 		"the agent bridge, the CLI and MCP server, agent tab groups, per-tab side panels and the foreground guard.": string;
@@ -178,7 +179,7 @@ declare module "@mariozechner/mini-lit" {
 	}
 }
 
-const tabkyraTranslations = {
+const localStudioTranslations = {
 	en: {
 		"A custom provider with that name already exists": "A custom provider with that name already exists",
 		"API Key (optional)": "API Key (optional)",
@@ -283,6 +284,7 @@ const tabkyraTranslations = {
 		"Preparing element selector...": "Preparing element selector...",
 		About: "About",
 		"You steer. Local Studio works the tabs.": "You steer. Local Studio works the tabs.",
+		"Connect a model to chat here": "Connect a model to chat here",
 		"An AI agent in your side panel, and a browser your coding agents can drive.":
 			"An AI agent in your side panel, and a browser your coding agents can drive.",
 		"Built on the work of": "Built on the work of",
@@ -451,6 +453,7 @@ const tabkyraTranslations = {
 		"Preparing element selector...": "Bereite Element-Auswahl vor...",
 		About: "Über",
 		"You steer. Local Studio works the tabs.": "Du steuerst. Local Studio bedient die Tabs.",
+		"Connect a model to chat here": "Verbinde ein Modell, um hier zu chatten",
 		"An AI agent in your side panel, and a browser your coding agents can drive.":
 			"Ein KI-Agent in deiner Seitenleiste und ein Browser, den deine Coding-Agenten steuern können.",
 		"Built on the work of": "Aufgebaut auf der Arbeit von",
@@ -515,10 +518,10 @@ const tabkyraTranslations = {
 	},
 };
 
-// Merge web-ui translations with tabkyra translations
+// Merge web-ui translations with local-studio-browser translations
 const mergedTranslations = {
-	en: { ...webUiTranslations.en, ...tabkyraTranslations.en },
-	de: { ...webUiTranslations.de, ...tabkyraTranslations.de },
+	en: { ...webUiTranslations.en, ...localStudioTranslations.en },
+	de: { ...webUiTranslations.de, ...localStudioTranslations.de },
 };
 
 setTranslations(mergedTranslations);

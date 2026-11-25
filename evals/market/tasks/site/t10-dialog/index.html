@@ -1,0 +1,11 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Drafts</title><script src="/common.js"></script></head><body>
+<main><h1>Drafts</h1><ul><li>Q3 plan <button id="d">Delete draft</button></li></ul><p id="out" role="status"></p></main>
+<script>
+document.getElementById("d").onclick = () => {
+  if (!confirm("Delete the draft 'Q3 plan'?")) { report("t10-dialog", { deleted: false, step: "confirm-cancel" }); document.getElementById("out").textContent = "Kept"; return; }
+  const typed = prompt("Type DELETE to confirm");
+  const ok = typed === "DELETE";
+  report("t10-dialog", { deleted: ok, typed });
+  document.getElementById("out").textContent = ok ? "Draft deleted" : "Not deleted";
+};
+</script></body></html>

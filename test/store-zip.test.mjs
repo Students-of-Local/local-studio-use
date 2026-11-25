@@ -18,10 +18,10 @@ const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 test("build-store.sh makes a zip the store takes", { skip: process.platform === "win32" && "bash and zip", timeout: 300_000 }, () => {
 	const out = mkdtempSync(join(tmpdir(), "store-zip-"));
 	try {
-		execFileSync("bash", [join(root, "scripts/build-store.sh"), out], { cwd: root, env: { ...process.env, TABKYRA_NO_BUMP: "1" }, stdio: "pipe" });
+		execFileSync("bash", [join(root, "scripts/build-store.sh"), out], { cwd: root, env: { ...process.env, LOCAL_STUDIO_BROWSER_NO_BUMP: "1" }, stdio: "pipe" });
 		const pkg = JSON.parse(readFileSync(join(root, "package.json"), "utf8"));
 		const zips = readdirSync(out).filter((n) => n.endsWith(".zip"));
-		assert.deepEqual(zips, [`tychicus-${pkg.version}-store.zip`]);
+		assert.deepEqual(zips, [`local-studio-browser-${pkg.version}-store.zip`]);
 		const zip = join(out, zips[0]);
 		const manifest = JSON.parse(execFileSync("unzip", ["-p", zip, "manifest.json"], { encoding: "utf8" }));
 		const files = execFileSync("unzip", ["-Z1", zip], { encoding: "utf8" }).split("\n").filter(Boolean);

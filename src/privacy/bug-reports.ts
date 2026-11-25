@@ -1,7 +1,7 @@
 /**
  * Bug reports are off unless the user turns them on. While on, errors from the side panel
  * are kept locally, redacted, in a short ring buffer. Nothing leaves the browser on its own:
- * the user reviews and edits the report in Polycarp, copies it, and pastes it into a GitHub
+ * the user reviews and edits the report in Local Studio, copies it, and pastes it into a GitHub
  * issue they open and submit themselves.
  */
 
@@ -9,7 +9,7 @@ export const BUG_REPORTS_KEY = "privacy.bugReports";
 export const BUG_LOG_KEY = "privacy.bugLog";
 const MAX_ENTRIES = 20;
 /** A blank new-issue page: the report travels by the clipboard, never in the URL. */
-export const NEW_ISSUE_URL = "https://github.com/baney75/local-studio/issues/new?labels=bug-report";
+export const NEW_ISSUE_URL = "https://github.com/baney75/local-studio/issues/new?labels=bug";
 
 export interface BugEntry {
 	at: string;
@@ -47,21 +47,26 @@ export function redactSecrets(text: string): string {
 		redactKnownSecrets(text)
 			// Long mixed-case or mixed letter-and-digit tokens (keys without a known prefix). Plain
 			// hex stays only at a git commit id's length (40): 32 and 64 hex digits are the shapes of
-			// API keys, auth tokens and private keys (Datadog, Twilio, ed25519), so those go.
-			.replace(/[A-Za-z0-9_+/-]{32,}={0,2}/g, (m) => {
-				if (/^[0-9a-f]+$/i.test(m)) return m.length === 40 ? m : "[secret]";
-				return !/[0-9]/.test(m) || !/[A-Za-z]/.test(m) ? m : "[secret]";
-			})
+			// API keys, auth tokens and private keys (Datadog, Twilio, ed25519), so those go. A GitHub
+			// pull request or issue address stays: its path alone can be 32 characters.
+			.replace(
+				/https:\/\/github\.com\/[\w.-]{1,31}\/[\w.-]{1,31}\/(?:pull|issues)\/\d{1,9}\b|[A-Za-z0-9_+/-]{32,}={0,2}/g,
+				(m) => {
+					if (m.startsWith("https:")) return m;
+					if (/^[0-9a-f]+$/i.test(m)) return m.length === 40 ? m : "[secret]";
+					return !/[0-9]/.test(m) || !/[A-Za-z]/.test(m) ? m : "[secret]";
+				},
+			)
 	);
 }
 
 /**
  * Strip what could identify the user or leak a secret. Web addresses become `[url]`
- * (paths and hosts can name people, records or accounts); Polycarp's own extension scripts
+ * (paths and hosts can name people, records or accounts); Local Studio's own extension scripts
  * keep only the file name, which is what a maintainer needs from a stack trace.
  */
 export function redact(text: string): string {
-	// Polycarp's own script URLs keep only the file name, and only when it looks like one of its
+	// Local Studio's own script URLs keep only the file name, and only when it looks like one of its
 	// build files ("chunk-4f2a.js", at most 24 characters before the extension) followed by a line number or a break; anything else in the
 	// path (a key, an address, a user name) becomes "[file]". The name is set aside so the
 	// long-token rule can't eat it. The query and fragment stay until the secret rules have read

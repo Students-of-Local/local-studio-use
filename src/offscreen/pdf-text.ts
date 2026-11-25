@@ -5,7 +5,7 @@
  */
 import { pdfPages } from "./pdf-pages.js";
 
-export const PDF_TEXT_MESSAGE = "polycarp:pdf-text";
+export const PDF_TEXT_MESSAGE = "local-studio:pdf-text";
 
 let pdfjs: Promise<typeof import("pdfjs-dist")> | undefined;
 function loadPdfjs() {

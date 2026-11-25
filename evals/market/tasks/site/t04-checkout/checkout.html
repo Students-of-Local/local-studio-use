@@ -1,0 +1,22 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Checkout</title><script src="shop.js"></script><script src="/common.js"></script></head><body>
+<main><h1>Checkout</h1>
+<form id="f">
+<p><label for="nm">Name</label> <input id="nm" name="name"></p>
+<p><label for="ad">Street address</label> <input id="ad" name="address"></p>
+<p><label for="zp">ZIP code</label> <input id="zp" name="zip" inputmode="numeric"></p>
+<fieldset><legend>Shipping</legend>
+<label><input type="radio" name="ship" value="standard" checked> Standard (5 to 7 days)</label>
+<label><input type="radio" name="ship" value="express"> Express (2 days)</label></fieldset>
+<p><button type="submit">Place order</button></p></form>
+<p id="err" role="alert" style="color:#b00"></p></main>
+<script>
+document.getElementById("f").addEventListener("submit", (ev) => {
+  ev.preventDefault();
+  const f = new FormData(ev.target);
+  if (!/^\d{5}$/.test(f.get("zip"))) { document.getElementById("err").textContent = "Enter a 5 digit ZIP code."; return; }
+  const order = { name: f.get("name"), address: f.get("address"), zip: f.get("zip"), ship: f.get("ship"), cart: cart.get() };
+  const num = "HT-" + Math.floor(100000 + Math.random() * 900000);
+  report("t04-checkout", { ...order, order: num });
+  document.querySelector("main").innerHTML = `<h1>Thank you</h1><p>Order number <strong>${num}</strong> is confirmed.</p>`;
+});
+</script></body></html>

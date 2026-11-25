@@ -4,7 +4,7 @@
 import { ensureOffscreen } from "./document.js";
 import type { PdfPages } from "./pdf-pages.js";
 
-const PDF_TEXT_MESSAGE = "polycarp:pdf-text";
+const PDF_TEXT_MESSAGE = "local-studio:pdf-text";
 
 /** Chrome shows a PDF as a document of that type; a URL ending in .pdf is the fallback when the page can't be asked. */
 export async function isPdfTab(tabId: number): Promise<boolean> {

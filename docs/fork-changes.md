@@ -1,7 +1,7 @@
 # Changes in the 0xSero fork
 
 What 0xSero/sitegeist added on top of badlogic/sitegeist, kept for reference. Paths and
-names are from before the Tabkyra rename (`sitegeist` CLI, `ai.sitegeist.bridge`).
+names are from before the Local Studio rename (`sitegeist` CLI, `ai.sitegeist.bridge`).
 
 Extension:
 

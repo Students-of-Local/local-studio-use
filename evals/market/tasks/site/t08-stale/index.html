@@ -1,0 +1,26 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Invoices to approve</title><script src="/common.js"></script></head><body>
+<main><h1>Invoices to approve</h1><p><button id="rf">Refresh list</button></p>
+<ul id="list" aria-label="Invoices"></ul><p id="out" role="status"></p></main>
+<script>
+// The list is rebuilt with new nodes (as a framework re-render would): once 1.2 s after load, and 0.5 s after each Refresh.
+// A ref or element handle taken before a rebuild points at a detached node.
+let ids = ["3301", "3302", "3305", "3307", "3310"];
+const approved = new Set();
+const draw = () => {
+  ids = ids.slice().sort(() => Math.random() - 0.5);
+  const ul = document.getElementById("list");
+  ul.replaceChildren(...ids.map((id) => {
+    const li = document.createElement("li");
+    li.innerHTML = `Invoice ${id} <button aria-label="Approve invoice ${id}">Approve</button>`;
+    li.querySelector("button").onclick = () => {
+      approved.add(id);
+      report("t08-stale", { approved: [...approved] });
+      document.getElementById("out").textContent = `Approved invoice ${id}`;
+    };
+    return li;
+  }));
+};
+draw();
+setTimeout(draw, 1200);
+document.getElementById("rf").onclick = () => { document.getElementById("list").replaceChildren(); setTimeout(draw, 500); };
+</script></body></html>

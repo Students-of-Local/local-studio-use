@@ -109,7 +109,7 @@ Write the tags yourself, in this order.
 
 | Symptom | Fix |
 | --- | --- |
-| Permission prompt for 127.0.0.1 | Ask the user to allow it (`tychicus allow 127.0.0.1`) |
+| Permission prompt for 127.0.0.1 | Ask the user to allow it (`local-studio-browser allow 127.0.0.1`) |
 | Chart unreadable | Use a table |
 | Wider than 375px | Wrap wide tables and SVGs in an `overflow-x: auto` box |
 

@@ -1,6 +1,5 @@
-// Regression checks on what bundled skills tell an agent to do. The lint checks a skill's
-// safety and shape; these check that specific instructions stay correct after review found
-// them wrong: commands are run where the tool exists, and wording is pinned where it isn't.
+// Regression checks on what the app's skills (skills/) tell an agent to do:
+// specific instructions stay correct after review found them wrong: commands are run where the tool exists, and wording is pinned where it isn't.
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
@@ -13,7 +12,7 @@ import { runInNewContext } from "node:vm";
 const here = dirname(fileURLToPath(import.meta.url));
 const repo = join(here, "..", "..");
 const skill = (name) => readFileSync(join(repo, "skills", name, "SKILL.md"), "utf8");
-const root = mkdtempSync(join(tmpdir(), "tabkyra-skill-content-"));
+const root = mkdtempSync(join(tmpdir(), "local-studio-skill-content-"));
 after(() => rmSync(root, { recursive: true, force: true }));
 const has = (cmd) => spawnSync(cmd, ["-version"], { encoding: "utf8" }).status === 0;
 const hasPython = spawnSync("python3", ["-c", "1"]).status === 0;
@@ -336,21 +335,6 @@ test("bulk-actions: the recount checks each item's state, and toggles are never 
 	assert.ok(text.includes("Never re-send an item that is in `done` without checking its state first."));
 	assert.ok(text.includes("For a toggle (star, follow, read or unread), prefer an endpoint or parameter that sets the state explicitly"));
 	assert.ok(text.includes("if only a toggle exists, send it only to items whose current state differs from the target."));
-});
-
-// The Spaces skill (spaces/skill/SKILL.md) ships in Polycarp.app beside this package; it has no lint of its own.
-const spacesSkill = join(repo, "..", "spaces", "skill", "SKILL.md");
-
-test("spaces: the agent acts only on its own window and never scripts an app by name", { skip: !existsSync(spacesSkill) && "no spaces checkout" }, () => {
-	const text = readFileSync(spacesSkill, "utf8").replace(/\s+/g, " ");
-	const i = text.indexOf("Act only on the window your own `agent open` returned (`data.window`, on the agent workspace)");
-	assert.ok(i >= 0, "acts only on the window its own open returned");
-	const para = text.slice(i, text.indexOf("`baneyspaces agent", i));
-	assert.ok(para.includes("If you can't tell which window is yours, stop and tell Donovan; never guess."), "refuses without its window");
-	assert.ok(para.includes("Don't drive an app through AppleScript, JXA or Shortcuts"), "no scripting by app name");
-	assert.ok(para.includes("Never run anything that takes focus or raises a window."), "focus is forbidden");
-	// The old wording sent the agent to osascript first, which can reach Donovan's own copy of the app.
-	assert.doesNotMatch(text, /check for a programmatic route before you click|If the app has a scripting interface/);
 });
 
 test("fix: no page text goes into a skill, and nothing is proposed unseen", () => {

@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+<head>
+	<meta charset="utf-8" />
+	<title>Local Studio: sign in</title>
+	<link rel="stylesheet" href="app.css" />
+	<script src="theme-loader.js"></script>
+</head>
+<body class="min-h-screen bg-background text-foreground p-5">
+	<main class="mx-auto max-w-sm space-y-4">
+		<form id="form" class="space-y-4" autocomplete="off" hidden>
+			<div class="space-y-1">
+				<p id="who" class="text-sm text-muted-foreground break-words"></p>
+				<h1 id="host" class="text-lg font-semibold break-all"></h1>
+				<p id="reason" class="text-sm text-muted-foreground break-words"></p>
+			</div>
+			<label id="username-row" class="block space-y-1 text-sm">
+				<span>Username or email</span>
+				<input id="username" type="text" autocomplete="off" autocapitalize="none" spellcheck="false" maxlength="512" class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground" />
+			</label>
+			<label id="password-row" class="block space-y-1 text-sm">
+				<span>Password</span>
+				<input id="password" type="password" autocomplete="off" maxlength="1024" class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground" />
+			</label>
+			<p id="where" class="text-xs text-muted-foreground"></p>
+			<div class="flex items-center justify-end gap-2">
+				<button id="cancel" type="button" class="tk-ask-btn tk-ask-btn-ghost">Cancel</button>
+				<button id="fill" type="submit" class="tk-ask-btn tk-ask-btn-primary">Fill in the page</button>
+			</div>
+		</form>
+		<p id="status" class="text-sm" role="status"></p>
+	</main>
+	<script type="module" src="sign-in.js"></script>
+</body>
+</html>

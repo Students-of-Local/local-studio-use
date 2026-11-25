@@ -19,7 +19,7 @@ test("every page that says what Manual asks also says links and redirects aren't
 test("PRIVACY.md names an off command for each thing that lets another machine in, and each exists", () => {
 	const cli = read("cli/src/index.ts");
 	for (const name of ["remote", "link", "hub"]) {
-		assert.match(flat("PRIVACY.md"), new RegExp(`\`tychicus ${name} off\``), name);
+		assert.match(flat("PRIVACY.md"), new RegExp(`\`local-studio-browser ${name} off\``), name);
 		const command = cli.slice(cli.indexOf(`case "${name}": {`));
 		assert.match(command.slice(0, command.indexOf("\n\t\t}")), /"off"/, name);
 	}

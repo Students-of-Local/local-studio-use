@@ -329,7 +329,7 @@ public enum BackgroundRefusal {
                    suggestion: "Open it on the agent workspace with `computer_open \(app)`; the person can lend an app he is not using.")
     }
     public static func notOurProcess(_ app: String, pid: Int32) -> HandsError {
-        HandsError(.needsLend, "process \(pid) (\(app)) is not one Tychicus started for an agent, so keys and pointer events are never posted to it",
+        HandsError(.needsLend, "process \(pid) (\(app)) is not one Local Studio started for an agent, so keys and pointer events are never posted to it",
                    suggestion: "Start your own copy with `computer_open \(app)`, or ask the person to lend this one; a lent app gets keys only while he is away from it.",
                    retry: .never)
     }
@@ -372,12 +372,12 @@ public enum BackgroundRefusal {
                    suggestion: "`click` the element in this window first so the app focuses it, then press the key again; or use `type` on it.", retry: .never)
     }
     public static func noTransport(_ app: String) -> HandsError {
-        HandsError(.notSupported, "this Mac has no per-process event route that Tychicus can use (SkyLight symbol missing and the public call unavailable)",
+        HandsError(.notSupported, "this Mac has no per-process event route that Local Studio can use (SkyLight symbol missing and the public call unavailable)",
                    suggestion: sandboxLine, retry: .never)
     }
     public static func noVerifier(_ app: String) -> HandsError {
         HandsError(.notSupported, "nothing in \(app)'s window can be read back, so a key or pointer event there could not be proven",
-                   suggestion: "Take a snapshot to confirm the window exposes an accessibility tree, allow Screen Recording for Tychicus for pixel proof, or " + sandboxLine, retry: .never)
+                   suggestion: "Take a snapshot to confirm the window exposes an accessibility tree, allow Screen Recording for Local Studio for pixel proof, or " + sandboxLine, retry: .never)
     }
     public static func pointerStampsMissing(_ app: String) -> HandsError {
         HandsError(.notSupported, "this Mac does not offer every field a pointer event needs to name one window, so no pointer event is posted to \(app) (it could be handled by another window of the process)",
@@ -424,7 +424,7 @@ public enum BackgroundRefusal {
     }
     public static func frontChanged(_ app: String, to pid: Int32?) -> HandsError {
         HandsError(.actionFailed, "the front app changed while events were being posted to \(app); the rest were not sent",
-                   suggestion: "Read the element back before doing anything else: part of the input may have landed. Tychicus did not follow the change.", retry: .never)
+                   suggestion: "Read the element back before doing anything else: part of the input may have landed. Local Studio did not follow the change.", retry: .never)
     }
     public static func pointerMoved(from: CGPoint, to: CGPoint) -> HandsError {
         HandsError(.actionFailed, "the real pointer moved from (\(Int(from.x)), \(Int(from.y))) to (\(Int(to.x)), \(Int(to.y))) while an event was posted",
@@ -668,8 +668,8 @@ public enum PostGuard {
             switch self {
             case .moved(let f, let t): return BackgroundRefusal.pointerMoved(from: f, to: t)
             case .leaked(let n):
-                return HandsError(.actionFailed, "\(n) event(s) posted by Tychicus reached the session instead of one process",
-                                  suggestion: "Read the element back before doing anything else. This is a bug in Tychicus's posting; report it.", retry: .never)
+                return HandsError(.actionFailed, "\(n) event(s) posted by Local Studio reached the session instead of one process",
+                                  suggestion: "Read the element back before doing anything else. This is a bug in Local Studio's posting; report it.", retry: .never)
             default: return nil
             }
         }

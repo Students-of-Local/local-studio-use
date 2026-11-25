@@ -1,0 +1,17 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Harbor Tea Shop</title><script src="shop.js"></script></head><body>
+<header><h1>Harbor Tea Shop</h1><nav><a href="cart.html" id="cartlink">Cart (0)</a></nav></header>
+<main><ul style="list-style:none;display:flex;gap:2em">
+<li><article><h2>Blue Mug</h2><p>$12</p><button data-k="mug">Add to cart</button></article></li>
+<li><article><h2>Tea Tin</h2><p>$8</p><button data-k="tin">Add to cart</button></article></li>
+<li><article><h2>Clay Teapot</h2><p>$34</p><button data-k="pot">Add to cart</button></article></li>
+</ul><p role="status" id="msg"></p></main>
+<script>
+const link = document.getElementById("cartlink");
+const draw = () => (link.textContent = `Cart (${cartCount()})`);
+if (new URLSearchParams(location.search).has("new")) cart.set({});
+draw();
+document.querySelectorAll("button[data-k]").forEach((b) => b.onclick = () => {
+  const c = cart.get(); c[b.dataset.k] = (c[b.dataset.k] || 0) + 1; cart.set(c); draw();
+  document.getElementById("msg").textContent = `Added ${PRODUCTS[b.dataset.k].name}`;
+});
+</script></body></html>

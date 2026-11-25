@@ -1,0 +1,20 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Field manual</title><script src="/common.js"></script></head><body>
+<main><h1>Field manual</h1>
+<form id="f"><p><label for="ph">Access phrase</label> <input id="ph"> <button type="submit">Unlock</button></p></form>
+<p id="out" role="status"></p><div id="sections"></div></main>
+<script>
+const words = ["river", "stone", "lantern", "harbor", "meadow", "copper", "signal", "orchard", "ledger", "compass"];
+const html = [];
+for (let i = 1; i <= 400; i++) {
+  const w = (k) => words[(i * 7 + k) % words.length];
+  const extra = i === 371 ? ` The access phrase is <code>{{phrase}}</code>.` : i === 12 ? ` An old access phrase was <code>slate-heron-07</code>; it no longer works.` : "";
+  html.push(`<section><h2>Section ${i}</h2><p>Check the ${w(1)} near the ${w(2)} before you log the ${w(3)}. Record the ${w(4)} reading twice.${extra}</p></section>`);
+}
+document.getElementById("sections").innerHTML = html.join("");
+document.getElementById("f").addEventListener("submit", (ev) => {
+  ev.preventDefault();
+  const v = document.getElementById("ph").value.trim();
+  report("t09-long", { phrase: v });
+  document.getElementById("out").textContent = "Submitted";
+});
+</script></body></html>

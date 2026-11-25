@@ -1,10 +1,10 @@
-# Use Tychicus from claude.ai, ChatGPT and grok.com
+# Use Local Studio from claude.ai, ChatGPT and grok.com
 
-Web assistants can drive your own signed-in browser through Tychicus and, if you tick it when you
+Web assistants can drive your own signed-in browser through Local Studio and, if you tick it when you
 approve one, apps on your Mac's agent workspace ([Computer use](#computer-use)). It runs on your computer and
 through your own free Cloudflare account (or Tailscale): no account with us, no hosted service, no cost.
 
-**In the Tychicus side panel, use Settings > Agents > "Use Tychicus from Claude, ChatGPT and Grok".** It
+**In the Local Studio side panel, use Settings > Connections > "Use Local Studio from Claude, ChatGPT and Grok".** It
 walks you through the same steps with buttons. The rest of this page is the terminal.
 
 ## Quick start
@@ -12,7 +12,7 @@ walks you through the same steps with buttons. The rest of this page is the term
 One command:
 
 ```bash
-tychicus remote setup
+local-studio-browser remote setup
 ```
 
 It puts a small relay on your own free Cloudflare account, so the connector gets an address with no domain and
@@ -20,13 +20,13 @@ nothing on this computer listens to the internet ([The relay](#the-relay)). What
 
 1. Cloudflare's sign-in page in your browser, the first time. Sign in, or make a free account there. If the account
    has no workers.dev subdomain yet, setup opens the page to pick one and waits for Enter.
-2. `Relay deployed at https://tychicus-relay.<your-subdomain>.workers.dev`, then a line while it checks that a request
+2. `Relay deployed at https://local-studio-browser-relay.<your-subdomain>.workers.dev`, then a line while it checks that a request
    through the relay reaches this computer and comes back. A new subdomain can take a few minutes.
 3. `From the internet, as an assistant sees it:` and one line per check (public DNS, the certificate, the OAuth
    metadata, the sign-in challenge, a streaming probe). All ok means an assistant can connect now. A brand-new name
-   can take a few minutes to reach public DNS; then run `tychicus remote test` again in a few minutes.
-4. The connector URL, `https://tychicus-relay.<your-subdomain>.workers.dev/mcp`.
-5. A connect code (`TK-XXXX-XXXX`). It works once, for 10 minutes. `tychicus token approval-code` makes another.
+   can take a few minutes to reach public DNS; then run `local-studio-browser remote test` again in a few minutes.
+4. The connector URL, `https://local-studio-browser-relay.<your-subdomain>.workers.dev/mcp`.
+5. A connect code (`TK-XXXX-XXXX`). It works once, for 10 minutes. `local-studio-browser token approval-code` makes another.
 6. The passcode, only in the run that made it. Keep it: it re-approves an assistant you already approved.
 
 Then add the connector URL in each assistant you use:
@@ -35,29 +35,29 @@ Then add the connector URL in each assistant you use:
 - **ChatGPT**: Settings > Apps & Connectors, turn on developer mode, then Create. Paste the URL and choose OAuth.
 - **grok.com**: grok.com/connectors > New Connector > Custom. Paste the URL.
 
-Each opens Tychicus's approval page. Check the name, tick the permissions, type the connect code and press Allow.
+Each opens Local Studio's approval page. Check the name, tick the permissions, type the connect code and press Allow.
 
 To prove it works from outside at any time, and to repair it:
 
 ```bash
-tychicus remote test   # what an assistant sees: DNS, TLS, OAuth, sign-in, streaming
-tychicus remote fix    # repairs what test or status found, asking before each step
+local-studio-browser remote test   # what an assistant sees: DNS, TLS, OAuth, sign-in, streaming
+local-studio-browser remote fix    # repairs what test or status found, asking before each step
 ```
 
 ## Mac, Linux and Windows
 
 **Mac.** For the Tailscale routes, install Tailscale from the App Store or tailscale.com and sign in; setup finds the app's own `tailscale` at
 `/Applications/Tailscale.app/Contents/MacOS/Tailscale` when it isn't on PATH. Services run under launchd
-(`~/Library/LaunchAgents/com.tychicus.serve.plist`), and the Mac must stay on and awake.
+(`~/Library/LaunchAgents/com.localstudio.browser.serve.plist`), and the Mac must stay on and awake.
 
-**Linux.** One-time steps (the first only for the Tailscale routes) that Tychicus prints and never runs for you, because both need root or a session change:
+**Linux.** One-time steps (the first only for the Tailscale routes) that Local Studio prints and never runs for you, because both need root or a session change:
 
 ```bash
 sudo tailscale set --operator=$USER   # lets your user open Funnel
 loginctl enable-linger $USER          # keeps your user services running after you log out
 ```
 
-Services run as systemd user units (`~/.config/systemd/user/tychicus-serve.service`). `remote status` and `remote fix`
+Services run as systemd user units (`~/.config/systemd/user/local-studio-browser-serve.service`). `remote status` and `remote fix`
 warn when either step is missing.
 
 **Windows.** Every route works without administrator rights. Each service is a Task Scheduler task for your account,
@@ -66,7 +66,7 @@ language, so `remote status` and `remote fix` treat an installed tunnel task as 
 
 ## Troubleshooting
 
-Run `tychicus remote fix` first: it repairs what it can, one step at a time, and names the rest. `remote test`
+Run `local-studio-browser remote fix` first: it repairs what it can, one step at a time, and names the rest. `remote test`
 and `remote status --json` give the `state` or check name in the first column.
 
 | State or check | What it means | Do this |
@@ -87,7 +87,7 @@ and `remote status --json` give the `state` or check name in the first column.
 | `auth_challenge` | `/mcp` doesn't answer a sign-in challenge. | `remote fix`. |
 | `streaming` | The stream's first bytes take over 5 seconds, so assistants time out. | Use the relay, Tailscale Funnel or a Cloudflare named tunnel, not a quick tunnel or a buffering proxy. |
 | `probe_cleanup` | `remote test` couldn't delete its probe token. It stops working by itself two minutes after it was made. | The `token revoke <id>` command in `next`. |
-| `passcode` | No passcode is set. | `tychicus token passcode` (shown once). |
+| `passcode` | No passcode is set. | `local-studio-browser token passcode` (shown once). |
 | `linger`, `tailscale user` | Linux one-time steps. | The command in [Mac, Linux and Windows](#mac-linux-and-windows). |
 
 `remote fix` restarts the `serve` and `cloudflared` services, opens Funnel, downloads cloudflared after you say yes, and
@@ -100,8 +100,8 @@ no `--yes` it changes nothing and exits 3 with the list.
 ## Check it
 
 ```bash
-tychicus remote status   # fast checks from this computer
-tychicus remote test     # the proof, from outside
+local-studio-browser remote status   # fast checks from this computer
+local-studio-browser remote test     # the proof, from outside
 ```
 
 `remote status` checks `remote.json`, the passcode, whether `serve` answers on this computer, public DNS and a public
@@ -117,12 +117,12 @@ uses a token made for it alone, with the narrowest scope (`skills.read`, no brow
 every token check enforces, and deleted when the probe ends, also on Ctrl-C. If the delete fails, the run fails with a
 `probe_cleanup` check naming the token's id; the token still stops working at its expiry. Its secret is never printed,
 logged or in `--json`. Every request has an absolute deadline, so a proxy that trickles bytes can't stretch it. `remote setup` runs the same checks at its end. The
-computer must stay on, awake and signed in to the browser with Tychicus loaded.
+computer must stay on, awake and signed in to the browser with Local Studio loaded.
 
 ## Setup in detail
 
 `remote setup` turns on the route, sets an approval passcode (shown once), writes `remote.json` and installs user
-services that keep `tychicus serve` and the route's own connector running. With no route flag it sets up the relay, or
+services that keep `local-studio-browser serve` and the route's own connector running. With no route flag it sets up the relay, or
 repeats the route that is already on.
 
 In a terminal it waits instead of stopping. On the relay it opens Cloudflare's sign-in, asks which account when there
@@ -130,42 +130,38 @@ are several, and waits while you pick a workers.dev subdomain. With `--tailscale
 prints the download link and waits; if it's signed
 out it waits for the sign-in; if Funnel isn't allowed yet it opens Tailscale's page, says what to click and tries again
 every 5 seconds for up to 10 minutes; if the service has no launcher yet it writes one (only the launcher; run
-`tychicus install` yourself to register browsers). `--no-wait` makes it stop and say what to do instead, and
+`local-studio-browser install` yourself to register browsers). `--no-wait` makes it stop and say what to do instead, and
 `--no-input` never asks a question (it needs a route flag). `--json`, or a
 run with no terminal, never waits or asks. A connect code is made for a person at a terminal, or with `--connect-code`.
-
-## Moving from Polycarp
-
-`tychicus remote import-polycarp` moves a connector Polycarp serves to Tychicus at the same address, once. See the README, "Moving a connector from Polycarp", for what it copies and how it swaps the services; run it with `--dry-run` first.
 
 ## The relay
 
 The default route. Setup runs Cloudflare's own `wrangler` (version 4.163.0, through `npx`, never installed globally;
 npx comes with Node.js 22 or later) in your terminal:
 
-1. `wrangler whoami`, and `wrangler login` when you aren't signed in: Cloudflare's page in your browser. Tychicus never
+1. `wrangler whoami`, and `wrangler login` when you aren't signed in: Cloudflare's page in your browser. Local Studio never
    reads wrangler's sign-in and never sees a Cloudflare token.
 2. With several accounts on the sign-in it asks which one (`--account <id>` without a terminal).
 3. `wrangler deploy` of the relay Worker, a copy of `relay/dist` from baney75/local-studio-tunnels kept in
-   `cli/src/relay-dist.ts`, as `tychicus-relay` (`--relay <name>` picks another name). It goes to `~/.config/tychicus/relay/`
+   `cli/src/relay-dist.ts`, as `local-studio-browser-relay` (`--relay <name>` picks another name). It goes to `~/.local-studio/browser/relay/`
    first.
 4. A new relay key, 32 random bytes, set as the Worker's `RELAY_KEY` secret through stdin and saved in `remote.json`
    (0600). Every setup run makes a new one, so an old copy of `remote.json` stops working.
-5. Two services: `serve`, and the connector (`tychicus remote relay run`, `com.tychicus.relay` or
-   `tychicus-relay.service`). The connector dials out to the relay with the key and carries only serve's MCP and OAuth
+5. Two services: `serve`, and the connector (`local-studio-browser remote relay run`, `com.localstudio.browser.relay` or
+   `local-studio-browser-relay.service`). The connector dials out to the relay with the key and carries only serve's MCP and OAuth
    paths and `/v1/health` to `127.0.0.1:<port>`.
 6. The check: the relay reports the connector, and `GET /v1/health` through it comes back from serve.
 
 `remote status` shows the connector's state: connected, disconnected (it retries), or one it stops on: the key was
 refused (`unauthorized`), another computer took over with this key (`replaced`), or the relay speaks another protocol
-version (`outdated`). Each of those says to run `tychicus remote setup` again. `remote fix` restarts a connector that
+version (`outdated`). Each of those says to run `local-studio-browser remote setup` again. `remote fix` restarts a connector that
 isn't running. `remote off` removes the connector's service and `remote.json`; the Worker stays on your account and
-a computer that still has its key can connect until `npx wrangler@4.163.0 delete tychicus-relay` deletes it.
+a computer that still has its key can connect until `npx wrangler@4.163.0 delete local-studio-browser-relay` deletes it.
 
 ## Tailscale or Cloudflare with your own domain
 
 Both are free and run on your own account. Name one with `--tailscale` or `--cloudflare <name>`; plain `remote setup`
-with one of them already on keeps it. Tychicus never makes an account. It installs neither tool, and downloads cloudflared only when you say yes.
+with one of them already on keeps it. Local Studio never makes an account. It installs neither tool, and downloads cloudflared only when you say yes.
 
 - **Tailscale** needs no domain, so it's the quickest. The address is `https://<computer>.<tailnet>.ts.net:8443`.
 - **Cloudflare** puts the address on a domain you have on your Cloudflare account, because a Cloudflare tunnel with a
@@ -174,37 +170,36 @@ with one of them already on keeps it. Tychicus never makes an account. It instal
 From the terminal:
 
 ```bash
-tychicus remote cloudflare login                        # your browser opens Cloudflare; pick the domain
-tychicus remote setup --cloudflare tychicus.example.com
+local-studio-browser remote cloudflare login                        # your browser opens Cloudflare; pick the domain
+local-studio-browser remote setup --cloudflare local-studio.example.com
 ```
 
-`setup` makes a tunnel named `tychicus-<this computer>-<4 hex>` (kept in `~/.config/tychicus/cloudflare-tunnel-name`), or reuses it, adds the DNS record and keeps both `serve` and
+`setup` makes a tunnel named `local-studio-browser-<this computer>-<4 hex>` (kept in `~/.local-studio/browser/cloudflare-tunnel-name`), or reuses it, adds the DNS record and keeps both `serve` and
 `cloudflared` running as services. It never overwrites or deletes a DNS record: a name already in use is refused, in
 Cloudflare's own words. Before it makes anything it asks public DNS which zone the name is in, and refuses a zone public
-DNS shows is served somewhere other than Cloudflare, or a name outside the zone an earlier sign-in proved. Tychicus never
+DNS shows is served somewhere other than Cloudflare, or a name outside the zone an earlier sign-in proved. Local Studio never
 reads cloudflared's sign-in file, so with several zones on your account and no earlier setup it can't tell which one the
 sign-in covers. If Cloudflare then puts the record in another zone, setup stops, names the record it made, and says you
-can delete it in the Cloudflare dashboard (DNS, Records); Tychicus never deletes DNS records. It remembers the zone, so
+can delete it in the Cloudflare dashboard (DNS, Records); Local Studio never deletes DNS records. It remembers the zone, so
 the next name outside it is refused with nothing made.
 
 In a terminal, `remote setup --cloudflare` does the rest inline: with no `cloudflared` it offers the download below
 (y/N; `--yes` accepts, and it never downloads without one of those), signs you in to Cloudflare and waits, asks for the
 name if you gave none, and after the tunnel starts checks the public address for up to 5 minutes, with a line while it waits.
 `remote off` stops the tunnel and leaves the tunnel and its record on your account, so turning it on again reuses them;
-`cloudflared tunnel delete` with the name in `~/.config/tychicus/cloudflare-tunnel-name` removes the tunnel for good.
-Delete only that name. After `remote import-polycarp` it is the tunnel Polycarp made, now Tychicus's; any other
-`polycarp-...` tunnel is the Polycarp app's and still serves it.
+`cloudflared tunnel delete` with the name in `~/.local-studio/browser/cloudflare-tunnel-name` removes the tunnel for good.
+Delete only that name; another tunnel on your account belongs to something else.
 
-Settings > Agents does the same with buttons; see "From the side panel" below. If no `cloudflared` is installed it
+Settings > Connections does the same with buttons; see "From the side panel" below. If no `cloudflared` is installed it
 downloads its own (pinned release 2026.10.7, SHA-256 checked before anything is unpacked or run) to
-`~/.config/tychicus/bin/cloudflared`; one on your PATH or in Homebrew's folders is used first. When Funnel is on,
+`~/.local-studio/browser/bin/cloudflared`; one on your PATH or in Homebrew's folders is used first. When Funnel is on,
 choosing Cloudflare turns Funnel off only after the tunnel is ready; in a terminal that is
 `remote setup --cloudflare <name> --replace-funnel`.
 
 ## Tailnet only
 
-`tychicus remote setup --tailnet` serves the connector to your own tailnet devices and nobody else: `tailscale serve` on
-https port 443, never Funnel. The address is `https://<computer>.<tailnet>.ts.net/mcp`. Each of Tychicus's nine paths
+`local-studio-browser remote setup --tailnet` serves the connector to your own tailnet devices and nobody else: `tailscale serve` on
+https port 443, never Funnel. The address is `https://<computer>.<tailnet>.ts.net/mcp`. Each of Local Studio's nine paths
 (`/mcp`, `/authorize`, `/token`, `/register`, `/revoke` and the four `/.well-known/oauth-*` documents) is its own mount, so
 anything else this computer serves on 443 is left alone. Setup refuses, changing nothing, when Funnel is on for 443, when 443
 forwards raw TCP, or when one of the nine paths already goes somewhere else. `remote off` removes exactly those nine
@@ -222,14 +217,14 @@ What Tailscale does with a mount (checked on tailscale 1.104.5):
 - Removing the last mount leaves `tailscale serve status --json` at `{}`. Removing a mount that isn't there exits 1 with
   "handler does not exist".
 
-Tychicus's own Cloudflare route uses the same nine paths: its cloudflared ingress sends only those paths to serve and
+Local Studio's own Cloudflare route uses the same nine paths: its cloudflared ingress sends only those paths to serve and
 answers 404 for everything else. `remote cloudflare run` renders that ingress again before each start and keeps the
 tunnel, credentials-file and log lines as they are.
 
-## One tunnel with Local Studio
+## One tunnel with the app
 
-On a computer with Local Studio, Local Studio owns the one tunnel, on every route (Cloudflare or tailnet), and
-Tychicus joins it. The design is in Local Studio's `docs/tunnel.md` (baney75/local-studio). Local Studio writes the route
+On a computer with the Local Studio app, the app owns the one tunnel, on every route (Cloudflare or tailnet), and
+browser use joins it. The design is in `docs/tunnel.md` (baney75/local-studio). The app writes the route
 record, `$LOCAL_STUDIO_DATA_DIR/tunnel/route.json` (else `~/.local-studio/tunnel/route.json`):
 
 ```json
@@ -237,43 +232,43 @@ record, `$LOCAL_STUDIO_DATA_DIR/tunnel/route.json` (else `~/.local-studio/tunnel
   "aliases": ["old.example.com"], "ports": { "mcp": 8787, "serve": 18094 } }
 ```
 
-Tychicus only reads it and never creates Local Studio's folder. The route carries eleven exact paths: Tychicus's nine on
-`ports.mcp` and Local Studio's `/v1/health` and `/v1/ws`.
+Browser use only reads it and never creates that folder. The route carries eleven exact paths: browser use's nine on
+`ports.mcp` and the app's `/v1/health` and `/v1/ws`.
 
-- `tychicus remote join [--json] [--no-service]` reads the record. It stops and removes Tychicus's own tunnel service,
+- `local-studio-browser remote join [--json] [--no-service]` reads the record. It stops and removes browser use's own tunnel service,
   Funnel or tailnet mounts, but never deletes the Cloudflare tunnel, its credentials file or its DNS record, and it keeps
-  `cloudflared.yml` so Local Studio can adopt the tunnel. It saves `remote.json` with route `custom`, the address
+  `cloudflared.yml` so the app can adopt the tunnel. It saves `remote.json` with route `custom`, the address
   `https://<hostname>` and the record's `aliases`, moves serve to `ports.mcp`, and proves the address and each alias.
   If any proof fails, it puts `remote.json`, serve and its own route back as they were and exits non-zero.
-- `tychicus remote setup` with a route record joins it. A route flag for another route than the record's refuses with
+- `local-studio-browser remote setup` with a route record joins it. A route flag for another route than the record's refuses with
   code `route_mismatch`: run `local-studio tunnel off` first, or run setup without the flag to join. Without a record, `--cloudflare <name>` or `--tailnet` runs
-  `local-studio tunnel setup` with that route and `--json` when `local-studio` is on PATH, then joins. A Local Studio
+  `local-studio tunnel setup` with that route and `--json` when `local-studio` is on PATH, then joins. The app's
   folder alone proves nothing (`install --local-studio` makes one). Funnel, no route, `--public-url`, and a re-run on
-  this install's own Funnel, Cloudflare or relay route stay Tychicus's own setup; `remote join` moves that route.
-- Local Studio's Cloudflare route runs on your own Cloudflare account; `local-studio tunnel byo` gives the steps
+  this install's own Funnel, Cloudflare or relay route stay browser use's own setup; `remote join` moves that route.
+- The app's Cloudflare route runs on your own Cloudflare account; `local-studio tunnel byo` gives the steps
   ([its guide](https://github.com/baney75/local-studio/blob/main/docs/tunnel.md#your-own-cloudflare-tunnel-step-by-step)).
-  A `local-studio` that answers no JSON (a build from before tunnel setup) leaves Tychicus its own route. One that answers
+  A `local-studio` that answers no JSON (a build from before tunnel setup) leaves browser use its own route. One that answers
   JSON and fails is a refusal with code `local_studio`.
-- Setup through Local Studio makes the passcode and connect code the way its own setup does: a passcode unless
+- Setup through the app makes the passcode and connect code the way its own setup does: a passcode unless
   `--no-passcode`, a connect code for `--connect-code` or a person at a terminal, and code `connect_code` when one asked
   for can't be made. `remote test` and `remote fix` check a joined tailnet route from inside the tailnet.
-- An alias is an older address the same route still answers, such as the name a Tychicus Cloudflare route used before
-  Local Studio adopted it. Serve answers OAuth on each alias as its own address: discovery, issuer, resource and the
+- An alias is an older address the same route still answers, such as the name a Cloudflare route used before
+  the app adopted it. Serve answers OAuth on each alias as its own address: discovery, issuer, resource and the
   WWW-Authenticate challenge use the host the request came in on, and a token works only on the host that issued it.
 - `remote status --json` adds `localStudio` (`{route, hostname, aliases, mcpPort, joined}`, or null) and, for
-  Tychicus's own Cloudflare route, `cloudflare` (`{tunnelId, credentialsFile, configFile}`, paths only, never the
-  credentials). `remote off` on a joined computer leaves Local Studio's route running and says so.
+  browser use's own Cloudflare route, `cloudflare` (`{tunnelId, credentialsFile, configFile}`, paths only, never the
+  credentials). `remote off` on a joined computer leaves the app's route running and says so.
 
-Without Local Studio, nothing changes: Tychicus keeps its own route with the same exact paths.
+Without the app, nothing changes: browser use keeps its own route with the same exact paths.
 
 ## From the side panel
 
-Settings > Agents > "Use Tychicus from Claude, ChatGPT and Grok" turns it on, on Mac, Linux and
-Windows: Tailscale and Cloudflare without a terminal, the relay with one command in it. It asks Tychicus's helper through the native host, so the helper must be installed; nothing the page holds
+Settings > Connections > "Use Local Studio from Claude, ChatGPT and Grok" turns it on, on Mac, Linux and
+Windows: Tailscale and Cloudflare without a terminal, the relay with one command in it. It asks Local Studio's helper through the native host, so the helper must be installed; nothing the page holds
 reaches a command line (the remote methods take no parameters, and the Cloudflare address is checked before use).
 
 1. **Choose a way.** Your own relay (recommended: no domain), Tailscale, or Cloudflare (a domain on your account). "Set up
-   my relay" shows `tychicus remote setup` with a copy button, because Cloudflare's sign-in runs in a terminal; the page
+   my relay" shows `local-studio-browser remote setup` with a copy button, because Cloudflare's sign-in runs in a terminal; the page
    checks every 5 seconds and moves on once setup saves the route. A helper from before the relay gets the words to update
    it instead. From then on the page shows the connector's live state, and for a state the connector can't leave by itself
    (unauthorized, replaced, outdated, stopped) the command that `remote status` names. When it connects
@@ -310,9 +305,9 @@ being published, and brings no connect code.
 The Linux desktop app has no remote screen; on Linux, use the side panel or the terminal. On Windows the helper finds
 `tailscale.exe` and `cloudflared.exe` in their installers' folders as well as on PATH ("Windows" below).
 
-`tychicus tunnel cloudflare` is a quick tunnel for local testing with a token, with no account: a temporary
+`local-studio-browser tunnel cloudflare` is a quick tunnel for local testing with a token, with no account: a temporary
 `*.trycloudflare.com` address that changes each time it starts. claude.ai, ChatGPT and grok.com can't use it, because a
-quick tunnel doesn't carry their event stream. For them, use `tychicus remote setup`. It finds `cloudflared` the
+quick tunnel doesn't carry their event stream. For them, use `local-studio-browser remote setup`. It finds `cloudflared` the
 same way setup does, including the copy setup downloaded.
 
 ## Computer use
@@ -320,22 +315,22 @@ same way setup does, including the copy setup downloaded.
 Two permissions on the approval page, both unticked until you tick them: `computer.read` (see the
 agent workspace and apps you lend) and `computer.act` (see them too, click and type in them, and start
 apps from your short list). The assistant gets `computer_*` tools, which run through
-`tychicus-hands mcp --connector`. They need that helper, so a machine without it doesn't
+`local-studio-computer mcp --connector`. They need that helper, so a machine without it doesn't
 offer them. An agent on the Mac itself gets them from the local stdio server without a connector or a
-token (README, "Computer use on this Mac"), with the access mode set in Settings > Agents; everything
+token (README, "Computer use on this Mac"), with the access the helper's own setting names; everything
 below is about remote callers only.
 
 A connector is held to Default whatever else is on. Full Access in Settings is for agents on your Mac:
 with it on, a connector still sees only the agent workspace and apps you lend, and starts only apps on
 the short list. It can't lend itself anything and can't drive an Open or Save panel in any window. An
-app Tychicus starts for it can't show a document from outside the handoff folder. Read Only stops it
+app Local Studio starts for it can't show a document from outside the handoff folder. Read Only stops it
 acting too. An app you lend is lent with what it shows, to every agent and connector with these
-permissions, until you take it back or the time runs out. If `tychicus-hands` on
+permissions, until you take it back or the time runs out. If `local-studio-computer` on
 this computer is too old to enforce all this, the connector gets no computer tools.
 
 The agent's apps run as you. Those window rules keep it out of your other windows, but an app can reach
 what you can, so tick this only for an assistant you'd let sit at your keyboard. Revoke a connector with
-`tychicus token revoke` and everything it was granted ends.
+`local-studio-browser token revoke` and everything it was granted ends.
 
 ## For an app
 
@@ -347,7 +342,7 @@ sentences. `state` is one of `tailscale_missing`, `tailscale_signed_out`, `funne
 Studio's route), `needs_signin` (Tailscale or Cloudflare sign-in), `needs_dns` (a name or DNS problem) or
 `error` (with `code`). With stdin not a terminal they never prompt, so an agent can run setup for someone.
 `remote off`, `setup`, `fix` and `join` refuse, with code `service_belongs_to_other_config` and exit 1, when the
-installed serve or tunnel service names another config folder than this shell's (a run with TYCHICUS_CONFIG_DIR set
+installed serve or tunnel service names another config folder than this shell's (a run with LOCAL_STUDIO_BROWSER_DIR set
 under the same HOME as the person's own install). They change nothing, and the message names both folders.
 `status --json` also has `routes`: `tailscale` and `cloudflare`, each with `installed` and `signedIn`, read without changing anything.
 `setup --json` includes `passcode` only in the run that made it, even when that run then fails, so
@@ -422,17 +417,17 @@ app behave the same.
 
 ## What you need
 
-- Tychicus installed and connected (`tychicus setup`, then `tychicus install` so the service has a
+- Local Studio installed and connected (`local-studio-browser setup`, then `local-studio-browser install` so the service has a
   launcher to start).
 - For the relay: Node.js 22 or later (it brings npx) and a free Cloudflare account.
 - For Tailscale Funnel: Tailscale on this computer, signed in. Free plan is enough. If Funnel isn't allowed for your
-  tailnet yet, `tychicus remote setup --tailscale` opens the Tailscale page that allows it and waits while you
+  tailnet yet, `local-studio-browser remote setup --tailscale` opens the Tailscale page that allows it and waits while you
   allow it (with `--no-wait`, `--json` or no terminal it prints the page and stops; run setup again after).
 
 On Linux, two more things:
 
 - Tailscale refuses changes from a user who isn't its operator, with "Access denied" and its own advice. Setup
-  prints the fix and waits for you to run it once; Tychicus never runs sudo:
+  prints the fix and waits for you to run it once; Local Studio never runs sudo:
 
   ```bash
   sudo tailscale set --operator=$USER
@@ -446,46 +441,46 @@ you serve on 443 stays private.
 
 ## If Funnel won't work
 
-`tychicus remote setup --tailscale` stops, without changing anything, when:
+`local-studio-browser remote setup --tailscale` stops, without changing anything, when:
 
 - Tailscale isn't installed (in a terminal it waits for you to install it instead).
 - The tailnet has Tailnet Lock on. Funnel doesn't work on a Tailnet Lock tailnet.
 - Port 8443 on this computer already serves something else, or forwards plain TCP.
-- A `remote.json` or a service from an earlier setup is in the way (`tychicus remote off` clears it).
+- A `remote.json` or a service from an earlier setup is in the way (`local-studio-browser remote off` clears it).
 
 The free way out is your own HTTPS front door. A Cloudflare named tunnel costs nothing (an
 account includes 1,000) and needs a domain on Cloudflare:
 
 ```bash
 cloudflared tunnel login
-cloudflared tunnel create tychicus
-cloudflared tunnel route dns tychicus tychicus.<your domain>
+cloudflared tunnel create local-studio-browser
+cloudflared tunnel route dns local-studio-browser local-studio-browser.<your domain>
 ```
 
-Point the tunnel at Tychicus in `~/.cloudflared/config.yml`:
+Point the tunnel at Local Studio in `~/.cloudflared/config.yml`:
 
 ```yaml
-tunnel: tychicus
+tunnel: local-studio-browser
 credentials-file: /home/<you>/.cloudflared/<tunnel id>.json
 ingress:
-  - hostname: tychicus.<your domain>
+  - hostname: local-studio-browser.<your domain>
     service: http://127.0.0.1:8787
   - service: http_status:404
 ```
 
-Run it (`cloudflared tunnel run tychicus`, or as a service with `cloudflared service install`),
-then tell Tychicus the address:
+Run it (`cloudflared tunnel run local-studio-browser`, or as a service with `cloudflared service install`),
+then tell Local Studio the address:
 
 ```bash
-tychicus remote setup --public-url https://tychicus.<your domain>
+local-studio-browser remote setup --public-url https://local-studio-browser.<your domain>
 ```
 
 `--public-url` takes an origin only (`https://host`, no path). Any HTTPS front door that forwards
 to `127.0.0.1:8787` works the same way. `--port N` changes the port; `--no-service` skips the
-service, and you start `tychicus serve` yourself. Quick tunnels (`trycloudflare.com`) won't do:
+service, and you start `local-studio-browser serve` yourself. Quick tunnels (`trycloudflare.com`) won't do:
 the name changes on every start.
 
-If you switch from Funnel to your own front door, run `tychicus remote off` first so Funnel closes;
+If you switch from Funnel to your own front door, run `local-studio-browser remote off` first so Funnel closes;
 setup refuses to switch while Funnel from an earlier setup is on.
 
 ## Add the connector
@@ -496,30 +491,30 @@ Paste `<public URL>/mcp` in each:
 - **ChatGPT**: Settings > Apps & Connectors (turn on developer mode) > Create. Choose OAuth.
 - **grok.com**: grok.com/connectors > New Connector > Custom.
 
-Each opens Tychicus's approval page. Check the name and the site you return to, tick the
+Each opens Local Studio's approval page. Check the name and the site you return to, tick the
 permissions, enter the connect code setup printed and press Allow. A new assistant needs a connect
-code; the passcode alone is refused for one (D34). Code used or expired? `tychicus token approval-code`
+code; the passcode alone is refused for one (D34). Code used or expired? `local-studio-browser token approval-code`
 makes another. Later approvals of an assistant you already approved take the passcode. Only approve a connection
-you just started. Lost the passcode? `tychicus token passcode` makes a new one; approvals you already
+you just started. Lost the passcode? `local-studio-browser token passcode` makes a new one; approvals you already
 gave keep working.
 
 ## Windows
 
-Both routes work on Windows without administrator rights, and Tychicus runs no installer. Install Tailscale or
-cloudflared yourself as usual, or let the Cloudflare route offer Tychicus's own copy of cloudflared (Windows on x64 only;
-it asks first, as on the Mac, and checks the download's SHA-256 before using it). Tychicus finds `tailscale.exe` and
+Both routes work on Windows without administrator rights, and Local Studio runs no installer. Install Tailscale or
+cloudflared yourself as usual, or let the Cloudflare route offer Local Studio's own copy of cloudflared (Windows on x64 only;
+it asks first, as on the Mac, and checks the download's SHA-256 before using it). Local Studio finds `tailscale.exe` and
 `cloudflared.exe` on PATH, then in the installers' folders (`C:\Program Files\Tailscale`, `C:\Program Files\cloudflared`,
 `C:\Program Files (x86)\cloudflared`), then its own copy, `bin\cloudflared.exe` in the helper's config folder.
 
 Windows has no user service like launchd or systemd, so each service is a Task Scheduler task for your account alone:
-`com.tychicus.serve`, plus `com.tychicus.cloudflared` on the Cloudflare route (`com.tychicus.hub` and `com.tychicus.link`
+`com.localstudio.browser.serve`, plus `com.localstudio.browser.cloudflared` on the Cloudflare route (`com.localstudio.browser.hub` and `com.localstudio.browser.link`
 for a hub and a device). Each starts when you log on, runs with your own limited rights, stores no password, and runs a
 small script that starts the program again 10 seconds after it stops. They live in the helper's config folder, the same one
-it uses everywhere else: `%USERPROFILE%\.config\tychicus`, or `TYCHICUS_CONFIG_DIR` when you set it. Tasks named
-`com.polycarp.*` are the Polycarp app's; leave them to it.
+it uses everywhere else: `%USERPROFILE%\.config\local-studio-browser`, or `LOCAL_STUDIO_BROWSER_DIR` when you set it. Tasks named
+`com.localstudio.browser.*` are the Local Studio app's; leave them to it.
 
-- The scripts the tasks run: `services\com.tychicus.serve.cmd` and the others beside it.
-- The logs: `logs\tychicus-serve.log`, `logs\tychicus-cloudflared.log` and so on (Windows has no journal). When the
+- The scripts the tasks run: `services\com.localstudio.browser.serve.cmd` and the others beside it.
+- The logs: `logs\local-studio-browser-serve.log`, `logs\local-studio-browser-cloudflared.log` and so on (Windows has no journal). When the
   program starts again, a log past 10 MB becomes `<name>.log.1`, replacing the one before; a program that runs for weeks
   keeps writing to the same log until then.
 
@@ -527,15 +522,15 @@ The scripts name no folder: each finds the config folder from its own place, so 
 ASCII works.
 
 Each task shows a command window while it runs, titled with its name. Closing that window stops the service until you
-log on again or run setup again. `schtasks /Query /TN com.tychicus.serve /V /FO LIST` shows a task.
+log on again or run setup again. `schtasks /Query /TN com.localstudio.browser.serve /V /FO LIST` shows a task.
 
-`tychicus remote off` removes it: it ends the tasks, ends the programs they started with `taskkill /T` and checks
+`local-studio-browser remote off` removes it: it ends the tasks, ends the programs they started with `taskkill /T` and checks
 they are gone, then deletes the tasks and their scripts, and keeps the logs. Each program records its pid and start time
 when it starts and marks the record `exited` when it exits; a pid is ended only while Windows (`Get-Process`) reports the same
 start time, so a pid Windows has since given to another program is never touched. A program that won't stop, one whose
 start time can't be read, or a running task with no record leaves its task in place and says what to end in Task Manager.
 If Windows refuses to make a task, in any language, setup says your organization may block scheduled tasks and how to run
-`tychicus serve` yourself instead.
+`local-studio-browser serve` yourself instead.
 
 When setup asks you to allow Funnel, it opens the page in your default browser (on Windows through `rundll32.exe
 url.dll,FileProtocolHandler`, so no command line parses the address) and prints the address either way.
@@ -543,14 +538,14 @@ url.dll,FileProtocolHandler`, so no command line parses the address) and prints 
 ## Revoke
 
 ```bash
-tychicus token clients   # connectors and their grants
-tychicus token revoke tkc_...  # remove one client and every grant it holds
-tychicus remote off      # close Funnel, stop the service, delete remote.json
+local-studio-browser token clients   # connectors and their grants
+local-studio-browser token revoke tkc_...  # remove one client and every grant it holds
+local-studio-browser remote off      # close Funnel, stop the service, delete remote.json
 ```
 
 `remote off` leaves approvals in `oauth.json`. They can't be used while the URL is gone, but they
-become usable again if you set up later with the same URL. `tychicus token clients` lists them and
-`tychicus token revoke <client id>` ends them for good.
+become usable again if you set up later with the same URL. `local-studio-browser token clients` lists them and
+`local-studio-browser token revoke <client id>` ends them for good.
 
 On a custom route (`--public-url`), `remote off` can't close your front door: your own tunnel
 keeps forwarding to this computer. Stop it there, for example by stopping `cloudflared`.
@@ -560,19 +555,19 @@ keeps forwarding to this computer. Stop it there, for example by stopping `cloud
 Someone who runs a second connector with your relay key or tunnel token receives some of the requests
 meant for you, including approval page submissions, which carry your passcode.
 
-1. Turn the route off: `tychicus remote off`.
+1. Turn the route off: `local-studio-browser remote off`.
 2. End the old credential, which `remote reset` doesn't do. Relay: `npx wrangler@4.163.0 delete
-   tychicus-relay`, so the old key opens nothing. Cloudflare: delete the tunnel in the dashboard, or
+   local-studio-browser-relay`, so the old key opens nothing. Cloudflare: delete the tunnel in the dashboard, or
    rotate its token there. Leave the route off until step 4.
 3. Set a new passcode and end every grant (bash or zsh; the passcode isn't echoed or kept in history):
 
    ```bash
    (umask 077; IFS= read -rs p; printf '%s\n' "$p" > ~/new-passcode)   # at least 20 characters
-   tychicus remote reset --new-passcode-file ~/new-passcode [--yes] [--json]
+   local-studio-browser remote reset --new-passcode-file ~/new-passcode [--yes] [--json]
    rm ~/new-passcode
    ```
 
-4. Turn the route on again with `tychicus remote setup` and your route's option. The relay gets a new
+4. Turn the route on again with `local-studio-browser remote setup` and your route's option. The relay gets a new
    key, and so does every setup run after it.
 
 `remote reset` reads the new passcode from that file (never the command line or the environment)
@@ -581,7 +576,7 @@ than 20 characters (the random part of one `token passcode` makes) or longer tha
 sets the passcode the way `token passcode` does, and ends every OAuth grant (access and refresh
 tokens), every client registration, every waiting connect code (approval codes, and a hub's device
 codes) and the signing key, so an approval form or authorization code issued before is refused too.
-Every assistant connects again with a new connect code: `tychicus token approval-code` makes one.
+Every assistant connects again with a new connect code: `local-studio-browser token approval-code` makes one.
 
 An agent can run the reset for you. At a terminal it asks before it changes anything. Without a
 terminal, and always with `--json`, it never asks: it needs `--yes`, and without it refuses with
@@ -593,14 +588,14 @@ the reset again after a failure, and `token approval-code` once it is done.
 
 It also revokes every static `tkr_` token from `token create`. A static token never passes through
 `/authorize`, so the passcode leak doesn't reach it, but any `/mcp` request relayed through the
-second connector carried its bearer token, and Tychicus can't tell which tokens were used through
-the tunnel. Make new ones with `tychicus token create`.
+second connector carried its bearer token, and Local Studio can't tell which tokens were used through
+the tunnel. Make new ones with `local-studio-browser token create`.
 
 On a hub (this folder has `hub.json` or `hub-devices.json`) it also removes every enrolled device, for
-the same reason: a manager device sends its credential over the same tunnel, and Tychicus can't tell
+the same reason: a manager device sends its credential over the same tunnel, and Local Studio can't tell
 which credentials crossed it. A running hub refuses them at once and closes their links within a
 second. The report lists the removed devices, and `next.relink` gives the `hub code` command for
-each; run it here, then `tychicus link <hub url> --code <code>` on that device. Link tokens stay: a serve with a public
+each; run it here, then `local-studio-browser link <hub url> --code <code>` on that device. Link tokens stay: a serve with a public
 route refuses them, so none that works ever went through a tunnel, and a hub link keeps working.
 
 A running serve refuses the old tokens on the next request and closes their open sessions within
@@ -608,15 +603,15 @@ a second. The command reads every file back and exits 0 only when the passcode i
 no grant, client, connect code or static token is left; 1 when a step or the read-back failed (the
 report names what is left; run it again); 2 when it refused the file or the folder, or wasn't
 confirmed, and changed nothing. When a serve or hub service reads another config folder than this shell (its own, or the default
-`~/.config/tychicus` when it was set up with none while this shell sets `TYCHICUS_CONFIG_DIR`), the
-reset is refused with that folder's name: run the command with `TYCHICUS_CONFIG_DIR` set to it. On Windows the file's permissions
+`~/.local-studio/browser` when it was set up with none while this shell sets `LOCAL_STUDIO_BROWSER_DIR`), the
+reset is refused with that folder's name: run the command with `LOCAL_STUDIO_BROWSER_DIR` set to it. On Windows the file's permissions
 aren't checked, since NTFS access lists aren't in its mode bits.
 
 ## Security notes
 
 - Anyone on the internet can reach the URL. Two things stand between them and your browser: the
   connect code or passcode on the approval page (a new assistant needs the one-time code; five wrong tries per
-  connection, then a 15-minute wait) and the per-permission consent. Keep the passcode in a password manager the browser Tychicus drives can't fill, and don't reuse it.
+  connection, then a 15-minute wait) and the per-permission consent. Keep the passcode in a password manager the browser Local Studio drives can't fill, and don't reuse it.
 - An approval carries only the permissions you ticked; there is no wildcard. `browser.script`
   (run code in a page as you) and `threads.read` (your past chats) start unticked. Leave them off
   unless you need them.
@@ -631,44 +626,44 @@ aren't checked, since NTFS access lists aren't in its mode bits.
 
 One connector URL for claude.ai, ChatGPT and grok.com, and any number of your own computers behind
 it. The hub runs on an always-on box (a small server, a Raspberry Pi) and needs no browser. Each
-computer that has a browser with Tychicus dials in. It is still your own server, with no relay and
+computer that has a browser with Local Studio dials in. It is still your own server, with no relay and
 no cost (D32).
 
 On the always-on box, with an HTTPS front door pointing at `127.0.0.1:8787` (a free Cloudflare
 named tunnel works, as in "If Funnel won't work" above):
 
 ```bash
-tychicus hub setup --public-url https://tychicus.<your domain>  # hub.json, a passcode (shown once), a service
-tychicus hub code                                      # a one-time code, valid 10 minutes
+local-studio-browser hub setup --public-url https://local-studio-browser.<your domain>  # hub.json, a passcode (shown once), a service
+local-studio-browser hub code                                      # a one-time code, valid 10 minutes
 ```
 
 On each computer with a browser:
 
 ```bash
-tychicus link https://tychicus.<your domain> --code TK-XXXX-XXXX [--name laptop] [--scope browser.read,browser.act]
+local-studio-browser link https://local-studio-browser.<your domain> --code TK-XXXX-XXXX [--name laptop] [--scope browser.read,browser.act]
 ```
 
-`link` enrolls the computer and installs a user service (`com.tychicus.link` or
-`tychicus-link.service`) that runs `tychicus link run`. `--scope` is what this computer allows at
+`link` enrolls the computer and installs a user service (`com.localstudio.browser.link` or
+`local-studio-browser-link.service`) that runs `local-studio-browser link run`. `--scope` is what this computer allows at
 most; without it, the default grant (no `browser.script`, no `threads.read`). Then add
-`https://tychicus.<your domain>/mcp` once in each assistant, as above. Approve with your passcode,
-or with a one-time code from `tychicus token approval-code` (or `tychicus link approval-code` on a
+`https://local-studio-browser.<your domain>/mcp` once in each assistant, as above. Approve with your passcode,
+or with a one-time code from `local-studio-browser token approval-code` (or `local-studio-browser link approval-code` on a
 manager device): the field reads "Passcode or connect code". A connector you have not approved
 before (a new client) needs the one-time code; the passcode alone is refused for it, so a link
 someone else sends you cannot be approved by typing the passcode (D34). Once a client is approved,
 later approvals for it take the passcode as before.
 
 ```bash
-tychicus hub devices         # online, extension, sessions, busy, last seen
-tychicus hub prefer laptop,desktop  # who wins a tie
-tychicus link busy on        # on a device: new sessions go elsewhere first
-tychicus hub status          # hub.json, passcode, local answer, public DNS and fetch, devices
+local-studio-browser hub devices         # online, extension, sessions, busy, last seen
+local-studio-browser hub prefer laptop,desktop  # who wins a tie
+local-studio-browser link busy on        # on a device: new sessions go elsewhere first
+local-studio-browser hub status          # hub.json, passcode, local answer, public DNS and fetch, devices
 ```
 
-Settings > Agents in the side panel does the same from the browser: it shows the connector URL,
+Settings > Connections in the side panel does the same from the browser: it shows the connector URL,
 makes a one-time code for the approval page, lists the devices (on the hub's computer), makes a
-connect code for another device, and joins a hub from a code. It asks Tychicus's helper, so it needs
-`tychicus setup` first. See D33 in [decisions.md](decisions.md).
+connect code for another device, and joins a hub from a code. It asks Local Studio's helper, so it needs
+`local-studio-browser setup` first. See D33 in [decisions.md](decisions.md).
 
 ### What a device allows
 
@@ -676,9 +671,9 @@ A device's cap lives in its own `link.json`, and only that computer changes it. 
 sends can write it.
 
 ```bash
-tychicus link scopes                         # what this device allows
-tychicus link scopes --remove browser.script # narrower: the next call that needs it is refused
-tychicus link scopes --add browser.script    # wider: applies once link run starts again
+local-studio-browser link scopes                         # what this device allows
+local-studio-browser link scopes --remove browser.script # narrower: the next call that needs it is refused
+local-studio-browser link scopes --add browser.script    # wider: applies once link run starts again
 ```
 
 A narrower cap applies to the very next call, also on sessions already open: that call gets
@@ -688,17 +683,17 @@ so the check judges the call that runs. It counts arguments too: `read_network` 
 needs `browser.script`, and `session_info` with `label` needs `browser.navigate`. In front of the
 local server, a body on an open session that doesn't parse as UTF-8 JSON is refused, and the
 content-type the server sees is always `application/json`. The last scope can't be removed;
-`tychicus link off` stops serving. A wider cap needs a new link token, so `link scopes --add`
+`local-studio-browser link off` stops serving. A wider cap needs a new link token, so `link scopes --add`
 restarts the link service when there is one, and open sessions start over.
 
 Computer use (`computer.read`, `computer.act`) is not available over a link yet. Granting it needs
-the owner's approval on that computer, which Tychicus can't ask for yet, and nothing else can stand in for it:
+the owner's approval on that computer, which Local Studio can't ask for yet, and nothing else can stand in for it:
 a yes typed at a terminal can come from an agent running the command in a pseudo-terminal, and an
 agent with a shell can edit `link.json` by hand. So:
 
 - `link --scope computer.act` and `link scopes --add computer.act` (or `computer.read`) are refused
   and change nothing: "computer.act can't be turned on from the command line: granting computer use
-  over a link needs the owner's approval on this computer, and Tychicus can't ask for it yet."
+  over a link needs the owner's approval on this computer, and Local Studio can't ask for it yet."
 - `link run` never serves a computer scope, whatever `link.json` says. That includes a cap an
   earlier preview build wrote: it loses its computer scopes. `link run` logs one line naming them,
   and `link status` (and `link status --json`, as `notServed`) says which ones and why. It also drops
@@ -706,8 +701,8 @@ agent with a shell can edit `link.json` by hand. So:
 - The next `link scopes` change writes the cap without them.
 - Joining a hub from the side panel never grants computer use, and the panel doesn't offer it.
 
-A computer without `tychicus-hands` is told "This computer can't serve computer.read: computer use
-needs Tychicus's computer-use helper, tychicus-hands, and it isn't on this computer.", then how to get it there.
+A computer without `local-studio-computer` is told "This computer can't serve computer.read: computer use
+needs Local Studio's computer-use helper, local-studio-computer, and it isn't on this computer.", then how to get it there.
 
 A cap written as an empty list allows nothing; only a `link.json` with no `scopes` gets the default
 grant. Removals are checked under `link.json`'s lock, so two at once can't empty the cap.
@@ -755,29 +750,29 @@ on that device for this session (once, then reused, and closed when this session
 ### Revoke
 
 ```bash
-tychicus hub remove laptop  # the credential stops working, the live link closes within a second
-tychicus link off    # on a device: stop the service, forget the hub, revoke its link token
-tychicus hub off     # stop the hub service and remove hub.json (devices stay enrolled)
+local-studio-browser hub remove laptop  # the credential stops working, the live link closes within a second
+local-studio-browser link off    # on a device: stop the service, forget the hub, revoke its link token
+local-studio-browser hub off     # stop the hub service and remove hub.json (devices stay enrolled)
 ```
 
-`hub code --manage` makes the device a manager: it can run `tychicus link code` and
-`tychicus link approval-code`, which ask the hub for codes over HTTPS with the device credential.
+`hub code --manage` makes the device a manager: it can run `local-studio-browser link code` and
+`local-studio-browser link approval-code`, which ask the hub for codes over HTTPS with the device credential.
 Use it only for a computer you would trust with the passcode.
 
 ### Security notes
 
 - Callers reach a device only through the hub. The hub sets the caller's scopes itself and drops
-  any `x-polycarp-hub-*` or `x-tabkyra-hub-*` header a public client sends (the hub headers keep their old names). A device narrows them by its own cap; it never
+  any `x-local-studio-hub-*` or `x-local-studio-hub-*` header a public client sends (the hub headers keep their old names). A device narrows them by its own cap; it never
   widens. A device's link token works only on the loopback server `link run` starts.
 - A device credential is 32 random bytes, stored on the hub only as a SHA-256 hash; connect codes
   and approval codes are single-use, last 10 minutes and are stored only as hashes. Wrong connect
   codes are limited (five per source, 20 in all, per 15 minutes, so anyone can pause enrollment, and
   only enrollment, for 15 minutes); wrong approval codes count toward the passcode's limit and
   15-minute lockout. A valid device credential is never refused because of other people's failures.
-- Only one `tychicus link run` can run on a device; a second refuses to start. When the link drops,
+- Only one `local-studio-browser link run` can run on a device; a second refuses to start. When the link drops,
   the device closes the sessions it carried, and assistants simply start new ones.
 - The hub listens on loopback and answers only its public host. A device removed with
-  `tychicus hub remove` loses its link within a second.
+  `local-studio-browser hub remove` loses its link within a second.
 - Cost: free. Nothing here runs on anyone else's server.
 
 See D30, D31 and D32 in [decisions.md](decisions.md) for why each install is its own server.

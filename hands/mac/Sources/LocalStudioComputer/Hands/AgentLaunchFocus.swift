@@ -1,0 +1,60 @@
+import AppKit
+import ApplicationServices
+import HandsCore
+
+/// Watches app activations while an agent starts an app, and gives your keyboard back if that app takes it (`FocusReturn`).
+/// This helper is a background process, and since macOS 14 `activate()` from the background may do nothing, so this goes through
+/// Accessibility, as switching workspaces does. All on the main thread.
+final class AgentLaunchFocus {
+    static let shared = AgentLaunchFocus()
+    private var state = FocusReturn()
+    /// How many times the keyboard was given back, for `open`'s focus report: counted only when macOS took it, so a failed
+    /// restore never reads as `focus.returned` (#124 sol-sol-F5). Main thread only.
+    private(set) var returns = 0
+
+    private init() {
+        NSWorkspace.shared.notificationCenter.addObserver(forName: NSWorkspace.didActivateApplicationNotification, object: nil, queue: .main) { [weak self] note in
+            guard let self, let app = note.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication else { return }
+            // Who used which app when, for `in_use`: an agent's own action or launch isn't the person's use.
+            let pid = app.processIdentifier
+            UserActivity.shared.activated(pid, byAgent: AgentActivity.shared.causedByAnyAction(pid: pid, bundle: app.bundleIdentifier))
+            self.activated(app)
+        }
+        if let front = NSWorkspace.shared.frontmostApplication?.processIdentifier { UserActivity.shared.activated(front) }
+    }
+
+    private func seed() {
+        let front = NSWorkspace.shared.frontmostApplication?.processIdentifier
+        state.seed(front: front, agentOwned: front.map { AgentOwned.shared.pids.contains($0) } ?? false)
+    }
+
+    func watch(bundle: String, excluding running: Set<pid_t>, for seconds: TimeInterval) {
+        seed()
+        let now = Date()
+        state.watch(bundle: bundle, excluding: running, now: now, until: now.addingTimeInterval(seconds))
+    }
+
+    func watch(pid: pid_t, for seconds: TimeInterval) {
+        seed()
+        let now = Date()
+        state.watch(pid: pid, now: now, until: now.addingTimeInterval(seconds))
+    }
+
+    /// Gives the keyboard to `target` now (`RunningOpen.giveBack` chose it). True when macOS took it.
+    func giveBack(to target: pid_t) -> Bool {
+        let result = AXUIElementSetAttributeValue(AXUIElementCreateApplication(target), kAXFrontmostAttribute as CFString, kCFBooleanTrue)
+        if result == .success { returns += 1 } else { Trace.log("agent open: couldn't give the keyboard back to \(target): \(result.rawValue)") }
+        return result == .success
+    }
+
+    private func activated(_ app: NSRunningApplication) {
+        let pid = app.processIdentifier
+        let front = NSWorkspace.shared.frontmostApplication?.processIdentifier
+        switch state.activated(pid: pid, bundle: app.bundleIdentifier, agentOwned: pid == getpid() || AgentOwned.shared.pids.contains(pid), frontNow: front, now: Date()) {
+        case .none: break
+        case .returnTo(let target):
+            let result = AXUIElementSetAttributeValue(AXUIElementCreateApplication(target), kAXFrontmostAttribute as CFString, kCFBooleanTrue)
+            if result == .success { returns += 1 } else { Trace.log("agent launch focus: couldn't return the keyboard to \(target): \(result.rawValue)") }
+        }
+    }
+}

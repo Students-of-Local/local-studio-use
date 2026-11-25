@@ -10,14 +10,14 @@ const webm = (extra = 100) => Buffer.concat([Buffer.from([0x1a, 0x45, 0xdf, 0xa3
 const har = { kind: "har", encoding: "json", data: { log: { version: "1.2", entries: [] } } };
 
 function withConfig(fn) {
-	const dir = mkdtempSync(join(tmpdir(), "tabkyra-captures-"));
-	const before = process.env.TABKYRA_CONFIG_DIR;
-	process.env.TABKYRA_CONFIG_DIR = dir;
+	const dir = mkdtempSync(join(tmpdir(), "local-studio-captures-"));
+	const before = process.env.LOCAL_STUDIO_BROWSER_DIR;
+	process.env.LOCAL_STUDIO_BROWSER_DIR = dir;
 	try {
 		return fn(dir);
 	} finally {
-		if (before === undefined) delete process.env.TABKYRA_CONFIG_DIR;
-		else process.env.TABKYRA_CONFIG_DIR = before;
+		if (before === undefined) delete process.env.LOCAL_STUDIO_BROWSER_DIR;
+		else process.env.LOCAL_STUDIO_BROWSER_DIR = before;
 		rmSync(dir, { recursive: true, force: true });
 	}
 }
@@ -56,7 +56,7 @@ test("two captures in the same millisecond are two files, and nothing is overwri
 
 test("a captures folder that is a link is refused: nothing is written through it", () =>
 	withConfig((dir) => {
-		const elsewhere = mkdtempSync(join(tmpdir(), "tabkyra-elsewhere-"));
+		const elsewhere = mkdtempSync(join(tmpdir(), "local-studio-elsewhere-"));
 		try {
 			symlinkSync(elsewhere, join(dir, "captures"));
 			assert.throws(() => saveCapture(har), /not a plain folder/);

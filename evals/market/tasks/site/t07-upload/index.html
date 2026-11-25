@@ -1,0 +1,13 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Expense claim</title><script src="/common.js"></script></head><body>
+<main><h1>Expense claim</h1>
+<p><label for="r">Attach receipt</label> <input id="r" type="file"></p>
+<p><button id="s">Submit claim</button></p><p id="out" role="status"></p></main>
+<script>
+document.getElementById("s").onclick = async () => {
+  const f = document.getElementById("r").files[0];
+  if (!f) { document.getElementById("out").textContent = "Attach a receipt first."; return; }
+  const text = await f.text();
+  report("t07-upload", { name: f.name, size: f.size, firstLine: text.split("\n")[0] });
+  document.getElementById("out").textContent = "Claim submitted with " + f.name;
+};
+</script></body></html>

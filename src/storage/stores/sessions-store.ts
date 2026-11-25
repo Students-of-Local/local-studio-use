@@ -16,7 +16,7 @@ function announce(id: string): void {
 /**
  * Extended SessionsStore that migrates old tool result messages from output to content format.
  */
-export class TabkyraSessionsStore extends SessionsStore {
+export class LocalStudioSessionsStore extends SessionsStore {
 	/**
 	 * A thread saved while private mode is on is marked private, for good: the bridge never serves
 	 * it and the local mirror never writes it (src/threads). Every save, rename and delete is
@@ -25,9 +25,9 @@ export class TabkyraSessionsStore extends SessionsStore {
 	async save(data: SessionData, metadata: SessionMetadata): Promise<void> {
 		const privateNow = (await this.getBackend().get<boolean>("settings", PRIVATE_MODE_KEY)) === true;
 		const before = privateNow ? undefined : await this.getMetadata(data.id);
-		if (privateNow || (before as { tabkyraPrivate?: boolean } | null | undefined)?.tabkyraPrivate) {
-			(data as SessionData & { tabkyraPrivate?: boolean }).tabkyraPrivate = true;
-			(metadata as SessionMetadata & { tabkyraPrivate?: boolean }).tabkyraPrivate = true;
+		if (privateNow || (before as { localStudioPrivate?: boolean } | null | undefined)?.localStudioPrivate) {
+			(data as SessionData & { localStudioPrivate?: boolean }).localStudioPrivate = true;
+			(metadata as SessionMetadata & { localStudioPrivate?: boolean }).localStudioPrivate = true;
 		}
 		await super.save(data, metadata);
 		announce(data.id);

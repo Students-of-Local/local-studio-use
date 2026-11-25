@@ -12,7 +12,7 @@ env -u ANTHROPIC_API_KEY node evals/compaction/run.mjs --label c1-haiku --model 
 Each round writes `results/<label>/runs.jsonl` and `summary.json`, which are committed.
 
 `run.mjs` sets `CLAUDE_CODE_AUTO_COMPACT_WINDOW` (`--window`, 100000) and `CLAUDE_AUTOCOMPACT_PCT_OVERRIDE` (`--pct`,
-30). The first turn is about 19k tokens (instructions and Tychicus's tools); with these values compaction fires near
+30). The first turn is about 19k tokens (instructions and Local Studio's tools); with these values compaction fires near
 24k, every four to ten calls. Run on Donovan's sign-in only: `env -u ANTHROPIC_API_KEY`, never an API key.
 
 ## Tasks

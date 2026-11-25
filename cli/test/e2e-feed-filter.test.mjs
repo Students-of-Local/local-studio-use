@@ -38,7 +38,7 @@ after(async () => {
 });
 
 const hiddenCount = (url) => h.evaluate(`document.querySelectorAll("article.tk-feed-hidden").length`, url);
-const badgeText = (url) => h.evaluate(`document.querySelector("[data-tychicus=feed-filter]")?.shadowRoot?.textContent ?? ""`, url);
+const badgeText = (url) => h.evaluate(`document.querySelector("[data-local-studio=feed-filter]")?.shadowRoot?.textContent ?? ""`, url);
 
 test("site_filter hides matching posts in the open tab, new ones as they scroll in and after a reload; site_edit lists and removes it", async () => {
 	const url = h.mount("feed", FEED).replace("127.0.0.1", HOST);

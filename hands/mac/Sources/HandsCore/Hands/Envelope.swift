@@ -90,11 +90,11 @@ public struct HandsError: Codable, Equatable, Error, Sendable {
     /// listened, so nothing was sent and a retry is safe.
     public static func noReply(verb: String, connected: Bool) -> HandsError {
         guard connected else {
-            return HandsError(.notRunning, "Tychicus isn't running, or hasn't finished starting (it needs Accessibility)",
-                              suggestion: "Run `tychicus doctor`.", retry: .safe)
+            return HandsError(.notRunning, "Local Studio isn't running, or hasn't finished starting (it needs Accessibility)",
+                              suggestion: "Run `local-studio-browser doctor`.", retry: .safe)
         }
         let acts = HandsTools.tool(verb: verb)?.acts ?? false
-        return HandsError(.timeout, "Tychicus took the request but didn't answer: it may have quit, or still be busy", suggestion: acts
+        return HandsError(.timeout, "Local Studio took the request but didn't answer: it may have quit, or still be busy", suggestion: acts
             ? "The action may have landed: read the element back with `computer_get` before trying again."
             : "Try again in a moment.", retry: acts ? .never : .safe)
     }
@@ -135,7 +135,7 @@ public enum EngineVerdict {
     public static func posted(_ data: JSONValue) -> HandsError? {
         guard let step = data["steps"]?.array?.first(where: { $0["mechanism"]?.string == "physical_synthetic" }) else { return nil }
         let label = step["label"]?.string ?? "a physical step"
-        return HandsError(.notSupported, "the engine posted input for this action (\(label)), which Tychicus never allows from a ref, so the call is refused",
+        return HandsError(.notSupported, "the engine posted input for this action (\(label)), which Local Studio never allows from a ref, so the call is refused",
                           suggestion: "Don't repeat it. The engine pin moved or broke its headless policy: check engine/PIN.", retry: .never, nextCall: .null)
     }
 
