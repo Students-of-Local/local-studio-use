@@ -2470,3 +2470,47 @@ colors and layout needed a script, which is off until the person turns it on.
 over raw CSS, misses the next way to fetch. One document for the file, export and import leaves one reader to check.
 
 **Proof.** `test/site-styles.test.mjs`, `test/site-edits.test.mjs`, `test/site-saved.test.mjs`, `cli/test/sites.test.mjs`, `cli/test/e2e-panel.test.mjs` ("Change this site").
+
+## D74. Agents open settings pages, and their buttons act only on the person's click (Donovan, 2026-11-25; details by Claude)
+
+**Context.** Donovan: "make it so agents can open settings menus for them", and "agents can provide links to do actions on the individuals mac
+or open things".
+
+**Decision.**
+- One grammar, `localstudio:` links (`src/links/parse.ts`): `settings/`, `browser/`, `system/`, `app/`, `shortcut/`, `file?path=`,
+  `reveal?path=`. Anything that isn't exactly one of these stays text. The panel, the worker and the host each parse it again.
+- `open_settings` opens the first three at once, because opening a page changes nothing; six a minute per agent.
+- The rest are buttons: in the panel agent's answers, or on a card from `offer_buttons` (four links, one card per agent, gone after 30
+  minutes). Only a trusted click in the side panel document runs one. No bridge method, page or agent reaches the frame that does.
+- The button's words are made from the parsed target. The model's label is thrown away, so it can't call Terminal "Continue".
+- `file` opens documents and plain folders only, judged after links are resolved. Nothing takes arguments and no shell runs.
+- Outside programs and web pages can't use this: the scheme isn't registered by the browser part.
+
+**Proof.** `test/links.test.mjs`, `cli/test/open-link.test.mjs`, `cli/test/e2e-panel.test.mjs` ("an agent opens the browser's and the panel's settings").
+
+## D75. Side panel chats and Local Studio threads are one list (Donovan, 2026-11-25; details by Claude)
+
+**Context.** Donovan: "make it so the sessions in the extension sync with the local studio app".
+
+**Decision.**
+- A panel chat is a session file `browser-<id>` in the app's sessions folder, written by the host while the app has it closed. Once the app
+  opened it, the host reads the app's file and never writes over a turn made there.
+- The merge is by message, in time order, each once (`src/threads/merge.ts`). A running thread is left alone.
+- The app's threads show in Past chats. Opening one copies it; the original is never changed.
+- Private chats, and threads marked local-only in the app, cross in neither direction. Keys are removed before a chat is written.
+- On by default, one switch. Deleting in the panel deletes the thread unless the person added to it in the app.
+- The host never opens a session to read it: that could end the app's own use of it.
+
+**Proof.** `test/chat-sync.test.mjs`, `cli/test/chat-sync.test.mjs`, `cli/test/e2e-chat-sync.test.mjs` (with a real Eukhe).
+
+## D76. Models and chats are pages, and settings are one kit of rows (Donovan, 2026-11-25; details by Claude)
+
+**Context.** Donovan: "Hill climb the design", "this needs to be easy to use". Earlier: "full screen with a back arrow, NOT a weird overlay thing".
+
+**Decision.**
+- The model picker and Past chats are full pages. The model page starts with the free choice and recent models, then connected providers.
+- `src/components/settings-form.ts` makes every settings row: a name, one line of help, a control, and the rest under one disclosure.
+- Each change was kept only if a fresh judge, shown two pictures in random order, preferred it: 12 of 12 for the first round, 16 of 16 for the second.
+  Words over twenty screens went from 3433 to 2604 and font sizes from seven to six.
+
+**Proof.** `test/model-pick.test.mjs`, `test/panel-ui.test.mjs`, `cli/test/e2e-panel.test.mjs`.

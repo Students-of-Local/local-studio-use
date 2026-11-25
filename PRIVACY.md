@@ -22,7 +22,12 @@ Every host named below sees the computer's IP address, as any site does.
   removed from the copy, and chats marked private are never copied. Older versions didn't mark private mode chats, so chats
   from before that mark are copied only with the switch "Also chats from before" that date. The copy is not uploaded. Agents the user connects can
   read it and may send what they read to their own AI; one connected remotely needs a token with the `threads.read`
-  scope. Settings > Privacy > "Let my coding agents read my past chats" turns it off and deletes the copy.
+  scope. Settings > Privacy > "Agents can read my past chats" turns it off and deletes the copy.
+- **The same chats in the Local Studio app, on by default.** When the app is on this computer, the helper writes side panel
+  chats into the app's own threads (its sessions folder, files readable only by the user) and reads back what the user adds
+  there. The panel also lists the app's threads. Nothing is uploaded by this. Keys pasted into a chat are removed from what
+  is written; chats marked private are never written, and threads marked local-only in the app are never read. Settings >
+  Privacy > "Same chats in the Local Studio app" turns it off; threads already written stay in the app until deleted there.
 - Tokens for the ChatGPT and GitHub Copilot sign-ins (Settings > Providers) are kept by the helper in files only the user
   can read. The browser never holds them.
 - Recordings and network captures an agent asks for are saved as files on the user's computer.

@@ -39,7 +39,7 @@ async function visible(): Promise<ThreadMeta[]> {
 	return (await listThreadMeta()).filter((m) => may(m) && validThreadId(m.id));
 }
 
-/** Settings > Privacy > "Let my coding agents read my past chats": off means no agent reads any. */
+/** Settings > Privacy > "Agents can read my past chats": off means no agent reads any. */
 async function allowed(): Promise<void> {
 	if (typeof chrome === "undefined" || !chrome.storage?.local) return;
 	const got = (await chrome.storage.local.get(MIRROR_KEY)) as Record<string, unknown>;

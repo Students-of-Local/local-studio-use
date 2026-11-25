@@ -3,6 +3,11 @@
 ## [Unreleased]
 
 ### Added
+- One list of chats with the Local Studio app. Side panel chats are threads in the app and go on in either place; the app's threads are in Past
+  chats. Settings > Privacy > "Same chats in the Local Studio app" turns it off. Decision D75.
+- Agents can open a settings page for you (`open_settings`) and give you buttons that open an app, a file, a folder or a page of your computer's
+  settings, or run a Shortcut, when you click them (`offer_buttons`, or a `localstudio:` link in the panel agent's answer). Decision D74.
+- Synthetic is a provider. Every key field links to the page where that key is made.
 - Ask an agent to change how a site looks, and it stays that way. "Make x.com dark", "bigger text on Reddit" or "hide the sidebar here": the
   agent saves it with `site_edit` (new: `style`, `dark` and `update`), open tabs follow at once, and the side panel shows one card with Undo and
   Keep. A style can't load anything, add text or hide itself (`src/site-edits/style.ts`). The side panel's own agent has it too. Decision D73.
@@ -12,6 +17,12 @@
   `local-studio-browser sites` lists, turns off and removes them, and Settings > Sites exports and imports them. Scripts always arrive off.
 
 ### Changed
+- Choosing a model and finding a past chat are full pages with a back arrow. The model page lists your recent models, then each connected provider
+  with prices; details are one click away. Decision D76.
+- Every settings section has the same look: grouped rows, the explanation one click away. The first screen and the settings have about a quarter
+  fewer words. Decision D76.
+- The side panel opens 141 KB lighter: viewers for slides and documents load when one is opened.
+- Local Studio's service is found where Eukhe 0.10.74 and later listens.
 - The side panel and Settings show less, and connecting a model is on the home screen. ChatGPT and GitHub Copilot plans, an API key and a model on this
   computer are one list with one button each; Settings is ten sections with each one's state on its row; skills are grouped by what they do. Decision D72.
 - Site icons are drawn here. The panel no longer asks Google's favicon service which sites you open.

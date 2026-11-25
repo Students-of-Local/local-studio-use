@@ -73,6 +73,6 @@ They ask: "I want to use my Mac from claude.ai. I have Cloudflare, with my own d
 
 1. `remote status --json` shows `routes.cloudflare` `{"installed":true,"signedIn":false}`.
 2. Say: "Run `local-studio-browser remote cloudflare login` in your terminal. In the page it opens, sign in and pick your domain."
-3. Ask: "Which name? Something like local-studio-browser.yourdomain.com." They say `local-studio.example.com`.
+3. Ask: "Which name? Something like local-studio.yourdomain.com." They say `local-studio.example.com`.
 4. Ask before running `local-studio-browser remote setup --no-passcode --cloudflare local-studio.example.com`. Run it after their yes.
 5. Say: "In claude.ai, add a custom connector with https://local-studio.example.com/mcp. On the page that opens, tick computer use only if you want it there. For the code, press New code in the side panel's Settings > Connections."

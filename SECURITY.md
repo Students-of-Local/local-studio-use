@@ -44,7 +44,8 @@ In scope:
 
 Examples of what counts: an agent reaching tabs outside its own group, opening a site
 that wasn't allowed while the mode is "ask", a token using a tool outside its scopes,
-another local user reaching the bridge socket, a skill that hides instructions from its
+another local user reaching the bridge socket, a `localstudio:` button that runs without
+a click or opens something other than its words say, a skill that hides instructions from its
 reader, an update that installs unsigned code, or redaction that leaks an email or a key.
 
 Out of scope, or known and documented:

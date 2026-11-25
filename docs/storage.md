@@ -544,6 +544,9 @@ them from two more places (`src/threads/`):
   (Settings > Privacy) turns it off and clears that browser's folder.
 - **Private mode.** A thread saved while private mode is on gets `localStudioPrivate: true` on both
   records, for good. It is never served or mirrored, and an existing copy is deleted.
+- **Local Studio's threads.** With `threads.sync` on (the default), the worker also sends each chat to the host, which keeps
+  it as a session `browser-<id>` in the app's sessions folder and reports what the app adds (`src/threads/sync.ts`,
+  `cli/src/chat-sync.ts`). The host's record of what it wrote is `chat-sync.json` (0600) in the helper's data folder. Decision D75.
 - **Redaction.** Keys, tokens, bearer headers and private key blocks are replaced
   (`redactSecrets` in `src/privacy/bug-reports.ts`, which the bug reports use too); images and
   attachment contents are left out.

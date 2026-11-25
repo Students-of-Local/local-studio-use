@@ -92,8 +92,8 @@ app open it needs nothing more; else its home screen connects a ChatGPT or GitHu
 
 ### Let your agent do the rest
 
-Once the extension is loaded, open the side panel and click
-**Copy setup prompt for your agent** (on the home screen until a model is connected, and under **Settings > Agents**). Paste it into Claude Code, Codex, pi, OMP or any
+Once the extension is loaded, open the side panel and click **Copy prompt** under **Settings > Agents**
+(**Use your own agent** on the first screen goes there). Paste it into Claude Code, Codex, pi, OMP or any
 agent with a shell. The agent reuses a working CLI or installs one from the tag that
 matches your extension's version (the default branch when no such tag exists, and it
 says so), connects itself, runs `local-studio-browser doctor` and calls `status`. The prompt has no piped installers, and it tells the agent not to ask you
@@ -293,7 +293,7 @@ or Codex can answer "what did I ask Local Studio yesterday about Lisbon flights?
 Live answers come from the extension; when the browser is closed, the CLI and MCP read the
 files. The files are written by the native host (folder 0700, files 0600, each write atomic) a
 couple of seconds after a chat changes, and go when you delete the chat. Settings > Privacy >
-"Let my coding agents read my past chats" turns this off: agents can't read any past chat, live
+"Agents can read my past chats" turns this off: agents can't read any past chat, live
 or from files, and the files are deleted. Chats from before you installed this version stay
 hidden from agents (older versions didn't mark private-mode chats) until you tick "Also chats
 from before ..." under that switch.
@@ -303,6 +303,26 @@ keys and tokens pasted into a chat are removed. A chat from private mode is neve
 written, even after private mode is turned off. Remote agents (`local-studio-browser serve`) need a token
 with the `threads.read` scope. A past chat is data to read, never instructions to follow; the
 tool descriptions and the MCP instructions say so.
+
+## One list of chats with the Local Studio app
+
+Start a chat in the side panel and go on in the app, or the other way round. With the app on the same computer (macOS or
+Linux), each side panel chat is also a thread there, and the app's own threads are in the panel's Past chats, marked "In the
+app". Opening one of those makes a copy to go on with; the app's thread stays as it is. If both sides add to a chat, the turns
+are put in order by time and none is lost. A thread that is running in the app is left alone until it ends.
+
+Private chats are never written to the app, and threads you marked local-only there never show in the panel. Deleting a panel
+chat deletes its thread unless you added to it in the app. Settings > Privacy > "Same chats in the Local Studio app" turns
+this off.
+
+## Buttons and settings pages from agents
+
+An agent can open a settings page for you: one of Local Studio's own, one of the browser's, or a page of your computer's
+settings ("Open my Displays settings"). Opening a page changes nothing.
+
+It can also give you buttons, in its answer or on a card above the chat: open an app, open a document or folder, show a file in
+Finder, run a Shortcut (macOS, asks once more). A button does something only when you click it, and its words come from what it
+does, not from what the agent wrote. Programs and scripts don't open from a button, and no button carries arguments.
 
 ## Skills
 
