@@ -768,9 +768,11 @@ export async function click(
 	// take every queued move first, so the move still lands before the press (docs/verification/speed-trace.md).
 	// A click that arms an answer for its box (on_dialog) still waits: nothing is armed until its input is going out,
 	// so a box the page opens on its own meanwhile never takes the answer (sol-F2 in test/dialog-preset.test.mjs).
+	// Attached first, and sent without cdpSend's wait on that: its command goes out in this turn, ahead of the press.
+	await ensureAttached(tabId);
 	const moved = options.pointerThere
 		? Promise.resolve()
-		: cdpSend(tabId, "Input.dispatchMouseEvent", { type: "mouseMoved", x, y, modifiers });
+		: send(tabId, "Input.dispatchMouseEvent", { type: "mouseMoved", x, y, modifiers });
 	moved.catch(() => undefined);
 	if (options.beforeFirstPress) await moved;
 	for (let i = 1; i <= clickCount; i++) {

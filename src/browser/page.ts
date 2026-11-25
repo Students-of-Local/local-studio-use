@@ -2775,10 +2775,11 @@ export async function scrollPage(
 		// A ref with an amount or an end scrolls the box that holds it (a list, a pane, a virtual grid), not the page.
 		if (target && (o.dx || o.dy || o.to)) {
 			const page = (el) => !el || el === document.body || el === document.documentElement;
+			// Along an axis that was asked for: a table that only scrolls sideways is not the box a dy moves.
 			const scrolls = (el) => {
 				const s = getComputedStyle(el);
-				return (/(auto|scroll|overlay)/.test(s.overflowY) && el.scrollHeight > el.clientHeight + 1) ||
-					(/(auto|scroll|overlay)/.test(s.overflowX) && el.scrollWidth > el.clientWidth + 1);
+				return ((o.dy || o.to) && /(auto|scroll|overlay)/.test(s.overflowY) && el.scrollHeight > el.clientHeight + 1) ||
+					(!o.to && o.dx && /(auto|scroll|overlay)/.test(s.overflowX) && el.scrollWidth > el.clientWidth + 1);
 			};
 			let box = target;
 			while (!page(box) && !scrolls(box)) {
