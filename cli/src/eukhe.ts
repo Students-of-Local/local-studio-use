@@ -25,6 +25,7 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import type { ExtEukhe, HostEukhe, RpcError } from "../../src/bridge/protocol.ts";
 import { ERR } from "../../src/bridge/protocol.ts";
+import { abstractAddress, abstractListens, untrustedListener } from "./abstract-socket.ts";
 
 /** The daemon protocol this relay speaks (eukhe-types daemon PROTOCOL: eukhe.daemon v7). */
 export const EUKHE_PROTOCOL = { name: "eukhe.daemon", version: 7 } as const;
@@ -55,18 +56,30 @@ export const PANEL_PIN = "set shell.autoEffects read";
 /** Daemon frames passed on to the panel; the rest (roster, list progress) are none of its business. */
 const FORWARDED = new Set(["session_event", "session_closed"]);
 
+/** Eukhe's own folder: EUKHE_CODING_AGENT_DIR (with `~` expanded), else ~/.eukhe. */
+export function eukheDir(env: NodeJS.ProcessEnv = process.env): string | undefined {
+	const named = expandHome(env.EUKHE_CODING_AGENT_DIR, env);
+	if (named) return named;
+	return env.HOME ? join(env.HOME, ".eukhe") : undefined;
+}
+
+function expandHome(path: string | undefined, env: NodeJS.ProcessEnv): string | undefined {
+	if (!path) return undefined;
+	if (path === "~") return env.HOME ?? path;
+	return path.startsWith("~/") && env.HOME ? join(env.HOME, path.slice(2)) : path;
+}
+
 /**
- * The daemon socket, resolved as Eukhe resolves it (eukhe-client paths.rs): a non-empty EUKHE_DAEMON_SOCKET (with `~`
- * expanded), else `daemon.sock` in `eukhe-<uid>` under TMPDIR, else under /tmp.
+ * Where the daemon may listen, in the order Eukhe's own clients look (eukhe-client paths.rs): a non-empty
+ * EUKHE_DAEMON_SOCKET alone, else `run/daemon.sock` in Eukhe's folder, then where releases up to 0.10.73 listened,
+ * `eukhe-<uid>` under TMPDIR (else /tmp).
  */
-export function eukheSocketPath(env: NodeJS.ProcessEnv = process.env, uid: number | undefined = process.getuid?.()): string {
-	const explicit = env.EUKHE_DAEMON_SOCKET;
-	if (explicit) {
-		if (explicit === "~") return env.HOME ?? explicit;
-		if (explicit.startsWith("~/") && env.HOME) return join(env.HOME, explicit.slice(2));
-		return explicit;
-	}
-	return join(env.TMPDIR || "/tmp", `eukhe-${uid ?? 0}`, "daemon.sock");
+export function eukheSocketPaths(env: NodeJS.ProcessEnv = process.env, uid: number | undefined = process.getuid?.()): string[] {
+	const explicit = expandHome(env.EUKHE_DAEMON_SOCKET, env);
+	if (explicit) return [explicit];
+	const dir = eukheDir(env);
+	const before = join(env.TMPDIR || "/tmp", `eukhe-${uid ?? 0}`, "daemon.sock");
+	return dir ? [join(dir, "run", "daemon.sock"), before] : [before];
 }
 
 /** The error a panel gets when no daemon answers, with what to do about it. */
@@ -114,24 +127,44 @@ export function untrustedSocket(path: string): string | undefined {
 }
 
 /**
- * Open the daemon socket and wait for its hello. Rejects with an RpcError (eukhe_unavailable) when nothing listens, the
+ * Open the first daemon socket that answers and wait for its hello. Rejects with an RpcError (eukhe_unavailable) when nothing listens, the
  * peer does not greet within `helloMs`, or it greets as something other than the Eukhe daemon.
  */
-export function connectDaemon(
-	path: string,
+export async function connectDaemon(
+	paths: string | readonly string[],
 	onFrame: (frame: Record<string, unknown>) => void,
 	onClose: () => void,
 	helloMs: number = EUKHE_HELLO_MS,
 ): Promise<DaemonLink> {
+	const all = typeof paths === "string" ? [paths] : paths;
+	let first: unknown;
+	for (const path of all) {
+		try {
+			return await dial(path, onFrame, onClose, helloMs);
+		} catch (err) {
+			first ??= err;
+		}
+	}
+	throw first;
+}
+
+/** One place: its abstract socket where there is one (Linux), else the socket file. */
+function dial(
+	path: string,
+	onFrame: (frame: Record<string, unknown>) => void,
+	onClose: () => void,
+	helloMs: number,
+): Promise<DaemonLink> {
 	return new Promise((resolve, reject) => {
-		const untrusted = untrustedSocket(path);
+		const abstract = abstractListens(path) ? abstractAddress(path) : undefined;
+		const untrusted = abstract ? untrustedListener(path) : untrustedSocket(path);
 		if (untrusted) {
 			reject(unavailable(path, process.platform, untrusted));
 			return;
 		}
 		let greeted = false;
 		let buffer = "";
-		const socket = createConnection(path);
+		const socket = createConnection(abstract ?? path);
 		const fail = (why: string) => {
 			if (greeted) return;
 			greeted = true;
@@ -225,11 +258,11 @@ export class EukheRelay {
 
 	constructor(
 		private readonly send: (frame: HostEukhe) => void,
-		private readonly options: { socketPath?: () => string; helloMs?: number; platform?: string } = {},
+		private readonly options: { socketPaths?: () => readonly string[]; helloMs?: number; platform?: string } = {},
 	) {}
 
-	private path(): string {
-		return this.options.socketPath?.() ?? eukheSocketPath();
+	private paths(): readonly string[] {
+		return this.options.socketPaths?.() ?? eukheSocketPaths();
 	}
 
 	private workspace(): string {
@@ -245,7 +278,7 @@ export class EukheRelay {
 		const { id, conversation, op } = message;
 		if (typeof id !== "number" || typeof conversation !== "string" || !conversation || conversation.length > 200) return;
 		if ((this.options.platform ?? process.platform) === "win32") {
-			this.reply(conversation, id, { error: unavailable(this.path(), "win32") });
+			this.reply(conversation, id, { error: unavailable("", "win32") });
 			return;
 		}
 		if (op === "probe") {
@@ -272,7 +305,7 @@ export class EukheRelay {
 	/** Is a daemon there? Its hello, on a connection of its own that closes at once. */
 	private async probe(conversation: string, id: number): Promise<void> {
 		try {
-			const link = await connectDaemon(this.path(), () => undefined, () => undefined, this.options.helloMs);
+			const link = await connectDaemon(this.paths(), () => undefined, () => undefined, this.options.helloMs);
 			link.socket.end();
 			this.reply(conversation, id, {
 				result: { reachable: true, appVersion: link.hello.appVersion, protocol: link.protocol },
@@ -305,7 +338,7 @@ export class EukheRelay {
 		if (existing && !existing.closed) return existing;
 		const conv: Conversation = { link: Promise.resolve() as never, pending: new Map(), sessions: new Set(), creates: new Set(), pins: new Map(), closed: false };
 		conv.link = connectDaemon(
-			this.path(),
+			this.paths(),
 			(frame) => this.onDaemonFrame(name, conv, frame),
 			() => this.onDaemonClose(name, conv),
 			this.options.helloMs,
@@ -330,7 +363,7 @@ export class EukheRelay {
 			return;
 		}
 		if (conv.closed || link.socket.destroyed) {
-			this.reply(conversation, id, { error: unavailable(this.path(), process.platform, "the daemon connection closed") });
+			this.reply(conversation, id, { error: unavailable(this.paths()[0], process.platform, "the daemon connection closed") });
 			return;
 		}
 		const envelopeId = `local_studio_${process.pid}_${++this.seq}`;
@@ -421,7 +454,7 @@ export class EukheRelay {
 		conv.closed = true;
 		if (this.conversations.get(name) === conv) this.conversations.delete(name);
 		for (const id of conv.pending.values())
-			this.reply(name, id, { error: unavailable(this.path(), process.platform, "the daemon connection closed") });
+			this.reply(name, id, { error: unavailable(this.paths()[0], process.platform, "the daemon connection closed") });
 		conv.pending.clear();
 		this.send({ type: "eukhe", conversation: name, closed: true });
 	}

@@ -11,7 +11,7 @@ import test from "node:test";
 import { loadTs } from "./helpers/bundle-ts.mjs";
 import { startFakeEukhe } from "./helpers/fake-eukhe.mjs";
 
-const { EukheRelay, eukheSocketPath, EUKHE_COMMANDS } = await loadTs(`export { EukheRelay, eukheSocketPath, EUKHE_COMMANDS } from "@src/eukhe.ts";`);
+const { EukheRelay, eukheSocketPaths, EUKHE_COMMANDS } = await loadTs(`export { EukheRelay, eukheSocketPaths, EUKHE_COMMANDS } from "@src/eukhe.ts";`);
 
 const posix = process.platform !== "win32";
 const skip = !posix && "Unix sockets";
@@ -23,7 +23,7 @@ function harness(path, options = {}) {
 	const relay = new EukheRelay((frame) => {
 		frames.push(frame);
 		if (frame.id !== undefined) waiters.get(`${frame.conversation}:${frame.id}`)?.(frame);
-	}, { socketPath: () => path, ...options });
+	}, { socketPaths: () => [path], ...options });
 	let seq = 0;
 	const ask = (conversation, op, command) =>
 		new Promise((resolve) => {
@@ -52,10 +52,42 @@ function tempDir(t) {
 }
 
 test("the daemon socket is found where Eukhe looks for it", () => {
-	assert.equal(eukheSocketPath({ EUKHE_DAEMON_SOCKET: "/run/x/daemon.sock", TMPDIR: "/t" }, 1000), "/run/x/daemon.sock");
-	assert.equal(eukheSocketPath({ EUKHE_DAEMON_SOCKET: "~/eukhe.sock", HOME: "/home/u" }, 1000), "/home/u/eukhe.sock");
-	assert.equal(eukheSocketPath({ EUKHE_DAEMON_SOCKET: "", TMPDIR: "/t" }, 1000), "/t/eukhe-1000/daemon.sock");
-	assert.equal(eukheSocketPath({}, 501), "/tmp/eukhe-501/daemon.sock");
+	assert.deepEqual(eukheSocketPaths({ EUKHE_DAEMON_SOCKET: "/run/x/daemon.sock", TMPDIR: "/t", HOME: "/home/u" }, 1000), ["/run/x/daemon.sock"]);
+	assert.deepEqual(eukheSocketPaths({ EUKHE_DAEMON_SOCKET: "~/eukhe.sock", HOME: "/home/u" }, 1000), ["/home/u/eukhe.sock"]);
+	// eukhe 0.10.74 and up, then where earlier releases listened.
+	assert.deepEqual(eukheSocketPaths({ EUKHE_DAEMON_SOCKET: "", TMPDIR: "/t", HOME: "/home/u" }, 1000), ["/home/u/.eukhe/run/daemon.sock", "/t/eukhe-1000/daemon.sock"]);
+	assert.deepEqual(eukheSocketPaths({ EUKHE_CODING_AGENT_DIR: "~/agents/e", HOME: "/home/u" }, 1000), ["/home/u/agents/e/run/daemon.sock", "/tmp/eukhe-1000/daemon.sock"]);
+	assert.deepEqual(eukheSocketPaths({}, 501), ["/tmp/eukhe-501/daemon.sock"]);
+});
+
+test("the second place answers when nothing listens at the first", { skip, timeout: 20_000 }, async (t) => {
+	const dir = tempDir(t);
+	const daemon = await startFakeEukhe({ path: join(dir, "eukhe-1000", "daemon.sock") });
+	t.after(() => daemon.close());
+	const { ask } = harness(daemon.path, { socketPaths: () => [join(dir, "run", "daemon.sock"), daemon.path] });
+	assert.equal((await ask("p", "probe")).result?.reachable, true);
+});
+
+test("Linux: the daemon's abstract socket answers, and only from the process Eukhe recorded", { skip: process.platform !== "linux" && "abstract sockets", timeout: 20_000 }, async (t) => {
+	const dir = tempDir(t);
+	const path = join(dir, "run", "daemon.sock");
+	const daemon = await startFakeEukhe({ path, abstract: true });
+	const { ask, relay } = harness(path);
+	t.after(() => relay.closeAll());
+	assert.equal(existsSync(path), false, "no socket file");
+	assert.equal((await ask("p", "probe")).result?.reachable, true);
+	await daemon.close();
+
+	const impostor = await startFakeEukhe({ path, abstract: true, recordPid: process.ppid });
+	const refused = await ask("p", "probe");
+	assert.equal(refused.error?.code, "eukhe_unavailable");
+	assert.match(refused.error.message, /not served by the Eukhe process recorded|another user's process/);
+	await impostor.close();
+
+	const unrecorded = await startFakeEukhe({ path, abstract: true, recordPid: 0 });
+	t.after(() => unrecorded.close());
+	assert.match((await ask("p", "probe")).error.message, /no Eukhe process is recorded/);
+	assert.equal(unrecorded.connections + unrecorded.commands.length, 0, "nothing reached it");
 });
 
 test("a command goes to the daemon in an eukhe.daemon v7 envelope and its answer comes back", { skip, timeout: 20_000 }, async (t) => {

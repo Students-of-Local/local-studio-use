@@ -10,8 +10,9 @@
 // is the prompt. Without `turn`, a fixed turn streams two deltas, one tool call and a last delta.
 // Each session has Eukhe's auto set (`shell.autoEffects`, every effect by default as in eukhe 452f1be), set by a `cvar`
 // line. t.write(path) is a file write as Eukhe gates it: unasked when the auto set holds its effects, else it asks and
-// runs only on an approve; `writes` lists those that ran. `cvar: false` refuses every cvar command.
-import { mkdirSync, rmSync } from "node:fs";
+// runs only on an approve; `writes` lists those that ran. `cvar: false` refuses every cvar command. `abstract` listens as
+// eukhe 0.10.74 and up do on Linux: an abstract socket of the path's name and `<path>.pid` (`recordPid`) beside it.
+import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { createServer } from "node:net";
 import { dirname, isAbsolute, join } from "node:path";
 
@@ -24,7 +25,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 export const ALL_EFFECTS = ["read", "write", "exec", "net", "outside", "protected", "secret"];
 
-export async function startFakeEukhe({ path, turn, models = DEFAULT_MODELS, stepMs = 15, hello = true, cvar = true } = {}) {
+export async function startFakeEukhe({ path, turn, models = DEFAULT_MODELS, stepMs = 15, hello = true, cvar = true, abstract = false, recordPid = process.pid } = {}) {
 	mkdirSync(dirname(path), { recursive: true, mode: 0o700 });
 	rmSync(path, { force: true });
 	/** Every command received, in order: { type, ...fields }. */
@@ -205,8 +206,9 @@ export async function startFakeEukhe({ path, turn, models = DEFAULT_MODELS, step
 	});
 	await new Promise((resolve, reject) => {
 		server.once("error", reject);
-		server.listen(path, resolve);
+		server.listen(abstract ? `\0${path}` : path, resolve);
 	});
+	if (abstract && recordPid) writeFileSync(`${path}.pid`, String(recordPid), { mode: 0o600 });
 	return {
 		path,
 		commands,
@@ -220,6 +222,7 @@ export async function startFakeEukhe({ path, turn, models = DEFAULT_MODELS, step
 			for (const s of sockets) s.destroy();
 			await new Promise((r) => server.close(r));
 			rmSync(path, { force: true });
+			rmSync(`${path}.pid`, { force: true });
 		},
 	};
 }
