@@ -38,7 +38,7 @@ export const MAX_NOTE = 200;
 export const FEED_FILTER_GET = "tk-feed-filter:get";
 export const FEED_FILTER_SET = "tk-feed-filter:set";
 
-/** Whether `url` is on `host` or one of its subdomains. */
+/** Whether `url` is on `host` or one of its subdomains. An IP address has no subdomains: 127.0.0.1 isn't under 0.1. */
 export function onHost(url: string | undefined, host: string): boolean {
 	if (!url) return false;
 	let h: string;
@@ -49,5 +49,5 @@ export function onHost(url: string | undefined, host: string): boolean {
 	} catch {
 		return false;
 	}
-	return h === host || h.endsWith(`.${host}`);
+	return h === host || (!/^[\d.]+$/.test(h) && h.endsWith(`.${host}`));
 }

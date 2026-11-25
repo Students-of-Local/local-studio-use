@@ -11,6 +11,8 @@ import { DARK } from "./common.js";
 import { balanced, checkSelectors, SiteEditError } from "./selectors.js";
 
 const MAX_STYLE = 8_000;
+/** What is read at all. Rules in the form they are kept in are up to 3.2 times as long as MAX_STYLE counts them. */
+const MAX_RAW = 4 * MAX_STYLE;
 const MAX_RULES = 60;
 
 const PROPERTY_NAMES = new Set([
@@ -121,6 +123,8 @@ interface Rule {
 	declarations: string[];
 }
 
+const tooLong = () => new SiteEditError(`A style is limited to ${MAX_STYLE} characters.`);
+
 /** A check-only copy: `text` with each quoted string emptied, so what is inside a font name isn't read as CSS. */
 function withoutStrings(text: string): string {
 	return text.replace(/"[^"]*"|'[^']*'/g, '""');
@@ -165,6 +169,7 @@ function checkDeclaration(raw: string): string {
 	const known = PROPERTY_NAMES.has(property) || (PROPERTY_FAMILIES.test(property) && !PROPERTY_REFUSED.test(property));
 	if (!custom && !known) return refuse(`${property} isn't one a style may set.`);
 	if (!value) return refuse("the value is empty.");
+	if (value.length > MAX_STYLE) throw tooLong();
 	if (/[!<>]/.test(value)) return refuse("a value has no ! < or >.");
 	if (!balanced(value)) return refuse("unbalanced parentheses or quotes.");
 	if (/["']/.test(value) && property !== "font" && property !== "font-family")
@@ -219,15 +224,20 @@ function parseRules(raw: string): Rule[] {
 	return rules;
 }
 
+/** A rule's length without the spaces and `!important` the kept form adds, so a style that was kept passes again. */
+function plainLength(rule: Rule): number {
+	return rule.declarations.reduce((n, d) => n + d.length - " !important".length, rule.selectors.length + 1);
+}
+
 /** A style edit's value from what an agent sent: the ready-made `dark`, or its rules in one canonical form, one a line. */
 export function checkStyle(raw: string): string {
 	const value = raw.trim();
 	if (!value) throw new SiteEditError('Give CSS rules, like "body { font-size: 18px }", or dark.');
 	if (value.toLowerCase() === DARK) return DARK;
-	if (value.length > MAX_STYLE) throw new SiteEditError(`A style is limited to ${MAX_STYLE} characters.`);
-	return parseRules(value)
-		.map((r) => `${r.selectors} { ${r.declarations.join("; ")}; }`)
-		.join("\n");
+	if (value.length > MAX_RAW) throw tooLong();
+	const rules = parseRules(value);
+	if (rules.reduce((n, r) => n + plainLength(r), 0) > MAX_STYLE) throw tooLong();
+	return rules.map((r) => `${r.selectors} { ${r.declarations.join("; ")}; }`).join("\n");
 }
 
 const FLIP = "invert(1) hue-rotate(180deg) !important";

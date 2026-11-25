@@ -145,6 +145,14 @@ export function normalizeHost(raw: string): string {
 		.replace(/\.$/, "");
 	if (!/^[a-z0-9-]+(\.[a-z0-9-]+)+$/.test(host) || host.length > 253)
 		throw new SiteEditError(`${raw} isn't a site. Use one like example.com.`);
+	// Part of an address ("0.1", which the browser reads as 0.0.0.1) or one written another way is no site.
+	let canonical: string | undefined;
+	try {
+		canonical = new URL(`https://${host}/`).hostname;
+	} catch {
+		// "256.1.1.1": no address at all.
+	}
+	if (canonical !== host) throw new SiteEditError(`${raw} isn't a site. Use one like example.com.`);
 	if (sharedSuffix(host))
 		throw new SiteEditError(
 			`${host} is shared by many sites, so an edit there would reach all of them. Name the site itself.`,

@@ -433,6 +433,38 @@ test("a handle means the post's author: a mention, a reply or a quoted post of t
 	core.startFeedFilter(window.document, [{ words: [], handles: ["bob"] }], { hostname: "example.com", badge: false });
 	assert.deepEqual(hidden(window.document).map((e) => e.id), ["g2", "g3q"]);
 	window.close();
+
+	// X: a quoted post sits in a div with role=link inside the post; a mention and the repost line are plain links.
+	const quote = `<div role="link"><div data-testid="UserAvatar-Container-bob"></div><div data-testid="User-Name"><a href="/bob">Bob</a></div></div>`;
+	const named = (id, html) => html.replace('"tweet"', `"tweet" id="${id}"`);
+	window = page(
+		"x.com",
+		named("x1", tweet("alice", `hey <a href="/bob">@bob</a> look ${quote}`)) +
+			named("x2", tweet("bob", "mine").replace('<div data-testid="UserAvatar', '<a href="/carol" data-testid="socialContext">Carol reposted</a>$&')) +
+			named("x3", tweet("carol", "x").replace("Container-carol", "Container-unknown")) +
+			`<article data-testid="tweet" id="x4"><div data-testid="UserAvatar-Container-bob"></div>mine</article>` +
+			`<article data-testid="tweet" id="x5">no author yet ${quote}</article>`,
+	);
+	core.startFeedFilter(window.document, [{ words: [], handles: ["@bob", "carol"] }], { hostname: "x.com", badge: false });
+	assert.deepEqual([...window.document.querySelectorAll(`.${core.HIDDEN_CLASS} article, article.${core.HIDDEN_CLASS}`)].map((e) => e.id), ["x2", "x3", "x4"]);
+	window.close();
+
+	// LinkedIn: the actor header is the author; "Bob likes this", a mention, a reshared post and a comment aren't.
+	const actor = (path, name) => `<div class="update-components-actor"><a class="update-components-actor__meta-link" href="https://www.linkedin.com/${path}?x=1">${name}</a></div>`;
+	const post = (id, html) => `<div class="feed-shared-update-v2" data-urn="urn:li:activity:${id}" id="${id}">${html}</div>`;
+	const bobLink = `<a href="https://www.linkedin.com/in/bob/">Bob</a>`;
+	window = page(
+		"www.linkedin.com",
+		post("l1", `<div class="update-components-header">${bobLink} likes this</div>${actor("in/alice", "Alice")}`) +
+			post("l2", `${actor("in/alice", "Alice")}<div class="update-components-text">thanks ${bobLink}</div>`) +
+			post("l3", `${actor("company/acme", "Acme")}<div class="update-components-mini-update-v2">${actor("in/bob", "Bob")}</div>`) +
+			post("l4", `${actor("school/mit", "MIT")}${actor("in/bob", "Bob")}`) +
+			post("l5", `${actor("in/bob", "Bob")}<article>${actor("in/alice", "Alice")}</article>`) +
+			post("l6", actor("company/initech/posts", "Initech")),
+	);
+	core.startFeedFilter(window.document, [{ words: [], handles: ["@bob", "initech"] }], { hostname: "www.linkedin.com", badge: false });
+	assert.deepEqual(hidden(window.document).map((e) => e.id), ["l5", "l6"]);
+	window.close();
 });
 
 test("two filters whose selectors overlap both get a say on a post", () => {

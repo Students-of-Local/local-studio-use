@@ -6,6 +6,7 @@ import { test } from "node:test";
 const { checkStyle, styleCss } = await import("../src/site-edits/style.ts");
 const { DARK } = await import("../src/site-edits/common.ts");
 const store = await import("../src/site-edits/store.ts");
+const { sitesDocument, withDocument } = await import("../src/site-edits/saved.ts");
 const empty = { edits: [], adBlock: false };
 const refused = (css, why) => assert.throws(() => checkStyle(css), (e) => e instanceof store.SiteEditError && (!why || why.test(e.message)), css);
 
@@ -82,6 +83,24 @@ test("limits, and what a refusal says", () => {
 	refused("a { color: red } ".repeat(61), /60 rules/);
 	refused(`a { color: ${"r".repeat(8000)} }`, /8000/);
 	refused(".a { color: red } .b { z-index: 4 }", /"z-index: 4": z-index isn't one a style may set/);
+});
+
+test("a style at the limit passes the same check again: its Undo works, and a kept copy of it is taken", () => {
+	// The smallest declarations, which the kept form makes longest, and exactly as many as fit.
+	const raw = `a{${Array(1333).fill("gap:0").join(";")}}`;
+	assert.equal(raw.length, 8000);
+	const kept = checkStyle(raw);
+	assert.ok(kept.length > 3 * raw.length);
+	assert.equal(checkStyle(kept), kept);
+	const wide = checkStyle(Array.from({ length: 60 }, (_, i) => `.a${i}{--${"b".repeat(100)}:0;gap:0}`).join(" "));
+	assert.equal(checkStyle(wide), wide);
+	refused(`a{${Array(1334).fill("gap:0").join(";")}}`, /8000/);
+	refused(`a { color: red } /* ${"x".repeat(40_000)} */`, /8000/);
+	const first = store.added(empty, { host: "x.com", kind: "style", value: raw, actor: "agent", who: "claude" }, "s1", 1);
+	const tuned = store.updated(first.state, "s1", "a { color: red }");
+	assert.equal(store.updated(tuned, "s1", first.edit.value).edits[0].value, kept, "the card's Undo");
+	const taken = withDocument(empty, sitesDocument(first.state), [], () => "n1", 2);
+	assert.deepEqual([taken.added, taken.leftOut, taken.state.edits[0].value], [1, 0, kept]);
 });
 
 test("a style is one edit, on at once, in the page's sheet before the hides", () => {

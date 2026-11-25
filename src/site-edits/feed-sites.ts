@@ -56,11 +56,16 @@ function firstHandle(item: Element, selector: string, pattern: RegExp, keep: (a:
 const X: SiteProfile = {
 	items: 'article[data-testid="tweet"]',
 	target: (item) => item.closest('[data-testid="cellInnerDiv"]') ?? item,
+	// The author only: a quoted post, with its own name and avatar, sits in a div with role=link inside the post.
 	handles(item) {
-		const out = linkHandles(item, '[data-testid="User-Name"] a[href]', /^\/([A-Za-z0-9_]{1,15})(?:[/?#]|$)/);
-		for (const el of item.querySelectorAll('[data-testid^="UserAvatar-Container-"]'))
-			out.push(normalizeHandle(el.getAttribute("data-testid")?.slice("UserAvatar-Container-".length) ?? ""));
-		return out;
+		const own = (el: Element) => {
+			const quote = el.closest('div[role="link"]');
+			return !quote || quote.contains(item);
+		};
+		const name = firstHandle(item, '[data-testid="User-Name"] a[href]', /^\/([A-Za-z0-9_]{1,15})(?:[/?#]|$)/, own);
+		if (name.length) return name;
+		const avatar = [...item.querySelectorAll('[data-testid^="UserAvatar-Container-"]')].find(own);
+		return [normalizeHandle(avatar?.getAttribute("data-testid")?.slice("UserAvatar-Container-".length) ?? "")];
 	},
 };
 
@@ -138,7 +143,12 @@ const BLUESKY: SiteProfile = {
 
 const LINKEDIN: SiteProfile = {
 	items: 'div.feed-shared-update-v2, div[data-urn^="urn:li:activity"]',
-	handles: (item) => linkHandles(item, 'a[href*="/in/"], a[href*="/company/"]', /\/(?:in|company)\/([^/?#]+)/),
+	// The author only, from the post's actor header, the first in the item: a "likes this" line, a mention, a comment or a
+	// reshared post links other accounts.
+	handles(item) {
+		const actor = item.querySelector(".update-components-actor");
+		return actor ? firstHandle(actor, "a[href]", /\/(?:in|company)\/([^/?#]+)/) : [];
+	},
 };
 
 const AUTHOR_LINK = /\/(?:@|users?\/|u\/)([^/?#]+)/;

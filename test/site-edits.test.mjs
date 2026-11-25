@@ -16,6 +16,24 @@ test("a site is a plain host, written one way", () => {
 	assert.ok(!store.onHost("chrome://settings", "settings"));
 });
 
+test("part of an address is no site, and an edit on an address never reaches another one", () => {
+	for (const bad of ["0.1", "0.0.1", "1.1", "168.1.1", "127.1", "www.0.1", "*.0.1", "0.0.1.", "010.0.0.1", "256.1.1.1", "1.2.3.4.5", "x.1", "x.0x1"])
+		assert.throws(() => store.normalizeHost(bad), store.SiteEditError, bad);
+	for (const ip of ["127.0.0.1", "192.168.0.1"]) {
+		assert.equal(store.normalizeHost(ip), ip);
+		assert.equal(store.normalizeHost(`http://${ip}:8080/x`), ip);
+		assert.ok(store.onHost(`http://${ip}:8080/`, ip));
+		// Edits kept before such a host was refused.
+		for (const part of ["1", "0.1", "0.0.1", "168.0.1"]) assert.ok(!store.onHost(`http://${ip}/`, part), `${part} ${ip}`);
+	}
+	for (const site of ["1.1.example.com", "4chan.org", "163.com", "x.a1"]) assert.equal(store.normalizeHost(site), site);
+	assert.ok(store.onHost("http://[::1]:3000/", "[::1]"));
+	assert.ok(store.onHost("http://localhost:3000/", "localhost"));
+	assert.ok(store.onHost("http://app.localhost:3000/", "localhost"));
+	const kept = { edits: [{ id: "a", host: "0.1", kind: "hide", value: ".ad", note: "", addedBy: "agent:c", on: true, createdAt: 1 }], adBlock: false };
+	assert.equal(store.pageCss(kept, "http://127.0.0.1:8188/"), "");
+});
+
 test("hide takes selectors only, so an edit can't add CSS that reads the page", () => {
 	assert.equal(store.checkSelectors(" .ad, [data-testid=sidebar] "), ".ad, [data-testid=sidebar]");
 	for (const bad of [
