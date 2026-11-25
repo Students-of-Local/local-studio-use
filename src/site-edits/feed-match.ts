@@ -67,7 +67,8 @@ function quantifierAt(source: string, i: number): { length: number; unbounded: b
  *   like ((a|a))+: alternatives that overlap try every split of the text, exponential too, and a large count is no
  *   better than no end;
  * - more than one repeat without end, like .*.*.*z: each one multiplies the work by the post's length. One is fine
- *   (moon+, \bcrypto\w*).
+ *   (moon+, \bcrypto\w*). A wide count, like .{0,9999}, is as good as no end;
+ * - too many ways to match one stretch of text (waysThrough): \w?\w?\w?..., (\w?){25}, .{0,40}.{0,40}x.
  * Escapes and character classes are skipped whole: [a*+] holds characters, not repeats.
  */
 export function riskyPattern(source: string): string | undefined {
@@ -114,7 +115,74 @@ export function riskyPattern(source: string): string | undefined {
 			i += q.length - 1;
 		}
 	}
-	return unbounded > 1 ? "has more than one open-ended repeat (*, + or {n,})" : undefined;
+	const { ways, open } = waysThrough(source);
+	if (unbounded > 1 || open > 1) return "has more than one open-ended repeat (*, +, {n,} or a wide count)";
+	if (ways > (open ? MAX_WAYS_OPEN : MAX_WAYS)) return "can match the same text in too many ways";
+	return undefined;
+}
+
+/** A count this much wider than its least is worked through like one without end. */
+const WIDE = 50;
+/** The most ways a pattern may have to match one stretch of text, alone and beside the one repeat without end. */
+const MAX_WAYS = 1000;
+const MAX_WAYS_OPEN = 32;
+const TOO_MANY = 1e6;
+
+/**
+ * How many ways a pattern can be tried from one place: choices add up, what follows multiplies, and a count takes each
+ * of its lengths. Repeats without end (or WIDE) are counted apart, and one around anything with a choice is too many.
+ */
+function waysThrough(source: string): { ways: number; open: number } {
+	let i = 0;
+	let open = 0;
+	const cap = (n: number) => Math.min(n, TOO_MANY);
+	const choice = (): number => {
+		let ways = sequence();
+		while (source[i] === "|") {
+			i++;
+			ways = cap(ways + sequence());
+		}
+		return ways;
+	};
+	const sequence = (): number => {
+		let ways = 1;
+		while (i < source.length && source[i] !== "|" && source[i] !== ")") ways = cap(ways * item());
+		return ways;
+	};
+	const item = (): number => {
+		let ways = 1;
+		const c = source[i++];
+		if (c === "\\") i++;
+		else if (c === "[") {
+			for (; i < source.length && source[i] !== "]"; i++) if (source[i] === "\\") i++;
+			i++;
+		} else if (c === "(") {
+			const kind = /\?(?:[:=!]|<[=!]|<[^>]*>)/y;
+			kind.lastIndex = i;
+			if (kind.test(source)) i = kind.lastIndex;
+			ways = choice();
+			i++;
+		}
+		const count = /[*+?]|\{(\d+)(,(\d*))?\}/y;
+		count.lastIndex = i;
+		const m = count.exec(source);
+		if (!m) return ways;
+		i = count.lastIndex;
+		if (source[i] === "?") i++;
+		const least = m[1] ? Number(m[1]) : m[0] === "+" ? 1 : 0;
+		const most = m[1] ? (m[2] ? (m[3] ? Number(m[3]) : Infinity) : least) : m[0] === "?" ? 1 : Infinity;
+		if (most - least > WIDE) {
+			open++;
+			return ways > 1 ? TOO_MANY : 1;
+		}
+		return cap((most - least + 1) * cap(ways ** most));
+	};
+	let ways = 1;
+	while (i < source.length) {
+		ways = cap(ways * choice());
+		i++;
+	}
+	return { ways, open };
 }
 
 function escapeRegex(text: string): string {

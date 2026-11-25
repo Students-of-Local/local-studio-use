@@ -95,11 +95,20 @@ test("/regex/ terms: any case unless flags are written, and the same answer ever
 	// Open-ended repeats one after another are polynomial: three .* on 10,000 characters is a trillion steps.
 	assert.ok(match.riskyPattern(".*.*.*z"));
 	assert.ok(match.riskyPattern("a+b*"));
+	// Wide counts and runs of optional pieces multiply the same way.
+	assert.ok(match.riskyPattern(".{0,9999}.{0,9999}.{0,9999}z"));
+	assert.ok(match.riskyPattern("(\\w?){25}!"));
+	assert.ok(match.riskyPattern("a{0,40}a{0,40}a{0,40}z"));
+	assert.ok(match.riskyPattern("((a|b)(a|b)(a|b)(a|b)){4}!"));
+	assert.ok(match.riskyPattern("(?:(?<x>\\w{1,9}?)){1,9}!"));
 	// Common shapes with one open-ended repeat are fine, and so are bounded ones.
 	assert.ok(!match.riskyPattern("(ab)+c"));
 	assert.ok(!match.riskyPattern("colou?r"));
 	assert.ok(!match.riskyPattern("\\d{2,4}"));
 	assert.ok(!match.riskyPattern("moon+"));
+	assert.ok(!match.riskyPattern("\\bcrypto.{0,80}moon"), "one wide count");
+	assert.ok(!match.riskyPattern("(?:buy|sell|hold) (?:now|today)?"));
+	assert.ok(!match.riskyPattern("\\$\\d{1,3},?\\d{0,3}"));
 	assert.ok(!match.riskyPattern("\\bcrypto\\w*"));
 	assert.ok(!match.riskyPattern("giveaway|raffle"), "a choice that doesn't repeat");
 	assert.ok(!match.riskyPattern("[a*+]+x"), "repeat signs inside a class are characters");
@@ -504,6 +513,12 @@ test("a post's text keeps blocks apart and inline runs whole, so word edges hold
 	assert.equal(core.itemText(doc.getElementById("a")), "1h\ncrypto again", "textContent would give 1hcrypto");
 	assert.equal(core.itemText(doc.getElementById("b")), "crypto", "no script text, and <b>cry</b>pto is one word");
 	assert.equal(core.itemText(doc.getElementById("a"), 4), "1h\nc");
+	const inline = page("x.com", `<p id="a">one<br>crypto</p><p id="b">crypto<br>b</p><p id="c">buy<img alt="">crypto</p>`);
+	const text = (id) => core.itemText(inline.document.getElementById(id));
+	assert.equal(text("a"), "one\ncrypto", "a line break parts words");
+	assert.equal(text("b"), "crypto\nb");
+	assert.equal(text("c"), "buy crypto", "so does a picture in the line");
+	inline.close();
 	window.close();
 });
 

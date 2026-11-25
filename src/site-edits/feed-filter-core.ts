@@ -40,6 +40,12 @@ const INLINE = new Set(
 	),
 );
 const NO_TEXT = new Set(["SCRIPT", "STYLE", "NOSCRIPT", "TEMPLATE"]);
+/** Elements with no text of their own that part what is on either side: a line break, or something drawn in the line. */
+const BREAKS = new Map([
+	["BR", "\n"],
+	["HR", "\n"],
+	...["IMG", "SVG", "VIDEO", "CANVAS", "INPUT", "OBJECT", "IFRAME"].map((tag): [string, string] => [tag, " "]),
+]);
 
 /**
  * An element's text as a person reads it, without layout: textContent runs a name, a time and the post together
@@ -47,10 +53,14 @@ const NO_TEXT = new Set(["SCRIPT", "STYLE", "NOSCRIPT", "TEMPLATE"]);
  * across inline elements (<b>cry</b>pto) stays one word.
  */
 export function itemText(root: Element, max = MAX_TEXT): string {
-	const walker = root.ownerDocument.createTreeWalker(root, 4 /* NodeFilter.SHOW_TEXT */);
+	const walker = root.ownerDocument.createTreeWalker(root, 5 /* NodeFilter.SHOW_ELEMENT | NodeFilter.SHOW_TEXT */);
 	let out = "";
 	let lastBlock: Node | null = null;
 	for (let n = walker.nextNode(); n && out.length < max; n = walker.nextNode()) {
+		if (n.nodeType === 1) {
+			out += BREAKS.get((n as Element).tagName.toUpperCase()) ?? "";
+			continue;
+		}
 		const text = n.nodeValue;
 		const parent = n.parentNode as Element | null;
 		if (!text || (parent && NO_TEXT.has(parent.tagName))) continue;
