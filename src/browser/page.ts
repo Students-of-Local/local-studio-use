@@ -2731,7 +2731,7 @@ export async function awaitDrawn(capMs: number): Promise<number> {
 	return Math.round(performance.now() - t0);
 }
 
-/** Scroll the page or an element; returns the new scroll position. */
+/** Scroll the page or an element, at once whatever its scroll-behavior; returns the new scroll position. */
 export async function scrollPage(
 	tabId: number,
 	options: { dx?: number; dy?: number; selector?: string; ref?: string; to?: "top" | "bottom" },
@@ -2772,9 +2772,8 @@ export async function scrollPage(
 				box = box.parentElement || (root instanceof ShadowRoot ? root.host : null);
 			}
 			if (!page(box)) {
-				if (o.to === "top") box.scrollTo(box.scrollLeft, 0);
-				else if (o.to === "bottom") box.scrollTo(box.scrollLeft, box.scrollHeight);
-				else box.scrollBy(o.dx || 0, o.dy || 0);
+				if (o.to) box.scrollTo({ top: o.to === "top" ? 0 : box.scrollHeight, behavior: "instant" });
+				else box.scrollBy({ left: o.dx || 0, top: o.dy || 0, behavior: "instant" });
 				// Agent tabs sit in the background, where the frame that fires "scroll" comes late, and a list
 				// that draws its rows on scroll would still show the old ones to the next read. Fire it now,
 				// then give the page one frame (at most 150 ms) to draw.
@@ -2787,9 +2786,8 @@ export async function scrollPage(
 			target = null;
 		}
 		if (target) target.scrollIntoView({ block: "center", behavior: "instant" });
-		else if (o.to === "top") window.scrollTo(0, 0);
-		else if (o.to === "bottom") window.scrollTo(0, document.documentElement.scrollHeight);
-		else window.scrollBy(o.dx || 0, o.dy || 0);
+		else if (o.to) window.scrollTo({ left: 0, top: o.to === "top" ? 0 : document.documentElement.scrollHeight, behavior: "instant" });
+		else window.scrollBy({ left: o.dx || 0, top: o.dy || 0, behavior: "instant" });
 		return { scrollX: Math.round(window.scrollX), scrollY: Math.round(window.scrollY), pageHeight: document.documentElement.scrollHeight };
 	})()`;
 	const framed = options.ref ? await frameForRef(tabId, options.ref, rule) : undefined;

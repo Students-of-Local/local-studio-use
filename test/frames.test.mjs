@@ -640,6 +640,47 @@ test("every page script click, hover, type, fill and scroll send parses, for a t
 	assert.ok(parsed.some((e) => /scrollHeight/.test(e)), "scrollPage's script ran");
 });
 
+test("a scroll is at once on a page or a pane with scroll-behavior: smooth, so its answer is the final position", async () => {
+	const { scrollPage } = await import("../src/browser/page.ts");
+	const getTab = chrome.tabs.get;
+	chrome.tabs.get = async (id) => ({ id, url: "https://shop.example/" });
+	// Smooth: a scroll that names no behavior has not moved when the script reads the position.
+	const smooth = (x, y, view, height) => {
+		const move = (o, by) => {
+			if (o?.behavior !== "instant") return;
+			if (o.left !== undefined) box[x] = by * box[x] + o.left;
+			if (o.top !== undefined) box[y] = Math.max(0, Math.min(height - view, by * box[y] + o.top));
+		};
+		const box = { [x]: 0, [y]: 0, scrollTo: (o) => move(o, 0), scrollBy: (o) => move(o, 1) };
+		return box;
+	};
+	const win = smooth("scrollX", "scrollY", 800, 3000);
+	const pane = Object.assign(smooth("scrollLeft", "scrollTop", 100, 1000), { scrollHeight: 1000, clientHeight: 100, dispatchEvent() {} });
+	const page = vm.createContext({
+		window: win,
+		document: { documentElement: { scrollHeight: 3000 }, querySelector: () => pane },
+		getComputedStyle: () => ({ overflowY: "auto" }),
+		requestAnimationFrame: (fn) => fn(),
+		setTimeout,
+		Event,
+	});
+	chrome.debugger.sendCommand = async (_target, method, params) =>
+		method === "Runtime.evaluate" ? { result: { value: await vm.runInContext(params.expression, page) } } : {};
+	try {
+		const y = async (o) => (await scrollPage(81, o)).scrollY;
+		assert.deepEqual([await y({ dy: 500 }), await y({ to: "bottom" }), await y({ dy: -200 }), await y({ to: "top" })], [500, 2200, 2000, 0]);
+		const top = async (o) => {
+			const r = await scrollPage(81, { selector: "#pane", ...o });
+			return [r.scrollTop, r.atEnd];
+		};
+		assert.deepEqual(await top({ dy: 300 }), [300, false]);
+		assert.deepEqual(await top({ to: "bottom" }), [900, true]);
+		assert.deepEqual(await top({ to: "top" }), [0, false]);
+	} finally {
+		chrome.tabs.get = getTab;
+	}
+});
+
 test("a frame in a same-process frame in another process: points are measured from the frame its session draws, not one sharing its session", async () => {
 	// TOP holds X (its own process, S1); X holds Y (another site, X's process, so S1 too); Y holds Z (its own, S2).
 	const { locate } = await import("../src/browser/page.ts");
