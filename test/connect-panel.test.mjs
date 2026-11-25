@@ -60,14 +60,15 @@ test("Settings is ten sections in three groups, and each entry point opens one t
 	for (const name of opened) assert.ok(names.has(name), `${name} is no section`);
 });
 
-test("an empty chat with nothing to answer it is the list of what can, with an API key last and the setup prompt under it", () => {
+test("an empty chat with nothing to answer it is the list of what can, with an API key and the person's own agent last", () => {
 	const welcome = read("src/messages/WelcomeMessage.ts");
 	assert.match(welcome, /if \(setup\.needsModel\) return this\.renderConnect\(\);/);
 	const connect = welcome.slice(welcome.indexOf("private renderConnect"), welcome.indexOf("override render"));
-	assert.ok(connect.indexOf("<local-studio-connect-list") > 0 && connect.indexOf("<local-studio-connect-list") < connect.indexOf("agentSetupPromptButton("));
+	assert.ok(connect.indexOf("<local-studio-connect-list") > 0);
+	assert.doesNotMatch(connect, /agentSetupPrompt/, "the prompt is inside the list's own agent row, once");
 	const list = read("src/subscriptions/ConnectList.ts");
 	const drawn = list.slice(list.indexOf("data-connect-list"));
-	const order = ["this.renderApp()", 'this.renderSignIn("chatgpt")', 'this.renderSignIn("copilot")', "this.renderCli()", '"API key"'].map((text) => drawn.indexOf(text));
+	const order = ["this.renderApp()", 'this.renderSignIn("chatgpt")', 'this.renderSignIn("copilot")', '"API key"', "this.renderCli()"].map((text) => drawn.indexOf(text));
 	assert.ok(order.every((i) => i > 0), JSON.stringify(order));
 	assert.deepEqual([...order].sort((a, b) => a - b), order);
 	// The API key row opens Settings on the key field itself, not on the top of the section.
@@ -105,8 +106,8 @@ test("what isn't used every chat is under More: six items, with Skills and Setti
 
 test("Privacy keeps one sentence visible and every long explanation in a named disclosure, text unchanged", () => {
 	const text = read("src/dialogs/PrivacyTab.ts");
-	assert.equal((text.match(/<summary/g) ?? []).length >= 2, true);
-	assert.doesNotMatch(text, />Details</, "a disclosure says what it holds");
+	assert.equal((text.match(/more\(\s*"/g) ?? []).length, 6);
+	assert.doesNotMatch(text, /more\(\s*"Details"/, "a disclosure says what it holds");
 	// The original explanations survive word for word.
 	for (const kept of [
 		"The side panel agent then runs only OpenRouter models, sent with zero data retention required and no",
@@ -123,9 +124,9 @@ test("Page scripts reads as one plain sentence with the old wording under Detail
 	const text = read("src/dialogs/BridgeTab.ts");
 	assert.match(text, /Turning this on makes agents' page scripts run faster\./);
 	assert.match(text, /Local Studio has not been granted the userScripts permission\./);
-	assert.match(text, /<summary class="cursor-pointer text-foreground">Details<\/summary>/);
+	assert.match(text, /more\("Details", detail\)/);
 	// The jargon is no longer a visible line.
-	assert.doesNotMatch(text, /line\(\s*['"]Off: Local Studio has not been granted/);
+	assert.doesNotMatch(text, /row\(\s*['"](Off: )?Local Studio has not been granted/);
 });
 
 // ---------- round-1 review fixes ----------

@@ -1,9 +1,12 @@
+import { icon } from "@mariozechner/mini-lit";
 import { Button } from "@mariozechner/mini-lit/dist/Button.js";
 import { getProviders } from "@mariozechner/pi-ai";
 import { getAppStorage, SettingsTab } from "@mariozechner/pi-web-ui";
 import { html, nothing, type TemplateResult } from "lit";
 import { repeat } from "lit/directives/repeat.js";
+import { ChevronDown, Plus } from "lucide";
 import { API_BILLING_NOTE, REMOVED_SIGN_IN_PROVIDERS } from "../auth/policy.js";
+import { group, more, switchRow } from "../components/settings-form.js";
 import { providerDisplayName } from "../models/display.js";
 import { FREE_PRIVACY_NOTE } from "../models/free-mode.js";
 import { isFreeModeOn, setFreeMode } from "../models/free-panel.js";
@@ -166,17 +169,16 @@ export class ApiKeysTab extends SettingsTab {
 		if (anchor === "add-api-key") this.openAdd(true);
 	}
 
-	private async toggleFree(e: Event) {
-		const input = e.target as HTMLInputElement;
-		input.checked = await setFreeMode(input.checked);
+	private async setFree(on: boolean) {
+		await setFreeMode(on);
 		this.requestUpdate();
 	}
 
 	private renderKeys(): TemplateResult {
 		const providers = this.providers();
 		return html`
-			<section class="flex flex-col gap-2" aria-labelledby="api-keys-heading">
-				<h3 id="api-keys-heading" class="text-sm font-semibold text-foreground">API keys</h3>
+			<section class="flex flex-col gap-1.5" aria-labelledby="api-keys-heading">
+				<h3 id="api-keys-heading" class="tk-group-name">API keys</h3>
 				${
 					this.justSaved
 						? html`<div
@@ -203,82 +205,72 @@ export class ApiKeysTab extends SettingsTab {
 									this.query = (e.target as HTMLInputElement).value;
 									this.requestUpdate();
 								}}
-								class="w-full h-9 px-3 text-sm rounded-md border border-input bg-background text-foreground placeholder:text-muted-foreground outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
+								class="tk-search"
 							/>`
 						: nothing
 				}
 				${
-					!this.keysLoaded
-						? nothing
-						: providers.length === 0
-							? this.adding
-								? html`<p class="text-sm text-muted-foreground">No provider matches. Add any OpenAI- or Anthropic-compatible endpoint under Custom providers below.</p>`
-								: nothing
-							: html`<div class="flex flex-col divide-y divide-border">
-									${repeat(
-										providers,
-										(provider) => provider,
-										(provider) =>
-											html`<local-studio-provider-key .provider=${provider} .label=${providerDisplayName(provider)} .knownHasKey=${this.saved.has(provider)}></local-studio-provider-key>`,
-									)}
-								</div>`
+					this.keysLoaded && this.adding && providers.length === 0
+						? html`<p class="tk-group-note">No provider matches. Add any OpenAI- or Anthropic-compatible endpoint under Custom providers below.</p>`
+						: nothing
 				}
-				<div class="flex flex-wrap items-center gap-x-4 gap-y-1" id="add-api-key">
-					<button
-						type="button"
-						class="tk-row-button"
-						aria-expanded=${this.adding ? "true" : "false"}
-						@click=${() => this.openAdd(!this.adding)}
-					>
-						${this.adding ? "Done" : "Add an API key"}
-					</button>
+				<div class="tk-list" id="add-api-key">
+					${
+						this.keysLoaded
+							? repeat(
+									providers,
+									(provider) => provider,
+									(provider) =>
+										html`<local-studio-provider-key .provider=${provider} .label=${providerDisplayName(provider)} .knownHasKey=${this.saved.has(provider)}></local-studio-provider-key>`,
+								)
+							: nothing
+					}
 					${
 						this.adding && !this.showAll && !this.query.trim()
 							? html`<button
 									type="button"
-									class="text-sm text-muted-foreground underline underline-offset-2 cursor-pointer"
+									class="tk-row tk-row-link text-sm text-muted-foreground"
 									@click=${() => {
 										this.showAll = true;
 										this.requestUpdate();
 									}}
 								>
-									Show all providers
+									<span class="flex-1">Show all providers</span>
+									<span class="tk-row-chevron" aria-hidden="true">${icon(ChevronDown, "sm")}</span>
 								</button>`
 							: nothing
 					}
+					<button
+						type="button"
+						class="tk-row tk-row-link text-sm font-medium"
+						aria-expanded=${this.adding ? "true" : "false"}
+						@click=${() => this.openAdd(!this.adding)}
+					>
+						<span class="flex-1">${this.adding ? "Done" : "Add an API key"}</span>
+						${this.adding ? nothing : html`<span class="tk-row-chevron" aria-hidden="true">${icon(Plus, "sm")}</span>`}
+					</button>
 				</div>
-				${
-					this.adding
-						? html`<p class="text-xs text-muted-foreground">Keys stay in this browser. ${API_BILLING_NOTE}</p>`
-						: nothing
-				}
-				${this.adding || this.hasCustom ? html`<div class="pt-3">${this.custom}</div>` : nothing}
+				${this.adding ? html`<p class="tk-group-note">Keys stay in this browser. ${API_BILLING_NOTE}</p>` : nothing}
+				${this.adding || this.hasCustom ? html`<div class="pt-3.5">${this.custom}</div>` : nothing}
 			</section>
 		`;
 	}
 
 	render(): TemplateResult {
 		return html`
-			<div class="flex flex-col gap-6 ${this.shown ? "" : "invisible"}" data-providers-shown=${this.shown ? "true" : "false"}>
+			<div class="flex flex-col gap-5 ${this.shown ? "" : "invisible"}" data-providers-shown=${this.shown ? "true" : "false"}>
 				<local-studio-connect-list></local-studio-connect-list>
 				${this.renderKeys()}
-				<section class="flex flex-col gap-1.5">
-					<label class="flex items-start justify-between gap-3 text-sm font-medium text-foreground cursor-pointer">
-						<span>Free models (OpenRouter)</span>
-						<input
-							type="checkbox"
-							role="switch"
-							class="tk-switch"
-							.checked=${isFreeModeOn()}
-							@change=${(e: Event) => this.toggleFree(e)}
-						/>
-					</label>
-					<p class="text-xs text-muted-foreground">Never costs money. Needs a free OpenRouter key and is limited per day.</p>
-					<details class="tk-more text-xs text-muted-foreground">
-						<summary>Free models may keep what you send</summary>
-						<p class="mt-1">${FREE_PRIVACY_NOTE}</p>
-					</details>
-				</section>
+				${group(
+					"",
+					switchRow({
+						name: "Free models (OpenRouter)",
+						help: "Never costs money. Limited per day, with a free OpenRouter key",
+						on: isFreeModeOn(),
+						set: (on) => void this.setFree(on),
+						more: more("Free models may keep what you send", FREE_PRIVACY_NOTE),
+					}),
+				)}
 			</div>
 		`;
 	}

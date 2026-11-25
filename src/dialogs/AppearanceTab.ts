@@ -1,10 +1,13 @@
+import { icon } from "@mariozechner/mini-lit";
 import { SettingsTab } from "@mariozechner/pi-web-ui";
-import { html, type TemplateResult } from "lit";
+import { html, nothing, type TemplateResult } from "lit";
 import { customElement, state } from "lit/decorators.js";
+import { Check } from "lucide";
 import { currentAppearance, onAppearance, previewAppearance, setAppearance } from "../appearance/apply.js";
 import { currentMode, type Mode, setMode } from "../appearance/mode.js";
 import { PRESETS, textOn } from "../appearance/palettes.js";
 import { accentToSave, effectiveAccent } from "../appearance/tokens.js";
+import { group } from "../components/settings-form.js";
 import { connectSetTheme } from "../connect/client.js";
 
 const PRESET_LABELS: Record<string, string> = {
@@ -111,16 +114,45 @@ export class AppearanceTab extends SettingsTab {
 				type="button"
 				aria-pressed=${selected ? "true" : "false"}
 				data-preset=${name}
-				class="flex items-center gap-2 rounded-lg border px-2.5 py-2 text-left text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring ${selected ? "border-foreground" : "border-border hover:bg-secondary/60"}"
+				class="tk-row tk-row-link"
 				@click=${() => void this.choose(name, choice.accent, !choice.accent)}
 			>
-				<span class="flex h-6 w-9 shrink-0 overflow-hidden rounded border border-border" aria-hidden="true">
+				<span class="flex h-5 w-8 shrink-0 overflow-hidden rounded border border-border" aria-hidden="true">
 					<span class="w-1/2" style="background:${palette.bg}"></span>
 					<span class="w-1/2" style="background:${choice.accent ?? palette.accent}"></span>
 				</span>
-				<span class="min-w-0 truncate text-foreground">${PRESET_LABELS[name] ?? name}</span>
+				<span class="tk-row-name">${PRESET_LABELS[name] ?? name}</span>
+				${selected ? html`<span class="tk-row-check" aria-hidden="true">${icon(Check, "sm")}</span>` : nothing}
 			</button>
 		`;
+	}
+
+	private renderMode(): TemplateResult {
+		return html`<div class="flex flex-col gap-1.5">
+			<h3 class="tk-group-name" id="tk-mode-name">Mode</h3>
+			<div class="tk-seg" role="radiogroup" aria-labelledby="tk-mode-name">
+				${MODES.map(
+					([value, label]) => html`<button
+						type="button"
+						role="radio"
+						data-mode=${value}
+						aria-checked=${this.mode === value ? "true" : "false"}
+						@click=${async () => {
+							setMode(value);
+							this.mode = value;
+							this.requestUpdate();
+							// Only the mode goes to the helper; the preset and accent it has saved stay as they are.
+							this.shared = await connectSetTheme({ mode: value }).then(
+								() => true,
+								() => false,
+							);
+						}}
+					>
+						${label}
+					</button>`,
+				)}
+			</div>
+		</div>`;
 	}
 
 	render(): TemplateResult {
@@ -129,19 +161,19 @@ export class AppearanceTab extends SettingsTab {
 		const shown = this.draft ?? inUse;
 		const hex = HEX.test(normalizeHex(shown)) ? normalizeHex(shown) : inUse;
 		return html`
-			<div class="flex flex-col gap-6">
-				<div class="space-y-2" role="group" aria-label="Color preset">
-					<div class="text-sm font-medium text-foreground">Colors</div>
-					<div class="grid grid-cols-2 gap-2">${Object.keys(PRESETS).map((name) => this.swatch(name))}</div>
-				</div>
-
-				<div class="space-y-2">
-					<label for="tk-accent-text" class="text-sm font-medium text-foreground">Custom accent</label>
-					<div class="flex items-center gap-2">
+			<div class="flex flex-col gap-5">
+				${this.renderMode()}
+				${group(
+					"Colors",
+					Object.keys(PRESETS).map((name) => this.swatch(name)),
+				)}
+				${group(
+					"Accent",
+					html`<div class="tk-row">
 						<input
 							type="color"
 							aria-label="Pick an accent color"
-							class="h-9 w-12 shrink-0 cursor-pointer rounded-md border border-input bg-background p-1"
+							class="h-7 w-8 shrink-0 cursor-pointer rounded border border-border bg-transparent p-0"
 							.value=${hex}
 							@input=${(e: Event) => {
 								// Dragging in the picker fires this many times a second: paint only. Saving and telling the helper wait for "change", when the picker closes.
@@ -161,7 +193,8 @@ export class AppearanceTab extends SettingsTab {
 						/>
 						<input
 							id="tk-accent-text"
-							class="h-9 w-32 rounded-md border border-input bg-background px-3 font-mono text-sm text-foreground placeholder:text-muted-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring"
+							class="tk-row-input"
+							aria-label="Accent color"
 							placeholder="e.g. #3b82f6"
 							spellcheck="false"
 							autocomplete="off"
@@ -180,7 +213,7 @@ export class AppearanceTab extends SettingsTab {
 							choice.accent
 								? html`<button
 										type="button"
-										class="rounded px-2 py-1 text-xs font-medium text-muted-foreground hover:bg-accent hover:text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring"
+										class="tk-row-quiet"
 										@click=${() => {
 											this.draft = undefined;
 											this.accentError = undefined;
@@ -191,34 +224,11 @@ export class AppearanceTab extends SettingsTab {
 									</button>`
 								: ""
 						}
-					</div>
-					<p id="tk-accent-help" class="text-xs ${this.accentError ? "text-destructive" : "text-muted-foreground"}" role=${this.accentError ? "alert" : "note"}>
+					</div>`,
+					html`<p id="tk-accent-help" class=${this.accentError ? "text-destructive" : ""} role=${this.accentError ? "alert" : "note"}>
 						${this.accentError ?? `${choice.accent ? "Your accent" : "The preset's accent"} for buttons and highlights. Type another color to change it; text on it turns ${textOn(hex) === "#000000" ? "dark" : "light"} so it stays readable.`}
-					</p>
-				</div>
-
-				<div class="space-y-2" role="radiogroup" aria-label="Light or dark">
-					<div class="text-sm font-medium text-foreground">Mode</div>
-					${MODES.map(
-						([
-							value,
-							label,
-						]) => html`<label class="flex items-center gap-2 text-sm text-foreground cursor-pointer">
-							<input type="radio" name="tk-mode" .checked=${this.mode === value} @change=${async () => {
-								setMode(value);
-								this.mode = value;
-								this.requestUpdate();
-								// Only the mode goes to the helper; the preset and accent it has saved stay as they are.
-								this.shared = await connectSetTheme({ mode: value }).then(
-									() => true,
-									() => false,
-								);
-							}} />
-							${label}
-						</label>`,
-					)}
-				</div>
-
+					</p>`,
+				)}
 				${this.shared ? "" : html`<p class="text-xs text-muted-foreground">Saved for this panel. Local Studio's helper isn't connected, so the approval and hub pages keep their colors.</p>`}
 			</div>
 		`;

@@ -104,7 +104,7 @@ export class UpdatesTab extends SettingsTab {
 	render(): TemplateResult {
 		if (runningFromStore()) {
 			return html`<div class="space-y-1" data-testid="updates-store">
-				<h3 class="text-sm font-semibold text-foreground">Updates</h3>
+				<h3 class="tk-group-name">Updates</h3>
 				<p class="text-sm text-muted-foreground">
 					Version ${chrome.runtime.getManifest().version}. Your browser keeps this extension up to date from the Chrome
 					Web Store.
@@ -118,8 +118,8 @@ export class UpdatesTab extends SettingsTab {
 		const current =
 			s?.mode === "checkout" ? describeBuild(BUILD) : (BUILD?.version ?? chrome.runtime.getManifest().version);
 		return html`
-			<div class="flex flex-col gap-5" data-tick=${this.tick}>
-				<h3 class="text-sm font-semibold text-foreground">Updates</h3>
+			<div class="flex flex-col gap-1.5" data-tick=${this.tick}>
+				<h3 class="tk-group-name">Updates</h3>
 
 				${
 					s
@@ -143,7 +143,7 @@ export class UpdatesTab extends SettingsTab {
 								${s.blocked ? this.row("Can't update", html`<span class="text-destructive">${s.blocked}</span>`) : nothing}
 								${s.mismatch ? this.row("Mismatch", s.mismatch.reason) : nothing}
 							</div>`
-						: html`<p class="text-sm text-muted-foreground" data-testid="updates-none">
+						: html`<p class="tk-group-note" data-testid="updates-none">
 								Version ${current}. Local Studio updates this with the app. If you installed it yourself, run
 								<code class="font-mono">${hostCommand()} doctor</code> in a terminal.
 							</p>`

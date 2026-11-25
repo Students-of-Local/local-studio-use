@@ -1,6 +1,8 @@
-import { Button } from "@mariozechner/mini-lit/dist/Button.js";
+import { icon } from "@mariozechner/mini-lit";
 import { type CustomProvider, SettingsTab } from "@mariozechner/pi-web-ui";
-import { html, nothing, type TemplateResult } from "lit";
+import { html, type TemplateResult } from "lit";
+import { Plus } from "lucide";
+import { group, rowText } from "../components/settings-form.js";
 import { Toast } from "../components/Toast.js";
 import { getLocalStudioStorage } from "../storage/app-storage.js";
 import { CustomProviderEditDialog } from "./CustomProviderEditDialog.js";
@@ -56,40 +58,23 @@ export class CustomProvidersTab extends SettingsTab {
 	private renderProvider(provider: CustomProvider): TemplateResult {
 		const modelCount = provider.models?.length ?? 0;
 		return html`
-			<div class="flex items-center justify-between gap-2 rounded-md border border-border p-3">
-				<div class="flex-1 min-w-0">
-					<div class="text-sm font-medium text-foreground truncate">${provider.name}</div>
-					<div class="text-xs text-muted-foreground mt-0.5 truncate">
-						<span class="capitalize">${provider.type}</span>
-						${provider.baseUrl ? html` • ${provider.baseUrl}` : ""}
-						• ${modelCount} ${modelCount === 1 ? "model" : "models"}
-					</div>
-				</div>
-				<div class="flex gap-2 flex-shrink-0">
-					${Button({ variant: "outline", size: "sm", onClick: () => this.edit(provider), children: "Edit" })}
-					${Button({ variant: "ghost", size: "sm", onClick: () => this.removeProvider(provider), children: "Delete" })}
-				</div>
+			<div class="tk-row">
+				${rowText(provider.name, [provider.baseUrl || provider.type, `${modelCount} ${modelCount === 1 ? "model" : "models"}`].join(" · "))}
+				<button type="button" class="tk-row-quiet" @click=${() => this.edit(provider)}>Edit</button>
+				<button type="button" class="tk-row-quiet" @click=${() => this.removeProvider(provider)}>Delete</button>
 			</div>
 		`;
 	}
 
 	render(): TemplateResult {
-		return html`
-			<div class="flex flex-col gap-3">
-				<div>
-					<h3 class="text-sm font-semibold text-foreground mb-1">Custom providers</h3>
-					<p class="text-xs text-muted-foreground">
-						Any OpenAI- or Anthropic-compatible endpoint, such as a server you run, by base URL and key.
-					</p>
-				</div>
-				${
-					this.providers.length === 0
-						? nothing
-						: html`<div class="flex flex-col gap-2">${this.providers.map((p) => this.renderProvider(p))}</div>`
-				}
-				<div>${Button({ variant: "outline", size: "sm", onClick: () => this.add(), children: "Add an endpoint" })}</div>
-			</div>
-		`;
+		return group(
+			"Custom providers",
+			html`${this.providers.map((p) => this.renderProvider(p))}
+				<button type="button" class="tk-row tk-row-link" @click=${() => this.add()}>
+					${rowText("Add an endpoint", "Any OpenAI- or Anthropic-compatible server, by base URL and key")}
+					<span class="tk-row-chevron" aria-hidden="true">${icon(Plus, "sm")}</span>
+				</button>`,
+		);
 	}
 }
 

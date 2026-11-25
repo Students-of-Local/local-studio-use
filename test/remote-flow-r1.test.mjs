@@ -204,7 +204,7 @@ test("heading nit: titles wrap at 320 px, and the Tailnet Lock title is short", 
 	const el = read("src/dialogs/RemoteFlow.ts");
 	assert.match(el, /id="remote-step-title" class="text-sm font-medium text-foreground \[overflow-wrap:anywhere\]"/);
 	assert.match(el, /data-result-title class="text-sm font-medium text-foreground \[overflow-wrap:anywhere\]"/);
-	assert.match(el, /id="remote-flow-title" class="text-sm font-semibold text-foreground \[overflow-wrap:anywhere\]"/);
+	assert.match(el, /id="remote-flow-title" class="px-3 text-sm font-semibold text-foreground \[overflow-wrap:anywhere\]"/);
 });
 
 test("settleRun still keeps a Funnel refusal through a status poll", () => {

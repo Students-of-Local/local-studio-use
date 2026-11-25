@@ -1,7 +1,8 @@
 /** Settings > Privacy > Dictation: which speech model runs on this device, and its download. */
 
-import { html, LitElement, type TemplateResult } from "lit";
+import { html, LitElement, nothing, type TemplateResult } from "lit";
 import { customElement, state } from "lit/decorators.js";
+import { group, rowText } from "../components/settings-form.js";
 import { Toast } from "../components/Toast.js";
 import {
 	cachedModels,
@@ -71,72 +72,54 @@ export class DictationSettings extends LitElement {
 
 	override render(): TemplateResult {
 		const auto = this.auto ? MODELS[this.auto.key] : undefined;
-		const select =
-			"h-9 w-full rounded-md border border-input bg-background px-2 text-sm text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-ring";
+		const size = (m: number) => (m >= 1000 ? `${(m / 1000).toFixed(1)} GB` : `${m} MB`);
 		return html`
-			<div class="space-y-4" data-testid="dictation-settings">
-				<p class="text-xs text-muted-foreground">
-					The microphone button turns speech into text on this computer. The audio never leaves the browser; the model
-					is downloaded once from Hugging Face.
-				</p>
-				${
-					auto
-						? html`<p class="text-xs text-foreground">
-								Best fit for this computer: <span class="font-medium">${auto.label}</span>, a ${auto.downloadMB >= 1000 ? `${(auto.downloadMB / 1000).toFixed(1)} GB` : `${auto.downloadMB} MB`} download.
-							</p>`
-						: html`<p class="text-xs text-muted-foreground">Checking this device…</p>`
-				}
-				<label class="flex flex-col gap-1 text-xs text-muted-foreground">
-					Model
-					<select
-						class=${select}
-						.value=${this.setting.model}
-						@change=${(e: Event) => void this.save({ model: (e.target as HTMLSelectElement).value as DictationSetting["model"] })}
-					>
-						<option value="auto">Automatic for this device</option>
-						${(Object.keys(MODELS) as ModelKey[]).map(
-							(key) =>
-								html`<option value=${key} ?disabled=${MODELS[key].device === "webgpu" && !this.gpu}>
-									${MODELS[key].label}, ${MODELS[key].device === "webgpu" ? "GPU" : "processor"}, ${MODELS[key].downloadMB} MB
-								</option>`,
-						)}
-					</select>
-				</label>
-				<label class="flex flex-col gap-1 text-xs text-muted-foreground">
-					Language
-					<select class=${select} .value=${this.setting.language} @change=${(e: Event) => void this.save({ language: (e.target as HTMLSelectElement).value })}>
-						${LANGUAGES.map(([code, name]) => html`<option value=${code}>${name}</option>`)}
-					</select>
-				</label>
-				${
-					this.setting.model !== "auto" &&
-					!MODELS[this.setting.model].multilingual &&
-					(this.setting.language === "auto"
-						? !/^en\b/i.test(navigator.language)
-						: this.setting.language !== "en") &&
-					auto
-						? html`<p class="text-xs text-muted-foreground">
-								${MODELS[this.setting.model].label} is English-only, so ${
-									LANGUAGES.find(([code]) => code === this.setting.language)?.[1] ?? this.setting.language
-								} dictation uses ${auto.label}.
-							</p>`
-						: ""
-				}
-				<div class="flex items-center justify-between gap-2 text-xs text-muted-foreground">
-					<span>Downloaded: ${this.stored.files ? (this.stored.bytes ? mb(this.stored.bytes) : `${this.stored.files} files`) : "nothing yet"}</span>
-					${
-						this.stored.files
-							? html`<button
-									type="button"
-									class="h-8 rounded-md px-2 text-xs font-medium text-destructive hover:bg-destructive/10 outline-none focus-visible:ring-2 focus-visible:ring-ring cursor-pointer"
-									@click=${() => void this.removeModels()}
-								>
-									Remove
-								</button>`
-							: ""
-					}
-				</div>
+			<div class="flex flex-col gap-5" data-testid="dictation-settings">
+				<p class="tk-group-note">The microphone button turns speech into text on this computer. The audio never leaves the browser; the model is downloaded once from Hugging Face.</p>
+				${group(
+					"",
+					html`<label class="tk-row flex-wrap">
+							${rowText("Model", auto ? `Best for this computer: ${auto.label}, a ${size(auto.downloadMB)} download` : "Checking this device")}
+							<select
+								class="tk-select basis-full"
+								.value=${this.setting.model}
+								@change=${(e: Event) => void this.save({ model: (e.target as HTMLSelectElement).value as DictationSetting["model"] })}
+							>
+								<option value="auto">Automatic</option>
+								${(Object.keys(MODELS) as ModelKey[]).map(
+									(key) =>
+										html`<option value=${key} ?disabled=${MODELS[key].device === "webgpu" && !this.gpu}>
+											${MODELS[key].label}, ${MODELS[key].device === "webgpu" ? "GPU" : "processor"}, ${size(MODELS[key].downloadMB)}
+										</option>`,
+								)}
+							</select>
+						</label>
+						<label class="tk-row">
+							${rowText("Language")}
+							<select class="tk-select" .value=${this.setting.language} @change=${(e: Event) => void this.save({ language: (e.target as HTMLSelectElement).value })}>
+								${LANGUAGES.map(([code, name]) => html`<option value=${code}>${name}</option>`)}
+							</select>
+						</label>
+						<div class="tk-row">
+							${rowText("Downloaded", this.stored.files ? (this.stored.bytes ? mb(this.stored.bytes) : `${this.stored.files} files`) : "Nothing yet")}
+							${
+								this.stored.files
+									? html`<button type="button" class="tk-row-quiet" @click=${() => void this.removeModels()}>Remove</button>`
+									: nothing
+							}
+						</div>`,
+					html`${this.renderEnglishOnly(auto?.label)}`,
+				)}
 			</div>
 		`;
+	}
+
+	/** An English-only model was picked for another language. */
+	private renderEnglishOnly(instead: string | undefined): TemplateResult | typeof nothing {
+		const { model, language } = this.setting;
+		if (model === "auto" || MODELS[model].multilingual || !instead) return nothing;
+		if (language === "auto" ? /^en\b/i.test(navigator.language) : language === "en") return nothing;
+		const name = LANGUAGES.find(([code]) => code === language)?.[1] ?? language;
+		return html`<p>${MODELS[model].label} is English-only, so ${name} dictation uses ${instead}.</p>`;
 	}
 }

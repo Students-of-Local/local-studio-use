@@ -276,10 +276,8 @@ export class ConnectTab extends SettingsTab {
 	private section(title: string, body: TemplateResult, note?: string): TemplateResult {
 		return html`
 			<section class="flex flex-col gap-3">
-				<div>
-					<h3 class="text-sm font-semibold text-foreground">${title}</h3>
-					${note ? html`<p class="text-xs text-muted-foreground mt-1">${note}</p>` : nothing}
-				</div>
+				<h3 class="tk-group-name">${title}</h3>
+				${note ? html`<p class="tk-group-note">${note}</p>` : nothing}
 				${body}
 			</section>
 		`;
@@ -330,8 +328,8 @@ export class ConnectTab extends SettingsTab {
 	/** The other ways in, for someone who'd rather type or ask an agent: a hub for many devices, or a setup prompt. */
 	private otherWays(): TemplateResult {
 		return html`
-			<details class="text-xs text-muted-foreground" data-other-ways>
-				<summary class="cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-ring rounded">Other ways: a terminal, a hub, or your coding agent</summary>
+			<details class="tk-more text-xs text-muted-foreground" data-other-ways>
+				<summary class="ml-3">Other ways: a terminal, a hub, or your coding agent</summary>
 				<div class="mt-2 flex flex-col gap-3">
 					${this.command("One computer, from a terminal", `${hostCommand()} remote setup`)}
 					${this.command("Many devices, one address", `${hostCommand()} hub setup --public-url https://ADDRESS`)}
@@ -373,7 +371,7 @@ export class ConnectTab extends SettingsTab {
 					list
 						? list.length === 0
 							? html`<p class="text-xs text-muted-foreground">No devices yet. Add the first one below.</p>`
-							: html`<ul class="flex flex-col divide-y divide-border rounded-md border border-border">
+							: html`<ul class="flex flex-col tk-list">
 									${list.map(
 										(d) => html`<li class="flex items-start gap-2 px-3 py-2">
 											<span
@@ -465,7 +463,7 @@ export class ConnectTab extends SettingsTab {
 						@change=${(e: Event) => void this.setBusy((e.target as HTMLInputElement).checked)}
 					/>
 				</label>
-				${this.busyError ? html`<p class="text-xs text-destructive" role="alert" data-busy-error>${this.busyError}</p>` : nothing}
+				${this.busyError ? html`<p class="px-3 text-xs text-destructive" role="alert" data-busy-error>${this.busyError}</p>` : nothing}
 			`,
 		);
 	}
@@ -475,8 +473,8 @@ export class ConnectTab extends SettingsTab {
 		if (s.route !== "none" || s.problem) return nothing;
 		const inputClass =
 			"w-full h-9 px-3 text-sm rounded-md border border-input bg-background text-foreground placeholder:text-muted-foreground outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50";
-		return html`<details class="tk-more text-sm" data-join-hub>
-			<summary>Join a hub</summary>
+		return html`<details class="tk-more text-xs text-muted-foreground" data-join-hub>
+			<summary class="ml-3">Join a hub</summary>
 			<div class="mt-2 flex flex-col gap-3">
 				<p class="text-xs text-muted-foreground">Already run a hub on another computer? Enter its address and a device code from Settings › Connections › Add a device there.</p>
 				<label class="flex flex-col gap-1 text-xs text-muted-foreground">
@@ -545,25 +543,25 @@ export class ConnectTab extends SettingsTab {
 	/** Join progress and its outcome. Outside the form: joining changes the route, which removes the form. */
 	private joinNotice(): TemplateResult | typeof nothing {
 		if (this.joining)
-			return html`<p class="text-xs text-muted-foreground" role="status" data-join-progress>${this.joining}</p>`;
+			return html`<p class="px-3 text-xs text-muted-foreground" role="status" data-join-progress>${this.joining}</p>`;
 		if (!this.joinMessage) return nothing;
-		return html`<p class="text-xs ${this.joinMessage.ok ? "text-foreground" : "text-destructive"}" role=${this.joinMessage.ok ? "status" : "alert"} data-join-message>${this.joinMessage.text}</p>`;
+		return html`<p class="px-3 text-xs ${this.joinMessage.ok ? "text-foreground" : "text-destructive"}" role=${this.joinMessage.ok ? "status" : "alert"} data-join-message>${this.joinMessage.text}</p>`;
 	}
 
 	render(): TemplateResult {
 		const s = this.status;
 		return html`
-			<div class="flex flex-col gap-6">
+			<div class="flex flex-col gap-5">
 				${this.noHost ? this.noHostBox() : nothing}
-				${this.error ? html`<p class="text-xs text-destructive" role="alert">${this.error}</p>` : nothing}
-				${this.status?.problem ? html`<p class="text-xs text-destructive" role="alert">${this.status.problem}</p>` : nothing}
-				${this.codeError ? html`<p class="text-xs text-destructive" role="alert">${this.codeError}</p>` : nothing}
+				${this.error ? html`<p class="px-3 text-xs text-destructive" role="alert">${this.error}</p>` : nothing}
+				${this.status?.problem ? html`<p class="px-3 text-xs text-destructive" role="alert">${this.status.problem}</p>` : nothing}
+				${this.codeError ? html`<p class="px-3 text-xs text-destructive" role="alert">${this.codeError}</p>` : nothing}
 				${this.joinNotice()}
 				${
 					s && !this.noHost
 						? html`${this.assistants(s)}${this.devices(s)}${this.thisDevice(s)}${this.joinForm(s)}`
 						: !this.noHost && !this.error
-							? html`<p class="text-xs text-muted-foreground" role="status">Checking...</p>`
+							? html`<p class="px-3 text-xs text-muted-foreground" role="status">Checking...</p>`
 							: nothing
 				}
 			</div>

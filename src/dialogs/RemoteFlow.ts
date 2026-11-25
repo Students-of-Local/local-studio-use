@@ -1,9 +1,12 @@
+import { icon } from "@mariozechner/mini-lit";
 import { Button } from "@mariozechner/mini-lit/dist/Button.js";
 import { html, LitElement, nothing, type PropertyValues, type TemplateResult } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
+import { ChevronRight } from "lucide";
 import { CONNECT_CODE } from "../agent-setup-prompt.js";
 import { hostCommand } from "../bridge/host-command.js";
 import { COMMAND_BOX_CLASS } from "../components/command-box.js";
+import { rowText } from "../components/settings-form.js";
 import { Toast } from "../components/Toast.js";
 import {
 	connectApprovalCode,
@@ -517,7 +520,7 @@ export class RemoteFlow extends LitElement {
 	}
 
 	private stepHeader(n: 1 | 2 | 3): TemplateResult {
-		return html`<p class="text-xs font-medium text-muted-foreground" data-flow-step=${n}>Step ${n} of 3: ${FLOW_STEPS[n - 1]}</p>`;
+		return html`<p class="px-3 text-xs font-medium text-muted-foreground" data-flow-step=${n}>Step ${n} of 3: ${FLOW_STEPS[n - 1]}</p>`;
 	}
 
 	private copyBox(label: string, text: string, attr: string): TemplateResult {
@@ -542,7 +545,7 @@ export class RemoteFlow extends LitElement {
 			return html`
 				<button
 					type="button"
-					class="flex w-full flex-col items-start gap-1 rounded-md border ${recommended ? "border-primary" : "border-border"} bg-background p-3 text-left hover:bg-accent cursor-pointer ${FOCUS}"
+					class="tk-row tk-row-link"
 					aria-label=${`${copy.use}. ${copy.detail}${recommended ? ` ${ROUTE_COPY.recommended}.` : ""}`}
 					data-route=${id}
 					@click=${() => {
@@ -551,20 +554,15 @@ export class RemoteFlow extends LitElement {
 						this.lastPoll = 0;
 					}}
 				>
-					<span class="flex w-full items-center justify-between gap-2">
-						<span class="text-sm font-semibold text-foreground">${copy.name}</span>
-						${recommended ? html`<span class="rounded bg-primary px-1.5 text-xs font-medium text-primary-foreground">${ROUTE_COPY.recommended}</span>` : nothing}
-					</span>
-					<span class="text-xs text-foreground">${copy.detail}</span>
-					<span class="text-xs text-muted-foreground">${r ? routeStatus(r.installed, r.signedIn) : " "}</span>
+					${rowText(html`${copy.name}${recommended ? html` <span class="tk-row-tag">${ROUTE_COPY.recommended}</span>` : nothing}`, html`${copy.detail}${r ? html`<span class="block">${routeStatus(r.installed, r.signedIn)}</span>` : nothing}`)}
+					<span class="tk-row-chevron" aria-hidden="true">${icon(ChevronRight, "sm")}</span>
 				</button>
 			`;
 		};
 		return html`
 			${this.stepHeader(1)}
-			<p class="text-sm font-medium text-foreground">${ROUTE_COPY.chooseTitle}</p>
-			<p class="text-xs text-muted-foreground">${RELAY_COPY.chooseBody}</p>
-			<div class="flex flex-col gap-2">${card("relay")}${card("tailscale")}${card("cloudflare")}</div>
+			<p class="px-3 text-sm text-foreground">${ROUTE_COPY.chooseTitle} <span class="text-xs text-muted-foreground">${RELAY_COPY.chooseBody}</span></p>
+			<div class="tk-list">${card("relay")}${card("tailscale")}${card("cloudflare")}</div>
 		`;
 	}
 
@@ -843,11 +841,11 @@ export class RemoteFlow extends LitElement {
 		if (screen.kind === "other") return html``;
 		return html`
 			<section class="flex flex-col gap-3" aria-labelledby="remote-flow-title" data-remote-flow=${screen.kind}>
-				<h3 id="remote-flow-title" class="text-sm font-semibold text-foreground [overflow-wrap:anywhere]">${REMOTE_TITLE}</h3>
-				${this.error ? html`<p class="text-xs text-destructive" role="alert" data-remote-error>${this.error}</p>` : nothing}
+				<h3 id="remote-flow-title" class="px-3 text-sm font-semibold text-foreground [overflow-wrap:anywhere]">${REMOTE_TITLE}</h3>
+				${this.error ? html`<p class="px-3 text-xs text-destructive" role="alert" data-remote-error>${this.error}</p>` : nothing}
 				${
 					screen.kind === "loading"
-						? html`<p class="text-xs text-muted-foreground" role="status">Checking...</p>`
+						? html`<p class="px-3 text-xs text-muted-foreground" role="status">Checking...</p>`
 						: screen.kind === "choose"
 							? this.choose(screen)
 							: screen.kind === "step"

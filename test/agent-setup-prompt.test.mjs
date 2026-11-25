@@ -55,10 +55,10 @@ test("the setup prompt notes the project's folder and moves an existing checkout
 });
 
 test("the API keys tab no longer carries the subscription sign-in paragraph, and offers the prompt", () => {
-	for (const file of ["dialogs/ApiKeysTab.ts", "messages/WelcomeMessage.ts", "dialogs/BridgeTab.ts"]) {
+	for (const file of ["dialogs/ApiKeysTab.ts", "subscriptions/ConnectList.ts", "dialogs/BridgeTab.ts"]) {
 		const text = readFileSync(join(repo, "src", file), "utf8");
 		assert.doesNotMatch(text, /posing as|terms forbid/, `${file} still explains removed sign-ins`);
-		if (file !== "dialogs/ApiKeysTab.ts") assert.match(text, /agentSetupPromptButton\(/, `${file} lacks the setup prompt button`);
+		if (file !== "dialogs/ApiKeysTab.ts") assert.match(text, /agentSetupPrompt(Button|Row)\(/, `${file} lacks the setup prompt button`);
 	}
 });
 

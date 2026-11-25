@@ -1,7 +1,5 @@
-import { Button } from "@mariozechner/mini-lit/dist/Button.js";
-import { Input } from "@mariozechner/mini-lit/dist/Input.js";
 import { SettingsTab } from "@mariozechner/pi-web-ui";
-import { html, type TemplateResult } from "lit";
+import { html, nothing, type TemplateResult } from "lit";
 import { customElement, state } from "lit/decorators.js";
 import { live } from "lit/directives/live.js";
 import { hostCommand } from "../bridge/host-command.js";
@@ -25,7 +23,8 @@ import { listSessions } from "../browser/session.js";
 import { probeUserScripts, userScriptsHiddenHelp } from "../browser/userscripts-status.js";
 import { isPointerEnabled, isVeilEnabled, setPointerEnabled, setVeilEnabled } from "../browser/veil-shared.js";
 import { askCards } from "../components/AgentAsks.js";
-import { agentSetupPromptButton } from "../components/AgentSetupPrompt.js";
+import { agentSetupPromptRow } from "../components/AgentSetupPrompt.js";
+import { choiceRow, group, more, rowText, switchRow } from "../components/settings-form.js";
 import { Toast } from "../components/Toast.js";
 import { APP_DOWNLOAD_URL } from "../release-source.js";
 import { runningFromStore } from "../update/store-install.js";
@@ -132,52 +131,42 @@ export class BridgeTab extends SettingsTab {
 		this.userScriptsNote = note;
 	}
 
-	private renderUserScripts(): TemplateResult {
+	/** Faster page scripts need the browser's own permission; the browser's wording stays one click away. */
+	private renderUserScripts(): TemplateResult | typeof nothing {
 		const status = this.userScripts;
-		if (!status) return html``;
-		const line = (text: string) => html`<div class="text-xs text-muted-foreground">${text}</div>`;
-		/** The detail stays one click away, for the person who needs the browser's own wording. */
-		const details = (text: string) => html`
-			<details class="text-xs text-muted-foreground">
-				<summary class="cursor-pointer text-foreground">Details</summary>
-				<p class="mt-1">${text}</p>
-			</details>
-		`;
-		let body: TemplateResult;
+		if (!status) return nothing;
+		const row = (help: string, act: TemplateResult | typeof nothing, detail: string) =>
+			html`<div data-page-scripts>
+				<div class="tk-row">${rowText("Page scripts", help)} ${act}</div>
+				<div class="tk-row-more">
+					${this.userScriptsNote ? html`<p class="text-xs text-foreground" role="status">${this.userScriptsNote}</p>` : nothing}
+					${detail ? more("Details", detail) : nothing}
+				</div>
+			</div>`;
 		switch (status.state) {
 			case "ready":
-				body = html`${line("On: agents' page scripts run faster.")}${details("Agents run page scripts through the browser's userScripts API.")}`;
-				break;
+				return row(
+					"On: agents' page scripts run faster.",
+					nothing,
+					"Agents run page scripts through the browser's userScripts API.",
+				);
 			case "not_granted":
-				body = html`
-					${line("Turning this on makes agents' page scripts run faster.")}
-					<div>${Button({ size: "sm", variant: "secondary", children: "Allow", onClick: () => this.grantUserScripts() })}</div>
-					${details(
-						'Local Studio has not been granted the userScripts permission. The "Allow user scripts" toggle on the extension\'s Details page is not enough on its own. Without it, page scripts run through the debugger, which is slower.',
-					)}
-				`;
-				break;
+				return row(
+					"Turning this on makes agents' page scripts run faster.",
+					html`<button type="button" class="tk-row-button" @click=${() => this.grantUserScripts()}>Allow</button>`,
+					'Local Studio has not been granted the userScripts permission. The "Allow user scripts" toggle on the extension\'s Details page is not enough on its own. Without it, page scripts run through the debugger, which is slower.',
+				);
 			case "toggle_off":
-				body = html`
-					${line("Page scripts are slower than they could be: one more switch is needed in the browser.")}
-					${details(
-						status.apiPresent
-							? 'The permission is granted, but "Allow user scripts" is off. Turn it on at chrome://extensions > Local Studio > Details.'
-							: userScriptsHiddenHelp(runningFromStore(), hostCommand()),
-					)}
-				`;
-				break;
+				return row(
+					"Slower than they could be: one more switch is needed in the browser.",
+					nothing,
+					status.apiPresent
+						? 'The permission is granted, but "Allow user scripts" is off. Turn it on at chrome://extensions > Local Studio > Details.'
+						: userScriptsHiddenHelp(runningFromStore(), hostCommand()),
+				);
 			case "probe_error":
-				body = line(`Couldn't check: ${status.error ?? "unknown error"}`);
-				break;
+				return row(`Couldn't check: ${status.error ?? "unknown error"}`, nothing, "");
 		}
-		return html`
-			<div class="space-y-2" data-page-scripts>
-				<h3 class="text-sm font-semibold text-foreground">Page scripts</h3>
-				${body}
-				${this.userScriptsNote ? line(this.userScriptsNote) : ""}
-			</div>
-		`;
 	}
 
 	private async decide(request: PendingRequest, decision: "allow_once" | "allow_host" | "deny") {
@@ -198,160 +187,137 @@ export class BridgeTab extends SettingsTab {
 		await this.load();
 	}
 
-	/** A setting with a line of help and a switch; `off` greys it out and locks it. */
-	private switchRow(title: string, help: string, checked: boolean, set: (on: boolean) => Promise<void>, off = false) {
-		return html`<label
-			class="flex items-start justify-between gap-3 text-sm text-foreground cursor-pointer ${off ? "opacity-50" : ""}"
-		>
-			<span class="space-y-1">
-				<span class="block">${title}</span>
-				${help ? html`<span class="block text-xs text-muted-foreground">${help}</span>` : ""}
-			</span>
-			<input
-				type="checkbox"
-				role="switch"
-				class="tk-switch"
-				.checked=${live(checked)}
-				?disabled=${off}
-				@change=${async (e: Event) => {
-					const on = (e.target as HTMLInputElement).checked;
-					await saveSwitch(
-						() => set(on),
-						() => this.requestUpdate(),
-						`"${title}"`,
-						(m) => Toast.error(m),
-					);
-					await this.load();
-				}}
-			/>
-		</label>`;
+	private switchRow(name: string, help: string, on: boolean, set: (on: boolean) => Promise<void>, off = false) {
+		return switchRow({
+			name,
+			help,
+			on,
+			off,
+			set: async (value) => {
+				await saveSwitch(
+					() => set(value),
+					() => this.requestUpdate(),
+					`"${name}"`,
+					(m) => Toast.error(m),
+				);
+				await this.load();
+			},
+		});
 	}
 
-	private heading(text: string): TemplateResult {
-		return html`<h3 class="text-sm font-semibold text-foreground">${text}</h3>`;
+	private renderHelper(): TemplateResult {
+		return html`<div class="tk-row" role="status" data-helper-setup=${this.connected ? "connected" : "missing"}>
+			${
+				this.connected
+					? rowText("Connected", "Each agent works in its own tab group")
+					: html`${rowText("Not connected", "Turn on Browser use in the Local Studio app")}
+							<a class="tk-row-button" href=${APP_DOWNLOAD_URL} target="_blank" rel="noopener" data-get-app>Get the app</a>`
+			}
+		</div>`;
+	}
+
+	private renderHosts(): TemplateResult {
+		return group(
+			"Allowed sites",
+			html`${this.hosts.map(
+				(h) => html`<div class="tk-row">
+					<span class="min-w-0 flex-1 break-all text-sm text-foreground">${h}</span>
+					<button
+						type="button"
+						class="tk-row-quiet"
+						aria-label=${`Remove ${h}`}
+						@click=${async () => {
+							await revokeHost(h);
+							await this.load();
+						}}
+					>
+						Remove
+					</button>
+				</div>`,
+			)}
+				<div class="tk-row">
+					<input
+						class="tk-row-input"
+						aria-label="Allow a site"
+						placeholder="example.com and its subdomains"
+						.value=${live(this.newHost)}
+						@input=${(e: Event) => {
+							this.newHost = (e.target as HTMLInputElement).value;
+							this.newHostError = "";
+						}}
+						@keydown=${(e: KeyboardEvent) => {
+							if (e.key === "Enter") void this.addHost();
+						}}
+					/>
+					<button type="button" class="tk-row-button" ?disabled=${!this.newHost.trim()} @click=${() => this.addHost()}>Add</button>
+				</div>`,
+			this.newHostError ? html`<p class="text-destructive" role="alert">${this.newHostError}</p>` : nothing,
+		);
 	}
 
 	render(): TemplateResult {
 		return html`
-			<div class="flex flex-col gap-6">
-				<div class="flex flex-col gap-3">
-					<p class="text-sm text-foreground" role="status" data-helper-setup=${this.connected ? "connected" : "missing"}>
-						${
-							this.connected
-								? "Connected. Agents on this computer can use this browser, each in its own tab group."
-								: html`Not connected.
-										<a class="underline underline-offset-2" href=${APP_DOWNLOAD_URL} target="_blank" rel="noopener" data-get-app
-											>Get Local Studio</a
-										>
-										and turn on Browser use in its Settings, or give the setup prompt to your agent.`
-						}
-					</p>
-					${agentSetupPromptButton()}
-					${this.switchRow("Allow external agents to use the browser", "", this.enabled, setBridgeEnabled)}
-				</div>
-
+			<div class="flex flex-col gap-5">
+				${group(
+					"",
+					html`${this.renderHelper()} ${agentSetupPromptRow()}
+					${this.switchRow("Allow agents to use the browser", "", this.enabled, setBridgeEnabled)}`,
+				)}
 				${
 					this.pending.length > 0
-						? html`
-							<div class="space-y-2">
-								${this.heading("Waiting for your answer")}
+						? html`<section class="flex flex-col gap-1.5">
+								<h3 class="tk-group-name">Waiting for your answer</h3>
 								${this.askCards(this.pending, (p, d) => this.decide(p, d))}
-							</div>
-						`
+							</section>`
 						: ""
 				}
-
-				<div class="flex flex-col gap-2" role="radiogroup" aria-label="Permission mode">
-					${this.heading("When they ask")}
-					${MODE_CHOICES.map(
-						(m) => html`<label class="flex items-start gap-2 text-sm text-foreground cursor-pointer">
-							<input type="radio" class="mt-1" name="bridge-mode" value=${m.mode} .checked=${this.mode === m.mode} @change=${async () => {
+				<div role="radiogroup" aria-label="Permission mode">
+					${group(
+						"When they ask",
+						MODE_CHOICES.map((m) =>
+							choiceRow("bridge-mode", m.mode, m.title, m.short, this.mode === m.mode, async () => {
 								await setPermissionMode(m.mode);
 								await this.load();
-							}} />
-							<span>
-								<span class="block font-medium">${m.title}</span>
-								<span class="block text-xs text-muted-foreground">${m.short}</span>
-							</span>
-						</label>`,
+							}),
+						),
+						more(
+							"What each one allows",
+							html`<ul class="flex list-none flex-col gap-1.5">
+								${MODE_CHOICES.map((m) => html`<li><span class="font-medium text-foreground">${m.title}</span>: ${m.help}</li>`)}
+							</ul>`,
+						),
 					)}
-					<details class="tk-more text-xs text-muted-foreground">
-						<summary>What each one allows</summary>
-						<ul class="mt-1.5 flex list-none flex-col gap-1.5">
-							${MODE_CHOICES.map((m) => html`<li><span class="font-medium text-foreground">${m.title}</span>: ${m.help}</li>`)}
-						</ul>
-					</details>
 				</div>
-
-				<div class="space-y-2">
-					${this.heading("Allowed sites")}
-					${
-						this.hosts.length === 0
-							? ""
-							: this.hosts.map(
-									(h) => html`
-										<div class="flex items-center justify-between gap-2 text-sm">
-											<span class="min-w-0 break-all font-mono text-foreground">${h}</span>
-											${Button({
-												size: "sm",
-												variant: "ghost",
-												children: "Remove",
-												onClick: async () => {
-													await revokeHost(h);
-													await this.load();
-												},
-											})}
-										</div>
-									`,
-								)
-					}
-					<div class="flex gap-2 items-center">
-						${Input({
-							placeholder: "example.com and its subdomains",
-							value: this.newHost,
-							className: "text-sm flex-1",
-							onInput: (e: Event) => {
-								this.newHost = (e.target as HTMLInputElement).value;
-								this.newHostError = "";
-							},
-							onKeyDown: (e: KeyboardEvent) => {
-								if (e.key === "Enter") this.addHost();
-							},
-						})}
-						${Button({ size: "sm", variant: "secondary", children: "Add", onClick: () => this.addHost() })}
-					</div>
-					${this.newHostError ? html`<div class="text-xs text-destructive" role="alert">${this.newHostError}</div>` : ""}
-				</div>
-
-				<div class="flex flex-col gap-3">
-					${this.heading("On screen")}
-					${this.switchRow(
+				${this.renderHosts()}
+				${group(
+					"In the browser",
+					html`${this.switchRow(
 						"Show when an agent is using a tab",
-						"A glow and a label; Take over in the label gives you the tab back.",
+						"A glow, and Take over to get the tab back",
 						this.veil,
 						setVeilEnabled,
 					)}
 					${this.switchRow(
 						"Show the agent's pointer",
-						"Moves to what the agent clicks. It never takes your clicks.",
+						"Moves to what the agent clicks, never takes your clicks",
 						this.pointer,
 						setPointerEnabled,
 						!this.veil,
 					)}
-				</div>
-
-				${this.renderUserScripts()}
-
+					${this.renderUserScripts()}`,
+				)}
 				${
 					this.sessions.length === 0
 						? ""
-						: html`<div class="space-y-2">
-								${this.heading("Agent sessions in this browser")}
-								${this.sessions.map(
-									(s) =>
-										html`<div class="text-sm text-foreground">${s.label} <span class="text-muted-foreground">(${s.tabs} tab${s.tabs === 1 ? "" : "s"})</span></div>`,
-								)}
-							</div>`
+						: group(
+								"Working now",
+								this.sessions.map(
+									(s) => html`<div class="tk-row">
+										<span class="tk-row-name">${s.label}</span>
+										<span class="tk-row-state">${s.tabs} tab${s.tabs === 1 ? "" : "s"}</span>
+									</div>`,
+								),
+							)
 				}
 			</div>
 		`;

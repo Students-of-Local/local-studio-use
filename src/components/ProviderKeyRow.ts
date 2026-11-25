@@ -226,7 +226,7 @@ export class ProviderKeyRow extends LitElement {
 	private renderEditor(): TemplateResult {
 		const id = `key-${this.provider}`;
 		return html`
-			<div class="flex flex-col gap-2 pb-3">
+			<div class="flex flex-col gap-2 px-3 pb-3">
 				<div class="flex items-center gap-2">
 					<input
 						id=${id}
@@ -299,7 +299,7 @@ export class ProviderKeyRow extends LitElement {
 
 	override render(): TemplateResult {
 		return html`
-			<div class="flex min-h-11 items-center gap-2 py-1.5">
+			<div class="tk-row">
 				<span class="min-w-0 flex-1 truncate text-sm font-medium text-foreground">${this.label}</span>
 				${
 					this.hasKey
@@ -323,7 +323,7 @@ export class ProviderKeyRow extends LitElement {
 							: html`<button
 									type="button"
 									data-key-action
-									class="flex-shrink-0 h-8 rounded-md border border-input px-3 text-xs font-medium text-foreground hover:bg-secondary outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+									class="tk-row-button"
 									aria-label=${`Add ${this.label} key`}
 									@click=${() => void this.edit()}
 								>
@@ -334,7 +334,7 @@ export class ProviderKeyRow extends LitElement {
 			${this.editing ? this.renderEditor() : nothing}
 			${
 				this.note && this.hasKey && !this.editing
-					? html`<p class="pb-2 text-xs text-muted-foreground" role="status">${this.note}</p>`
+					? html`<p class="px-3 pb-2 text-xs text-muted-foreground" role="status">${this.note}</p>`
 					: nothing
 			}
 		`;
@@ -346,8 +346,7 @@ function capitalize(text: string): string {
 }
 
 /** A quiet text button for the less common actions on a saved key. */
-const QUIET =
-	"h-8 rounded-md px-2 text-xs font-medium text-muted-foreground hover:bg-secondary hover:text-foreground outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50";
+const QUIET = "tk-row-quiet";
 
 if (!customElements.get("local-studio-provider-key"))
 	customElements.define("local-studio-provider-key", ProviderKeyRow);

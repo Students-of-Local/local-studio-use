@@ -1,6 +1,7 @@
 import { Button } from "@mariozechner/mini-lit/dist/Button.js";
 import { html, type TemplateResult } from "lit";
 import { agentSetupPrompt } from "../agent-setup-prompt.js";
+import { rowText } from "./settings-form.js";
 import { Toast } from "./Toast.js";
 
 function extensionVersion(): string {
@@ -27,7 +28,17 @@ async function copy(): Promise<void> {
 	}
 }
 
-/** Button plus one line of context, for Settings and the home screen. */
+/** The same as a row of Settings. */
+export function agentSetupPromptRow(): TemplateResult {
+	return html`<div class="tk-row">
+		${rowText("Connect an agent", "Paste the setup prompt into Claude Code, Codex, pi, OMP or any agent")}
+		<button type="button" class="tk-row-button" aria-label="Copy setup prompt for your agent" @click=${() => void copy()}>
+			Copy prompt
+		</button>
+	</div>`;
+}
+
+/** Button plus one line of context, for the connect list. */
 export function agentSetupPromptButton(
 	note = "Paste it into Claude Code, Codex, pi, OMP or any agent to connect it to this browser.",
 ): TemplateResult {

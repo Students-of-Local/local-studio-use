@@ -1,7 +1,7 @@
-import { Select, type SelectOption } from "@mariozechner/mini-lit/dist/Select.js";
 import { SettingsTab } from "@mariozechner/pi-web-ui";
 import type { Chart, ChartConfiguration } from "chart.js";
 import { html, type PropertyValues } from "lit";
+import { group } from "../components/settings-form.js";
 import { getLocalStudioStorage } from "../storage/app-storage.js";
 import { formatCost } from "../utils/format-cost.js";
 import { loadChart } from "./chart-lib.js";
@@ -296,46 +296,36 @@ export class CostsTab extends SettingsTab {
 			alltime: "All time",
 		};
 
-		// Date range options for Select component
-		const dateRangeOptions: SelectOption[] = [
-			{ value: "today", label: "Today" },
-			{ value: "week", label: "Last 7 days" },
-			{ value: "30days", label: "Last 30 days" },
-			{ value: "90days", label: "Last 90 days" },
-			{ value: "alltime", label: "All time" },
-		];
-
 		return html`
-			<div class="space-y-6">
-				<!-- Date range -->
-				<div class="flex items-center gap-3">
-					<span class="text-sm font-medium text-foreground">Date range</span>
-					${Select({
-						value: this.dateRange,
-						options: dateRangeOptions,
-						onChange: (value) => {
-							this.handleDateRangeChange(value as typeof this.dateRange);
-						},
-						size: "md",
-					})}
-				</div>
-
-				<!-- Summary Card -->
-				<div class="p-4 rounded-lg border border-border bg-background">
-					<div class="text-sm text-muted-foreground">${dateRangeLabels[this.dateRange]}</div>
-					<div class="text-2xl font-bold text-foreground">${this.loadFailed ? "Unavailable" : formatCost(this.totalCost)}</div>
-				</div>
+			<div class="flex flex-col gap-5">
+				${group(
+					"",
+					html`<div class="tk-row py-3">
+						<span class="min-w-0 flex-1">
+							<span class="block text-xs text-muted-foreground">Spent</span>
+							<span class="block text-2xl font-semibold text-foreground">${this.loadFailed ? "Unavailable" : formatCost(this.totalCost)}</span>
+						</span>
+						<select
+							class="tk-select"
+							aria-label="Date range"
+							.value=${this.dateRange}
+							@change=${(e: Event) => this.handleDateRangeChange((e.target as HTMLSelectElement).value as typeof this.dateRange)}
+						>
+							${Object.entries(dateRangeLabels).map(([value, label]) => html`<option value=${value} ?selected=${value === this.dateRange}>${label}</option>`)}
+						</select>
+					</div>`,
+				)}
 
 				${
 					this.loadFailed
-						? html`<div class="p-6 rounded-lg border border-border bg-background text-center space-y-1" role="alert">
+						? html`<div class="tk-card space-y-1 p-6 text-center" role="alert">
 								<p class="text-sm font-medium text-destructive">Couldn't load your costs</p>
 								<p class="text-xs text-muted-foreground">Your cost history wasn't read. Reopen Settings to try again.</p>
 							</div>`
 						: this.loading || this.totalCost > 0 || Object.keys(this.byProvider).length > 0
 							? html`
 						<!-- Stacked Bar Chart -->
-						<div class="p-4 rounded-lg border border-border bg-background">
+						<div class="tk-card p-4">
 							<h3 class="text-sm font-medium mb-4">Daily cost by model</h3>
 							<div style="height: min(400px, 40vh)">
 								<canvas id="line-chart"></canvas>
@@ -345,7 +335,7 @@ export class CostsTab extends SettingsTab {
 						<!-- Charts Row -->
 						<div class="grid gap-4 [grid-template-columns:repeat(auto-fit,minmax(13rem,1fr))]">
 							<!-- Provider Breakdown -->
-							<div class="p-4 rounded-lg border border-border bg-background">
+							<div class="tk-card p-4">
 								<h3 class="text-sm font-medium mb-4">By provider</h3>
 								${
 									Object.keys(this.byProvider).length > 0
@@ -359,7 +349,7 @@ export class CostsTab extends SettingsTab {
 							</div>
 
 							<!-- Model Breakdown Table -->
-							<div class="p-4 rounded-lg border border-border bg-background">
+							<div class="tk-card p-4">
 								<h3 class="text-sm font-medium mb-4">By model</h3>
 								${
 									sortedModels.length > 0
@@ -381,17 +371,15 @@ export class CostsTab extends SettingsTab {
 						</div>
 
 							`
-							: html`<div class="p-6 rounded-lg border border-border bg-background text-center space-y-1">
+							: html`<div class="tk-card space-y-1 p-6 text-center">
 								<p class="text-sm font-medium text-foreground">No costs in this range</p>
 								<p class="text-xs text-muted-foreground">Costs show here after the side panel's agent uses a paid model. Free models cost nothing.</p>
 							</div>`
 				}
-
-				<!-- Info note -->
-				<div class="text-xs text-muted-foreground p-3 rounded-lg border border-border bg-secondary/20">
+				<p class="tk-group-note">
 					Costs are kept apart from chats, so deleting a chat keeps its cost here. A stopped request may not record all
 					of its tokens.
-				</div>
+				</p>
 			</div>
 		`;
 	}

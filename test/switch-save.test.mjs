@@ -21,11 +21,13 @@ test("a save that lands answers true and says nothing", async () => {
 	assert.deepEqual(said, []);
 });
 
+const kit = readFileSync(new URL("../src/components/settings-form.ts", import.meta.url), "utf8");
 const src = (f) => readFileSync(new URL(`../src/dialogs/${f}`, import.meta.url), "utf8");
 
 test("every Privacy switch saves through it and is drawn with live()", () => {
 	const p = src("PrivacyTab.ts");
-	for (const k of ["privateMode", "mirror", "sync", "shareOlder", "bugReports", "modelsDev"]) assert.match(p, new RegExp(`\\.checked=\\$\\{live\\(this\\.${k}\\)\\}`), k);
+	for (const k of ["privateMode", "mirror", "sync", "shareOlder", "bugReports", "modelsDev"]) assert.match(p, new RegExp(`\\bon: this\\.${k},`), k);
+	assert.match(kit, /\.checked=\$\{live\(row\.on\)\}/);
 	assert.match(p, /if \(await this\.save\(\(\) => getLocalStudioStorage\(\)\.settings\.set\(PRIVATE_MODE_KEY, on\), "Private mode"\)\)\s*this\.privateMode = on;/);
 	assert.equal(p.match(/await this\.save\(/g)?.length, 6, "share older, mirror, chat sync, models.dev, private mode, bug reports");
 	assert.doesNotMatch(p, /\n\t\tawait (chrome\.storage\.local\.set|getLocalStudioStorage\(\)\.settings\.set\(PRIVATE)/, "no bare write left");
@@ -34,6 +36,6 @@ test("every Privacy switch saves through it and is drawn with live()", () => {
 test("the Agents tab's switches save through it and are drawn with live()", () => {
 	const b = src("BridgeTab.ts");
 	const row = b.slice(b.indexOf("private switchRow("), b.indexOf("render(): TemplateResult"));
-	assert.match(row, /\.checked=\$\{live\(checked\)\}/);
-	assert.match(row, /await saveSwitch\(\s*\(\) => set\(on\),/);
+	assert.match(row, /return switchRow\(\{/);
+	assert.match(row, /await saveSwitch\(\s*\(\) => set\(value\),/);
 });

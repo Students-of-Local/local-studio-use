@@ -305,7 +305,7 @@ export class SiteEditsTab extends SettingsTab {
 				${
 					waiting.length
 						? html`<section class="flex flex-col gap-2" data-testid="sites-waiting">
-								<h3 class="text-sm font-semibold text-foreground">Waiting for you</h3>
+								<h3 class="tk-group-name">Waiting for you</h3>
 								<div class="tk-list">${waiting.map((e) => this.renderEdit(e))}</div>
 							</section>`
 						: nothing
@@ -321,7 +321,7 @@ export class SiteEditsTab extends SettingsTab {
 				${
 					this.page
 						? this.renderPage(this.page)
-						: html`<p class="text-sm text-muted-foreground">Open a site in this window to change how it looks.</p>`
+						: html`<p class="tk-group-note">Open a site in this window to change how it looks.</p>`
 				}
 				${this.renderOthers()}
 				<div class="tk-list">
@@ -334,8 +334,8 @@ export class SiteEditsTab extends SettingsTab {
 					</label>
 				</div>
 				<details class="tk-more text-xs text-muted-foreground">
-					<summary>Move or share</summary>
-					<div class="mt-2 flex flex-col items-start gap-2">
+					<summary class="ml-3">Move or share</summary>
+					<div class="mt-2 flex flex-col items-start gap-2 px-3">
 						<p>
 							Every change is saved in this browser${this.kept ? ", and Local Studio keeps a copy in ~/.local-studio/browser/sites.json that a new browser starts from" : ""}.
 							An imported script stays off until you turn it on.

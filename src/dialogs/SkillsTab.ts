@@ -458,13 +458,13 @@ export class SkillsTab extends SettingsTab {
 					placeholder="Find a skill"
 					.value=${this.searchQuery}
 					@input=${(e: Event) => this.onSearchInput(e)}
-					class="w-full h-9 px-3 text-sm rounded-md border border-input bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+					class="tk-search"
 				/>
 
 				${
 					here.length > 0
 						? html`<section class="flex flex-col gap-2">
-								<h3 class="text-sm font-semibold text-foreground">For ${this.pageHost}</h3>
+								<h3 class="tk-group-name">For ${this.pageHost}</h3>
 								<div class="tk-list">${here.map((skill) => this.renderSkillInfo(skill))}</div>
 							</section>`
 						: nothing
@@ -491,10 +491,10 @@ export class SkillsTab extends SettingsTab {
 								</div>`
 							: nothing
 					}
-					<p class="text-xs text-muted-foreground">
+					<p class="tk-group-note">
 						Site skills are helpers the agent loads on the sites they name. Record one from More.
 					</p>
-					<div class="flex gap-2">
+					<div class="flex gap-2 px-3">
 						${this.skills.length > 0 ? Button({ variant: "outline", size: "sm", onClick: () => this.exportSkills(), children: "Export" }) : nothing}
 						${Button({ variant: "outline", size: "sm", onClick: () => this.importSkills(), children: "Import" })}
 					</div>
