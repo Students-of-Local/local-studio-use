@@ -757,6 +757,7 @@ test("type by a frame ref retried after the debugger detached finds the frame ag
 			// In flight: cdpSend leaves this one to the handler, which attaches again and tries once more.
 			throw new Error("Detached while handling command.");
 		}
+		if (detached && method === "Target.getTargetInfo") throw new Error("Debugger is not attached to the tab with id: 36.");
 		if (detached && target.sessionId === "S1") throw new Error("No target with given id found");
 		return send(target, method, params);
 	};

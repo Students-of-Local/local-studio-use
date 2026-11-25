@@ -312,11 +312,14 @@ function forgetAttachment(tabId: number): void {
 	noteCaptureStopped(tabId, "the debugger had detached without notice and was attached again");
 }
 
+/** Whether this extension's debugger is on the tab. getTargets can't tell: its `attached` is true for any client. */
 async function debuggerAttachedNow(tabId: number): Promise<boolean> {
 	try {
-		return (await chrome.debugger.getTargets()).some((t) => t.tabId === tabId && t.attached);
-	} catch {
+		// Answered by the browser, so a page stopped in a dialog doesn't hold it.
+		await sendRaw(tabId, "Target.getTargetInfo");
 		return true;
+	} catch (err) {
+		return !isNotAttachedError(err);
 	}
 }
 
@@ -358,15 +361,13 @@ export async function ensureAttached(tabId: number): Promise<void> {
 		throw new Error("The debugger was closed by the user on this tab. Navigate the tab to a new page to continue.");
 	}
 	if (!attachedTabs.has(tabId)) {
-		const targets = await chrome.debugger.getTargets();
-		const already = targets.some((t) => t.tabId === tabId && t.attached);
-		if (!already) {
-			try {
-				await chrome.debugger.attach({ tabId }, PROTOCOL_VERSION);
-			} catch (err) {
-				const message = err instanceof Error ? err.message : String(err);
-				if (!message.includes("already attached")) throw new Error(`Cannot attach to tab ${tabId}: ${message}`);
-			}
+		try {
+			await chrome.debugger.attach({ tabId }, PROTOCOL_VERSION);
+		} catch (err) {
+			const message = err instanceof Error ? err.message : String(err);
+			// "already attached" is our own attachment from before a worker restart, unless commands don't reach it.
+			if (!message.includes("already attached") || !(await debuggerAttachedNow(tabId)))
+				throw new Error(`Cannot attach to tab ${tabId}: ${message}`);
 		}
 		attachedTabs.add(tabId);
 		// Page events report alert/confirm/prompt dialogs (see openDialog above).
