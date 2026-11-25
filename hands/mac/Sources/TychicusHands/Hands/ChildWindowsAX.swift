@@ -1,0 +1,207 @@
+import AppKit
+import ApplicationServices
+import HandsCore
+
+/// Reads an accessibility element into the shape the panel check needs. Only reads. The bounded read and its fail-closed
+/// rule are `AXTreeRead` in the core: a sheet or dialog any part of which was cut off is unreadable, so it is refused.
+enum HandsAXTree {
+    static let perLevel = AXTreeRead.perLevel
+    static let timeout: Float = 0.25
+
+    /// The timeout is set on every element read: it holds only for the element it is set on, so a hung app's sheet read
+    /// five levels down waited the system default at each one, on the main thread (#124 round 1 first-F4).
+    private static func copy(_ e: AXUIElement, _ attribute: String) -> (CFTypeRef?, AXError) {
+        AXUIElementSetMessagingTimeout(e, timeout)
+        var out: CFTypeRef?
+        let r = AXUIElementCopyAttributeValue(e, attribute as CFString, &out)
+        return (r == .success ? out : nil, r)
+    }
+
+    private static func string(_ e: AXUIElement, _ attribute: String) -> String? { copy(e, attribute).0 as? String }
+
+    static func role(_ e: AXUIElement) -> String? { string(e, kAXRoleAttribute) }
+
+    /// A label's text.
+    static func text(_ e: AXUIElement) -> String? { role(e) == kAXStaticTextRole as String ? string(e, kAXValueAttribute) : nil }
+
+    /// What the window says it shows, and whether the app answered.
+    static func document(_ e: AXUIElement) -> (path: String?, readable: Bool) {
+        let (v, r) = copy(e, "AXDocument")
+        return (v as? String, r == .success || r == .noValue || r == .attributeUnsupported)
+    }
+
+    /// The sheets among a window's own children, however many controls come before them, and whether all were looked at.
+    static func sheets(_ kids: [AXUIElement]) -> (list: [AXUIElement], whole: Bool) {
+        let read = AXTreeRead.windowChildren(kids, string: { string($0, $1) })
+        return (read.kids.filter { role($0) == "AXSheet" }, read.whole)
+    }
+
+    static func children(_ e: AXUIElement) -> (list: [AXUIElement], readable: Bool) {
+        let (v, r) = copy(e, kAXChildrenAttribute)
+        switch r {
+        case .success: return ((v as? [AXUIElement]) ?? [], true)
+        case .noValue, .attributeUnsupported: return ([], true)
+        default: return ([], false)
+        }
+    }
+
+    /// A window read `depth` levels down; any sheet met on the way, or the window itself when it is a dialog (or `deep`
+    /// says so), is read to `AXTreeRead.childDepth` levels and must be read whole.
+    static func node(_ e: AXUIElement, depth: Int, deep: Bool? = nil) -> AXNodeInfo {
+        AXTreeRead.node(e, depth: depth, deep: deep, string: { string($0, $1) }, children: { children($0) })
+    }
+
+    /// Whether a placed window is or holds an Open or Save panel (`PanelDetector.inspect`).
+    static func offLimits(_ e: AXUIElement, bundle: String) -> Bool {
+        PanelDetector.inspect(e, bundle: bundle, string: { string($0, $1) }, children: { children($0) })
+    }
+}
+
+/// The windows of one process that the host does not place, as `ChildWindowRule` needs them: dialogs, alerts, palettes
+/// (from the app's AXWindows) and sheets (children of its placed windows). Only reads, from the caller's thread; a short
+/// timeout so a hung app costs a quarter second.
+enum ChildWindowsAX {
+    struct Reading {
+        var children: [ChildWindowFacts]
+        /// Placed windows that hold a sheet without a window number of its own, and which sheet (its element's identity): its
+        /// elements are in that window's snapshot.
+        var sheetsOn: [UInt32: Int]
+        /// The app's main and focused windows at this look, for children whose own window is unknown (`ChildCollect.hint`).
+        var main: UInt32? = nil
+        var focused: UInt32? = nil
+        /// Whether this look saw all of the app's windows (`ChildLook.complete`). One that didn't drops a child only once it
+        /// aged out: a child it missed may still be there (#124 round 1 second-S1).
+        var complete = true
+        /// The placed windows whose children this look read, each the word on its own sheet; nil when all were (#330 first-F1).
+        var sheetsRead: Set<UInt32>? = nil
+    }
+
+    static func read(pid: pid_t, placed: Set<UInt32>) -> Reading {
+        // A system prompt's process is never read for an agent, by any path (rule 3).
+        if isSystemPrompt(pid: pid) { return Reading(children: [], sheetsOn: [:]) }
+        let app = AXUIElementCreateApplication(pid)
+        AXUIElementSetMessagingTimeout(app, 0.25)
+        var raw: CFTypeRef?
+        let answer = AXUIElementCopyAttributeValue(app, kAXWindowsAttribute as CFString, &raw)
+        guard answer == .success || answer == .noValue else { return Reading(children: [], sheetsOn: [:], complete: false, sheetsRead: []) }
+        let list = (raw as? [AXUIElement]) ?? []
+        var placedReadable = true, sheetsRead = Set<UInt32>()
+        let running = NSRunningApplication(processIdentifier: pid)
+        let name = running?.localizedName ?? "App", bundle = running?.bundleIdentifier ?? ""
+        let process = running?.executableURL?.lastPathComponent ?? ""
+        var sheetsOn: [UInt32: Int] = [:]
+        func facts(_ el: AXUIElement, id: UInt32, parent: UInt32?) -> ChildWindowFacts {
+            AXUIElementSetMessagingTimeout(el, 0.25)
+            var t: CFTypeRef?, s: CFTypeRef?, r: CFTypeRef?, m: CFTypeRef?
+            AXUIElementCopyAttributeValue(el, kAXTitleAttribute as CFString, &t)
+            AXUIElementCopyAttributeValue(el, kAXSubroleAttribute as CFString, &s)
+            AXUIElementCopyAttributeValue(el, kAXRoleAttribute as CFString, &r)
+            let modal = AXUIElementCopyAttributeValue(el, kAXModalAttribute as CFString, &m) == .success ? (m as? Bool) : nil
+            // A sheet, dialog or alert (modal ones included) is read whole and checked as a possible file panel, or refused.
+            let kind = ChildWindowRule.kind(role: r as? String, subrole: s as? String, modal: modal)
+            let deep = kind == .sheet || kind == .dialog || kind == .alert
+            return ChildWindowFacts(id: id, pid: pid, app: name, bundle: bundle, processName: process, title: (t as? String) ?? "",
+                                    role: r as? String, subrole: s as? String, modal: modal, parent: parent,
+                                    panel: PanelDetector.childIsOffLimits(HandsAXTree.node(el, depth: 1, deep: deep ? true : nil), kind: kind))
+        }
+        // First every listed window and its attached sheets, then the children with their parents (`ChildCollect`), so a
+        // sheet listed before its window still gets that window.
+        var listed: [ChildCollect.Listed] = [], elements: [UInt32: AXUIElement] = [:]
+        for el in list.prefix(ChildLook.maxWindows) {
+            guard let id = BackgroundAX.windowID(of: el) else { continue }
+            if placed.contains(id) {
+                var sheets: [UInt32] = []
+                let kids = HandsAXTree.children(el)
+                let found = HandsAXTree.sheets(kids.list)
+                if kids.readable && found.whole { sheetsRead.insert(id) } else { placedReadable = false }
+                for c in found.list {
+                    if let sid = BackgroundAX.windowID(of: c), sid != id {
+                        sheets.append(sid)
+                        if elements[sid] == nil { elements[sid] = c }
+                    } else {
+                        sheetsOn[id] = (sheetsOn[id] ?? 0) &* 31 &+ Int(bitPattern: CFHash(c))
+                    }
+                }
+                listed.append(.init(id: id, placed: true, sheets: sheets))
+            } else {
+                var p: CFTypeRef?
+                let axParent: UInt32? = AXUIElementCopyAttributeValue(el, kAXParentAttribute as CFString, &p) == .success && p != nil
+                    && CFGetTypeID(p!) == AXUIElementGetTypeID() ? BackgroundAX.windowID(of: p as! AXUIElement) : nil
+                listed.append(.init(id: id, placed: false, axParent: axParent))
+                elements[id] = el
+            }
+        }
+        // A panel that hides with its app in the background (Fonts) is left out of AXWindows but is the focused window.
+        if let el = focusedElement(app), let id = BackgroundAX.windowID(of: el),
+           HiddenPanel.unlisted(listed: listed.map(\.id) + Array(elements.keys), focused: id) != nil {
+            listed.append(.init(id: id, placed: placed.contains(id)))
+            elements[id] = el
+        }
+        let out = ChildCollect.assemble(listed).compactMap { c in elements[c.id].map { facts($0, id: c.id, parent: c.parent) } }
+        // The app's main or focused window now: the parent a child without one is first seen with.
+        func windowAttr(_ a: String) -> UInt32? {
+            var v: CFTypeRef?
+            guard AXUIElementCopyAttributeValue(app, a as CFString, &v) == .success, let v, CFGetTypeID(v) == AXUIElementGetTypeID() else { return nil }
+            return BackgroundAX.windowID(of: v as! AXUIElement)
+        }
+        let unknown = out.contains { $0.parent == nil }
+        return Reading(children: out, sheetsOn: sheetsOn, main: unknown ? windowAttr(kAXMainWindowAttribute) : nil,
+                       focused: unknown ? windowAttr(kAXFocusedWindowAttribute) : nil,
+                       complete: ChildLook.complete(listed: true, count: list.count, placedReadable: placedReadable), sheetsRead: sheetsRead)
+    }
+
+    /// The title and first texts of a dialog, alert or sheet `pid` shows, for saying why `open` got no window. Nil when it
+    /// shows none, or can't be read.
+    static func dialog(of pid: pid_t) -> String? {
+        let look = read(pid: pid, placed: [])
+        guard let d = look.children.first(where: { ["AXDialog", "AXSystemDialog"].contains($0.subrole) || $0.role == "AXSheet" }) else { return nil }
+        let texts = element(pid: pid, id: d.id).map { HandsAXTree.children($0).list.compactMap(HandsAXTree.text) } ?? []
+        let said = ([d.title] + texts).filter { !$0.isEmpty }.prefix(3).joined(separator: ": ")
+        return said.isEmpty ? "untitled" : String(said.prefix(200))
+    }
+
+    private static func focusedElement(_ app: AXUIElement) -> AXUIElement? {
+        var v: CFTypeRef?
+        guard AXUIElementCopyAttributeValue(app, kAXFocusedWindowAttribute as CFString, &v) == .success, let v, CFGetTypeID(v) == AXUIElementGetTypeID() else { return nil }
+        return (v as! AXUIElement)
+    }
+
+    /// Window `id` of `pid` as the app shows it now: in AXWindows, and whether it is the focused window.
+    private static func find(pid: pid_t, id: UInt32) -> (element: AXUIElement?, inWindows: Bool, focused: Bool) {
+        let app = AXUIElementCreateApplication(pid)
+        AXUIElementSetMessagingTimeout(app, 0.25)
+        var raw: CFTypeRef?
+        let list = AXUIElementCopyAttributeValue(app, kAXWindowsAttribute as CFString, &raw) == .success ? (raw as? [AXUIElement]) ?? [] : []
+        let listed = list.first { BackgroundAX.windowID(of: $0) == id }
+        let focused = focusedElement(app).flatMap { BackgroundAX.windowID(of: $0) == id ? $0 : nil }
+        return (listed ?? focused, listed != nil, focused != nil)
+    }
+
+    /// A child window the host doesn't place (a panel), hidden or not, for `Spaces.pressClose`.
+    static func element(pid: pid_t, id: UInt32) -> AXUIElement? { find(pid: pid, id: id).element }
+
+    /// Whether the app still shows child window `id` (`HiddenPanel.closed`): the window server keeps a closed panel.
+    static func closed(pid: pid_t, id: UInt32) -> Bool {
+        let f = find(pid: pid, id: id)
+        return HiddenPanel.closed(inWindows: f.inWindows, focused: f.focused)
+    }
+
+    /// The process that owns a window number, and its name, from the window server.
+    static func owner(_ id: UInt32) -> (pid: pid_t, name: String)? {
+        guard let list = CGWindowListCopyWindowInfo([.optionAll], kCGNullWindowID) as? [[String: Any]] else { return nil }
+        for w in list where (w[kCGWindowNumber as String] as? NSNumber)?.uint32Value == id {
+            guard let pid = (w[kCGWindowOwnerPID as String] as? NSNumber)?.int32Value else { return nil }
+            return (pid, w[kCGWindowOwnerName as String] as? String ?? "")
+        }
+        return nil
+    }
+
+    /// Whether `pid` shows macOS's authentication, password, keychain or permission prompts, by its bundle id, its
+    /// executable or the window server's owner name. Read without touching accessibility.
+    static func isSystemPrompt(pid: pid_t, serverName: String = "") -> Bool {
+        let running = NSRunningApplication(processIdentifier: pid)
+        let bundle = running?.bundleIdentifier ?? "", process = running?.executableURL?.lastPathComponent ?? ""
+        return ChildWindowRule.isSystemPrompt(bundle: bundle, processName: process)
+            || (!serverName.isEmpty && ChildWindowRule.isSystemPrompt(bundle: "", processName: serverName))
+    }
+}
