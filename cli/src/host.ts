@@ -17,6 +17,7 @@ import { saveSites, savedSites } from "./sites.ts";
 import { assertOwnDir, socketDir, socketPath } from "./paths.ts";
 import { ConnectService } from "./connect-host.ts";
 import { CHUNK_PIECE_BYTES, chunkFrame, MAX_CHUNKED_FRAME_BYTES } from "../../src/bridge/chunks.ts";
+import { ChatSync } from "./chat-sync.ts";
 import { EukheRelay } from "./eukhe.ts";
 import { extensionOrigins } from "./install.ts";
 import { SubscriptionService } from "./subscriptions/service.ts";
@@ -49,6 +50,8 @@ let connect: ConnectService | undefined;
 let stopping = false;
 /** The side panel's Local Studio chats (cli/src/eukhe.ts); made on the first frame. */
 let eukhe: EukheRelay | undefined;
+/** The side panel's chats as Local Studio threads (cli/src/chat-sync.ts); made on the first frame. */
+let chats: ChatSync | undefined;
 /** What the connected extension understands beyond its methods (ExtHello.features). */
 let extensionFeatures: string[] = [];
 let chunkSeq = 0;
@@ -178,6 +181,11 @@ function onExtensionMessage(message: ExtToHost): void {
 			// Checked inside: only the panel commands in EUKHE_COMMANDS, on sessions the chat made itself.
 			eukhe ??= new EukheRelay(toExtension);
 			eukhe.handle(message);
+			return;
+		case "chats":
+			// Checked inside: ids, fields and sizes; it writes only this browser's own chats.
+			chats ??= new ChatSync(toExtension, () => browserId);
+			chats.handle(message);
 			return;
 		case "connect":
 			// Parsed strictly inside: a frame that isn't exactly a known call gets an error and runs nothing.
@@ -395,6 +403,7 @@ export function runNativeHost(args: readonly string[] = []): void {
 	// never will be.
 	process.stdin.on("end", () => {
 		eukhe?.closeAll();
+		chats?.stop();
 		stopping = true;
 		failOutstanding("the browser connection dropped while this ran (the Local Studio extension reloaded or restarted)");
 		shutdown();

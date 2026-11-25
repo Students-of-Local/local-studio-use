@@ -8,6 +8,7 @@
  * copies frames between the two and only adds/strips `clientId`.
  */
 
+import type { SessionMessage } from "../threads/merge.js";
 import type { BuildInfo } from "../update/build.js";
 import type { ExtensionLocation, Mismatch, UpdateAction, UpdatePolicy } from "../update/logic.js";
 
@@ -265,7 +266,46 @@ export interface ExtEukhe {
 	command?: Record<string, unknown>;
 }
 
+/** One operation of the chat sync with the Local Studio app (src/threads/sync.ts, cli/src/chat-sync.ts). */
+export type ChatsOp =
+	| { op: "index"; chats: { id: string; lastModified: string }[] }
+	| {
+			op: "put";
+			chat: {
+				id: string;
+				title: string;
+				createdAt: string;
+				lastModified: string;
+				messages: SessionMessage[];
+				known: string[];
+			};
+	  }
+	| { op: "forget"; id: string }
+	| { op: "threads"; query?: string }
+	| { op: "thread"; id: string }
+	| { op: "off" };
+
+export interface ExtChats {
+	type: "chats";
+	id: number;
+	op: ChatsOp;
+}
+
+/** The host's side of ExtChats: with `id` an answer; without it, what the app added to a chat. */
+export interface HostChats {
+	type: "chats";
+	id?: number;
+	result?: Record<string, unknown>;
+	error?: RpcError;
+	event?: "changed";
+	/** With `event`: the chat, the messages the panel has not stored yet, and the app's new name for it. */
+	chat?: string;
+	messages?: SessionMessage[];
+	title?: string;
+}
+
 export type ExtToHost =
+	| ExtChats
 	| ExtEukhe
 	| ExtHello
 	| ExtResponse
@@ -459,6 +499,7 @@ export interface HostChunk {
 }
 
 export type HostToExt =
+	| HostChats
 	| HostEukhe
 	| HostChunk
 	| HostSubscription
