@@ -53,11 +53,12 @@ function fakeOpenAI({ nonce, scope = "chatgpt.tokens.use.direct email offline_ac
 		if (u === "https://auth.openai.com/api/accounts/oauth/token") {
 			const f = form(init);
 			counter++;
+			if (state.rejected === f.client_id) return json({ error: "invalid_client" }, 401);
 			if (f.grant_type === "refresh_token" && state.deadRefresh) return json({ error: "invalid_grant" }, 400);
 			return json({
 				access_token: `at-${counter}`,
 				refresh_token: `rt-${counter}`,
-				id_token: idToken({ iss: "https://auth.openai.com", aud, sub: "user-1", email: "a@example.com", exp: Math.floor(Date.now() / 1000) + 3600, nonce: state.nonce }),
+				id_token: idToken({ iss: "https://auth.openai.com", aud: state.aud ?? aud, sub: state.sub ?? "user-1", email: "a@example.com", exp: Math.floor(Date.now() / 1000) + 3600, nonce: state.nonce }),
 				token_type: "Bearer",
 				expires_in: 3600,
 				scope,
@@ -88,7 +89,7 @@ function get(url, headers = {}) {
 			res.on("data", (c) => {
 				body += c;
 			});
-			res.on("end", () => resolve({ status: res.statusCode, body }));
+			res.on("end", () => resolve({ status: res.statusCode, body, location: res.headers.location }));
 		});
 		req.on("error", reject);
 		req.end();
@@ -121,6 +122,14 @@ async function signedIn(dir, opts = {}, openai = fakeOpenAI(opts)) {
 	const page = await get(callback.toString());
 	return { openai, siwc, pending, authorize, page };
 }
+
+/** The browser's part of a sign-in: `sub` signs in at the authorization URL and OpenAI calls back with `clientId`. */
+async function callBack(openai, authorizeUrl, sub, clientId) {
+	const p = new URL(authorizeUrl).searchParams;
+	Object.assign(openai.state, { nonce: p.get("nonce"), sub, aud: clientId });
+	return get(`${p.get("redirect_uri")}?${new URLSearchParams({ code: "c", state: p.get("state"), client_id: clientId })}`);
+}
+const clientOf = (url) => new URL(url).searchParams.get("client_id");
 
 test("SIWC: the authorization request has exactly the documented parameters", async () => {
 	const dir = tempDir();
@@ -260,6 +269,66 @@ test("SIWC: sign-out revokes the refresh token, then deletes every token but kee
 	assert.equal(p.get("agent_name_hint"), null);
 	assert.equal(p.get("id_token_hint"), null, "no ID token hint after signing out");
 	next.cancel();
+});
+
+test("SIWC: after signing out, another account signs in with its own registration, and each keeps its own", async () => {
+	const dir = tempDir();
+	const { openai, siwc, pending } = await signedIn(dir);
+	await pending.result;
+	const record = (id) => JSON.parse(readFileSync(join(dir, "chatgpt", `${id}.json`), "utf8"));
+	for (const [sub, from, to, client] of [
+		["user-2", ISSUED, "oaiapp_two", "dynamic_agent_client"],
+		["user-1", "oaiapp_two", ISSUED, ISSUED],
+	]) {
+		await siwc.signOut();
+		const next = await siwc.startSignIn();
+		const { status, location } = await callBack(openai, next.authorizeUrl, sub, from);
+		assert.equal(status, 302, "the same attempt goes on");
+		assert.equal(clientOf(location), client);
+		assert.equal((await callBack(openai, location, sub, to)).status, 200);
+		assert.equal((await next.result).signedIn, true);
+		assert.equal(record(to).subject, sub);
+		assert.equal(record(from).access_token, undefined, "the signed-out account gets no token");
+	}
+	const again = await siwc.startSignIn();
+	assert.equal((await callBack(openai, again.authorizeUrl, "user-2", ISSUED)).status, 400);
+	await assert.rejects(again.result, /isn't the one/, "signed in, another account replaces nothing");
+	assert.equal(record(ISSUED).subject, "user-1");
+});
+
+test("SIWC: after signing out, the same account signs in again with the registration it had", async () => {
+	const { openai, siwc, pending } = await signedIn(tempDir());
+	await pending.result;
+	await siwc.signOut();
+	const next = await siwc.startSignIn();
+	assert.equal(clientOf(next.authorizeUrl), ISSUED);
+	await callBack(openai, next.authorizeUrl, "user-1", ISSUED);
+	assert.equal((await next.result).signedIn, true);
+});
+
+test("SIWC: a registration OpenAI rejects is dropped, or left when its sign-in never ends, and the next one registers anew", async () => {
+	for (const at of ["refresh", "sign-in", "no callback"]) {
+		const dir = tempDir();
+		const { openai, pending } = await signedIn(dir);
+		await pending.result;
+		openai.state.rejected = ISSUED;
+		const later = new Siwc({ fetch: openai.fetch, dir, now: () => Date.now() + 2 * 3600 * 1000 });
+		let siwc = new Siwc({ fetch: openai.fetch, dir, preferredPort: 0 });
+		if (at === "refresh") await assert.rejects(later.accessToken(), { code: "invalid_client" });
+		else {
+			await siwc.signOut();
+			const retry = await siwc.startSignIn();
+			if (at === "sign-in") await callBack(openai, retry.authorizeUrl, "user-1", ISSUED);
+			else retry.cancel();
+			await assert.rejects(retry.result, { code: at === "sign-in" ? "invalid_client" : "cancelled" });
+		}
+		// A dropped record is gone for every helper, not only the one that was refused.
+		if (at !== "no callback") siwc = new Siwc({ fetch: openai.fetch, dir, preferredPort: 0 });
+		const next = await siwc.startSignIn();
+		assert.equal(clientOf(next.authorizeUrl), "dynamic_agent_client", at);
+		await callBack(openai, next.authorizeUrl, "user-1", "oaiapp_new");
+		assert.equal((await next.result).signedIn, true);
+	}
 });
 
 test("proxy: secret and Host are checked; a ChatGPT request goes to /v1/responses with the user's token, store false", async () => {

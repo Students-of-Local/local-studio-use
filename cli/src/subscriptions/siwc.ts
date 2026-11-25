@@ -113,6 +113,8 @@ export class Siwc {
 	private pending?: PendingSignIn;
 	/** Bumped by sign-out: a refresh or sign-in that started before it must not write tokens back. */
 	private generation = 0;
+	/** Signed-out registrations whose last sign-in here didn't finish: not used again, in case OpenAI no longer takes them. */
+	private readonly unfinished = new Set<string>();
 
 	constructor(options: SiwcOptions = {}) {
 		this.fetch = options.fetch ?? fetch;
@@ -153,9 +155,17 @@ export class Siwc {
 		return undefined;
 	}
 
+	/** The saved registration of one ChatGPT account. */
+	private recordOf(subject: string): ChatGptRecord | undefined {
+		return listJson(this.accountsDir)
+			.filter((f) => f !== "active.json")
+			.map((f) => readPrivateJson<ChatGptRecord>(join(this.accountsDir, f)))
+			.find((record) => record?.subject === subject && !this.unfinished.has(record.client_id));
+	}
+
 	status(): ChatGptStatus {
 		const record = this.activeRecord();
-		const signedIn = Boolean(record?.access_token || record?.refresh_token);
+		const signedIn = hasTokens(record);
 		return {
 			signedIn,
 			...(signedIn && record?.email ? { email: record.email } : {}),
@@ -164,23 +174,13 @@ export class Siwc {
 		};
 	}
 
-	/**
-	 * Start a sign-in: listener first, then the authorization URL for the browser. A saved
-	 * registration is reauthorized with its issued client id; otherwise the app registers
-	 * with dynamic_agent_client.
-	 */
-	async startSignIn(): Promise<PendingSignIn> {
-		this.pending?.cancel();
-		const saved = this.activeRecord();
+	/** One authorization request, for the saved registration or (without one) a first registration. */
+	private authorization(redirectUri: string, saved?: ChatGptRecord) {
 		const hostId = saved?.ext_agent_host_id ?? this.hostId();
 		const state = b64url(randomBytes(32));
 		const nonce = b64url(randomBytes(32));
 		const verifier = b64url(randomBytes(48));
-		const generation = this.generation;
 		const challenge = b64url(createHash("sha256").update(verifier).digest());
-
-		const { server, port } = await this.listen();
-		const redirectUri = `http://${SIWC.callbackHost}:${port}${SIWC.callbackPath}`;
 		const params = new URLSearchParams();
 		params.set("client_id", saved ? saved.client_id : SIWC.dynamicClient);
 		if (!saved) params.set("agent_name_hint", SIWC.agentName);
@@ -196,7 +196,22 @@ export class Siwc {
 		params.set("nonce", nonce);
 		params.set("code_challenge_method", "S256");
 		params.set("code_challenge", challenge);
-		const authorizeUrl = `${SIWC.authorizeUrl}?${params.toString()}`;
+		return { saved, hostId, state, nonce, verifier, url: `${SIWC.authorizeUrl}?${params.toString()}` };
+	}
+
+	/**
+	 * Start a sign-in: listener first, then the authorization URL for the browser. A saved
+	 * registration is reauthorized with its issued client id; otherwise the app registers
+	 * with dynamic_agent_client. While signed out, a user who chooses another account is sent on
+	 * to that account's registration, or a first one.
+	 */
+	async startSignIn(): Promise<PendingSignIn> {
+		this.pending?.cancel();
+		const active = this.activeRecord();
+		const generation = this.generation;
+		const { server, port } = await this.listen();
+		const redirectUri = `http://${SIWC.callbackHost}:${port}${SIWC.callbackPath}`;
+		let attempt = this.authorization(redirectUri, active && !hasTokens(active) && this.unfinished.has(active.client_id) ? undefined : active);
 
 		let settle: { resolve: (s: ChatGptStatus) => void; reject: (e: Error) => void } | undefined;
 		const result = new Promise<ChatGptStatus>((resolve, reject) => {
@@ -212,6 +227,7 @@ export class Siwc {
 			server.close();
 			server.closeIdleConnections?.();
 			if (this.pending?.result === result) this.pending = undefined;
+			if (error && attempt.saved && !hasTokens(attempt.saved)) this.unfinished.add(attempt.saved.client_id);
 			if (error) settle?.reject(error);
 			else if (status) settle?.resolve(status);
 		};
@@ -233,6 +249,7 @@ export class Siwc {
 					`<!doctype html><meta charset="utf-8"><title>Local Studio</title><body style="font:16px system-ui;margin:3em"><p>${text}</p></body>`,
 				);
 			};
+			const { saved, hostId, state, nonce, verifier } = attempt;
 			// A callback without our state is not ours: answer it and keep waiting for the real one.
 			if (url.searchParams.get("state") !== state) {
 				page(400, "This sign-in link doesn't match the one Local Studio started. Start the sign-in again from Local Studio's settings.");
@@ -269,8 +286,14 @@ export class Siwc {
 				finish(new SubscriptionError("no_code", "No authorization code in the callback."));
 				return;
 			}
-			this.complete({ code, clientId, verifier, redirectUri, nonce, hostId, saved, current: () => !done && generation === this.generation }).then(
+			const current = () => !done && generation === this.generation;
+			const restart = (other?: ChatGptRecord) => {
+				attempt = this.authorization(redirectUri, other);
+				return attempt.url;
+			};
+			this.complete({ code, clientId, verifier, redirectUri, nonce, hostId, saved, current, restart }).then(
 				(status) => {
+					if (typeof status === "string") return void res.writeHead(302, { Location: status, "Cache-Control": "no-store" }).end();
 					page(200, "Local Studio is signed in with ChatGPT. You can close this tab.");
 					finish(undefined, status);
 				},
@@ -282,7 +305,7 @@ export class Siwc {
 		});
 
 		this.pending = {
-			authorizeUrl,
+			authorizeUrl: attempt.url,
 			redirectUri,
 			result,
 			cancel: () => finish(new SubscriptionError("cancelled", "Sign-in cancelled.")),
@@ -318,7 +341,9 @@ export class Siwc {
 		saved?: ChatGptRecord;
 		/** False once the attempt was cancelled or the user signed out meanwhile. */
 		current: () => boolean;
-	}): Promise<ChatGptStatus> {
+		/** Go on with another registration; returns the URL to send the browser to. */
+		restart: (other?: ChatGptRecord) => string;
+	}): Promise<ChatGptStatus | string> {
 		const tokens = await this.tokenRequest([
 			["grant_type", "authorization_code"],
 			["client_id", args.clientId],
@@ -330,16 +355,20 @@ export class Siwc {
 		if (tokens.error) {
 			if (tokens.error === "invalid_grant")
 				throw new SubscriptionError("invalid_grant", "The sign-in code was not accepted. Start the sign-in again.");
+			if (tokens.error === "invalid_client")
+				throw await withFileLock(`${this.recordPath(args.clientId)}.lock`, async () => this.rejected(args.clientId));
 			throw new SubscriptionError(tokens.error, `Token exchange failed: ${tokens.error}`);
 		}
 		if (!tokens.access_token || !tokens.id_token)
 			throw new SubscriptionError("bad_token_response", "OpenAI's token response had no access or ID token.");
 		const claims = await this.validateIdToken(tokens.id_token, args.clientId, args.nonce);
-		if (args.saved && args.saved.subject !== claims.sub)
+		if (args.saved && args.saved.subject !== claims.sub) {
+			if (args.current() && !this.status().signedIn) return args.restart(this.recordOf(claims.sub));
 			throw new SubscriptionError(
 				"account_mismatch",
 				"That ChatGPT account isn't the one this registration belongs to. Nothing was replaced.",
 			);
+		}
 		const record: ChatGptRecord = {
 			issuer: SIWC.issuer,
 			subject: claims.sub,
@@ -356,6 +385,7 @@ export class Siwc {
 		if (!args.current()) throw new SubscriptionError("cancelled", "Sign-in cancelled.");
 		writePrivateJson(this.recordPath(args.clientId), record);
 		writePrivateJson(join(this.accountsDir, "active.json"), { client_id: args.clientId });
+		this.unfinished.delete(args.clientId);
 		return this.status();
 	}
 
@@ -498,8 +528,7 @@ export class Siwc {
 					this.clearTokens(record);
 					throw new SubscriptionError("signed_out", "Your ChatGPT sign-in is no longer valid. Sign in again.");
 				}
-				if (tokens.error === "invalid_client")
-					throw new SubscriptionError("invalid_client", "ChatGPT rejected Local Studio's registration. Sign in again.");
+				if (tokens.error === "invalid_client") throw this.rejected(record.client_id);
 				throw new SubscriptionError(tokens.error, `Refreshing the ChatGPT sign-in failed (${tokens.error}); try again shortly.`);
 			}
 			if (!tokens.access_token) throw new SubscriptionError("bad_token_response", "OpenAI's refresh response had no access token.");
@@ -519,6 +548,12 @@ export class Siwc {
 		});
 	}
 
+	/** OpenAI rejected this client id: drop its record (its lock is held), so the next sign-in registers anew. */
+	private rejected(clientId: string): SubscriptionError {
+		removeFile(this.recordPath(clientId));
+		return new SubscriptionError("invalid_client", "ChatGPT rejected Local Studio's registration. Sign in again.");
+	}
+
 	private clearTokens(record: ChatGptRecord): void {
 		const kept: ChatGptRecord = { ...record, scopes: [] };
 		for (const field of TOKEN_FIELDS) delete kept[field];
@@ -527,7 +562,8 @@ export class Siwc {
 
 	/**
 	 * Sign out: revoke the renewable session, then clear the access, refresh and ID tokens.
-	 * The account-to-client mapping and the host id stay for a later sign-in.
+	 * The account-to-client mapping and the host id stay for a later sign-in of the same account;
+	 * another account gets its own registration.
 	 */
 	async signOut(): Promise<{ revoked: boolean }> {
 		this.generation++;
@@ -580,6 +616,10 @@ export class Siwc {
 }
 
 const TOKEN_FIELDS = ["id_token", "access_token", "refresh_token"] as const;
+
+function hasTokens(record: ChatGptRecord | undefined): boolean {
+	return Boolean(record?.access_token || record?.refresh_token);
+}
 
 /** The three token fields of a token response, when present. */
 function pickTokens(tokens: TokenResponse): Partial<Pick<ChatGptRecord, (typeof TOKEN_FIELDS)[number]>> {

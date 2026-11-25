@@ -55,9 +55,10 @@ memory. The proxy checks the secret and its own `Host` header, and forwards only
 - The code exchange goes to `auth.openai.com/api/accounts/oauth/token` with the issued client id,
   the verifier, the same redirect URI and `resource=https://api.openai.com/v1`. No secret.
 - The ID token is checked against OpenAI's JWKS (from the OpenID configuration): signature,
-  issuer, audience (the issued client id), expiry and nonce. A returning sign-in must be the
-  same account. Plan usage needs `chatgpt.tokens.use.direct` in the granted scopes; without it
-  the sign-in is kept and inference is refused with a clear choice (allow it, or use a key).
+  issuer, audience (the issued client id), expiry and nonce. A sign-in while signed in must be the
+  same account. While signed out, one that comes back as another account goes on in the same tab
+  with that account's saved client id, or a first registration, so each account keeps its own.
+  Plan usage needs `chatgpt.tokens.use.direct` in the granted scopes; without it the sign-in is kept and inference is refused with a clear choice (allow it, or use a key).
 - Refresh: near expiry (5 minutes), one at a time per process and per credential file (a lock
   file holding an owner token, since two browsers mean two hosts; every request under it times
   out after 15 seconds). The rotating refresh token is replaced with the access token, and the
@@ -66,7 +67,9 @@ memory. The proxy checks the secret and its own `Host` header, and forwards only
 - Sign-out: stop requests in flight, then, under the same lock and after any refresh or sign-in
   already running has settled (neither can write tokens back afterwards), revoke the refresh
   token at the `revocation_endpoint` (retried on network errors and 5xx) and delete the access,
-  refresh and ID tokens. The registration and host id stay.
+  refresh and ID tokens. The registration and host id stay. A registration OpenAI answers with
+  `invalid_client` is deleted under the lock, and a signed-out one whose sign-in didn't finish is not
+  used again until the helper restarts; either way the next sign-in registers anew.
 - Requests: `store: false`, `stream: true`, no unsupported fields, developer instead of system
   items, function tools in a `local-studio-browser` namespace. The side panel shapes the body and the host
   shapes it again before forwarding (`siwcRequestBody` in `src/subscriptions/constants.ts`).
