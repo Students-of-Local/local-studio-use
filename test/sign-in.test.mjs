@@ -2,8 +2,10 @@
 // answer. The whole path, window and page, runs in cli/test/e2e-panel.test.mjs.
 import assert from "node:assert/strict";
 import { test } from "node:test";
+import vm from "node:vm";
 import { fromSignInWindow, signInEnd, signInFields, signInOrigin, signInValues } from "../src/handback/sign-in.ts";
 import { handbackOutcome } from "../src/handback/state.ts";
+import { installFakeChrome } from "./fake-chrome.mjs";
 
 test("the fields are refs of the top page, and no refusal repeats what was passed", () => {
 	assert.deepEqual(signInFields({ username: "e1", password: "@E2 " }), { fields: { username: "e1", password: "e2" } });
@@ -66,4 +68,30 @@ test("what the agent reads says nothing of what was typed", () => {
 	assert.match(handbackOutcome("signed_in", 7, "Sign in").text, /You were not given it: never read the fields back/);
 	assert.match(handbackOutcome("declined", 7, "Sign in").text, /chose not to type a sign-in on tab 7/);
 	assert.match(handbackOutcome("failed", 7, "Sign in", 600_000, "The page moved.").text, /tab 7: The page moved\. read_page/);
+});
+
+test("a page the tab moved to gets none of a sign-in, whatever it put where the page library or a getter would run", async () => {
+	installFakeChrome();
+	const { writeSignIn } = await import("../src/browser/page.ts");
+	const tabId = (await chrome.tabs.create({ url: "https://evil.test/" })).id;
+	const page = vm.createContext({ location: { origin: "https://evil.test" } });
+	// The page's traps: the library's global answers any key, and a getter reads the text of the code around it.
+	vm.runInContext(
+		`const seen = [];
+		const see = (args) => (seen.push(JSON.stringify([...args])), { wrote: ["password"] });
+		globalThis.__localStudioLib = new Proxy({}, { get: () => (...args) => see(args) });
+		Object.defineProperty(Object.prototype, "then", { get: function then() { try { seen.push(String(then.caller)); } catch {} } });
+		globalThis.Error = function (why) { seen.push(String(Error.caller)); return { message: why }; };`,
+		page,
+	);
+	chrome.debugger.sendCommand = async (_target, method, params) =>
+		method === "Runtime.evaluate" ? { result: { value: await vm.runInContext(params.expression, page) } } : {};
+	const refused = { configureWorld: async () => {}, execute: async () => Promise.reject(new Error("the 'Allow User Scripts' toggle is off")) };
+	for (const api of [undefined, refused]) {
+		chrome.userScripts = api;
+		const done = await writeSignIn(tabId, { password: "e2" }, "https://a.test", { password: "hunter2" });
+		assert.equal(done.why, "The page moved to another site.");
+		assert.equal(done.wrote.length, 0);
+		assert.doesNotMatch(vm.runInContext("seen.join()", page), /hunter2/, api ? "userScripts refused" : "no userScripts");
+	}
 });

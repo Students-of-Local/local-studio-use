@@ -55,13 +55,15 @@ const configuredWorlds = new Set<string>();
 
 /**
  * Run code in a tab's USER_SCRIPT world and return its JSON-serialisable result.
- * `code` must be an expression or an IIFE; promises are awaited.
+ * `code` must be an expression or an IIFE; promises are awaited. `main` is what the debugger evaluates in
+ * the page's own world when userScripts can't run, where the page reaches every global.
  */
 export async function runInPage<T = unknown>(
 	tabId: number,
 	code: string,
 	worldId = SNAPSHOT_WORLD_ID,
 	csp = SNAPSHOT_CSP,
+	main = wrapCode(code),
 ): Promise<T> {
 	const tab = await chrome.tabs.get(tabId);
 	if (tab.url && isRestrictedUrl(tab.url)) {
@@ -71,7 +73,7 @@ export async function runInPage<T = unknown>(
 	// userScripts needs the "Allow user scripts" toggle; without it, evaluate through the
 	// debugger in the main world (CSP does not apply to Runtime.evaluate).
 	const api = userScriptsApi();
-	if (!api) return cdpEvaluate<T>(tabId, wrapped);
+	if (!api) return cdpEvaluate<T>(tabId, main);
 	let results: Awaited<ReturnType<typeof api.execute>>;
 	try {
 		if (!configuredWorlds.has(worldId)) {
@@ -92,7 +94,7 @@ export async function runInPage<T = unknown>(
 		});
 	} catch (err) {
 		// Present but refused (permission or toggle): the code never ran, so evaluate it through the debugger.
-		if (isUserScriptsGated(err)) return cdpEvaluate<T>(tabId, wrapped);
+		if (isUserScriptsGated(err)) return cdpEvaluate<T>(tabId, main);
 		throw err;
 	}
 	const first = results[0];
@@ -109,7 +111,8 @@ export async function runInPage<T = unknown>(
 // called by that key with its arguments. The install script's text is the same for every document, so V8 takes it from
 // its compilation cache instead of compiling it again. A document not known to have the function (the tab's first call,
 // or the first after a navigation commits) gets the install and the call, sent together; one that answers that it is
-// missing gets them the same way.
+// missing gets them the same way. The page's own world, where the debugger runs code when userScripts can't, has no
+// library: the page could put its own object in its place and be handed every call's arguments.
 
 /** A page function: `source` is a function expression, self-contained, whose arguments are JSON. */
 export interface PageLib {
@@ -121,6 +124,8 @@ export interface PageLib {
 export interface LibCall {
 	lib: PageLib;
 	args: unknown[];
+	/** Its arguments are the user's secrets: in the page's own world its code is hidden from the page (runLib). */
+	secret?: boolean;
 }
 
 /** The global the functions hang on, in whichever world runs them. Not enumerable, and an entry can't be replaced. */
@@ -183,22 +188,26 @@ function libKnown(tabId: number): Set<string> {
 /** Run a page function in the tab's top document: by its key when the document has it, else installed and run. */
 export async function runLib<T>(tabId: number, call: LibCall): Promise<T> {
 	const { key, install } = libScript(call.lib);
+	// Strict code is hidden from Function.caller: a page getter that runs as the call returns can't read its text.
+	const whole = `${call.secret ? '"use strict"; ' : ""}${wrapCode(libCode(call))}`;
+	if (!userScriptsApi()) return runInPage<T>(tabId, libCode(call), SNAPSHOT_WORLD_ID, SNAPSHOT_CSP, whole);
+	const run = <V>(code: string, main: string) => runInPage<V>(tabId, code, SNAPSHOT_WORLD_ID, SNAPSHOT_CSP, main);
 	const byKey = `(() => { const L = globalThis.${LIB_GLOBAL}; const f = L && L[${key}]; return typeof f === "function" ? f(${libArgs(call.args)}) : ${JSON.stringify(LIB_MISS)}; })()`;
 	const known = libKnown(tabId);
 	if (known.has(key)) {
-		const got = await runInPage<T | typeof LIB_MISS>(tabId, byKey);
+		const got = await run<T | typeof LIB_MISS>(byKey, whole);
 		if (got !== LIB_MISS) return got as T;
 	}
 	// A document not known to have it: the install and the call, sent one after the other without waiting, so they cost
 	// about one round trip (the debugger runs them in order). Installing twice is a no-op.
-	const installed = runInPage<boolean>(tabId, install).catch(() => false);
-	const again = runInPage<T | typeof LIB_MISS>(tabId, byKey);
+	const installed = run<boolean>(install, wrapCode("false")).catch(() => false);
+	const again = run<T | typeof LIB_MISS>(byKey, whole);
 	// Its failure is the caller's, but it may come while the install is awaited: handled from the start.
 	again.catch(() => undefined);
 	if (await installed) known.add(key);
 	const value = await again;
 	// A page that took the global, or the two arriving out of order: the whole code, which always runs.
-	return value === LIB_MISS ? runInPage<T>(tabId, libCode(call)) : (value as T);
+	return value === LIB_MISS ? run<T>(libCode(call), whole) : (value as T);
 }
 
 function isLibCall(c: string | LibCall): c is LibCall {
@@ -2564,7 +2573,7 @@ export function writeSignIn(
 	origin: string,
 	values: SignInValues,
 ): Promise<{ wrote: Array<keyof SignInFields>; why?: string }> {
-	return runLib(tabId, { lib: SIGN_IN_LIB, args: [fields, origin, values] });
+	return runLib(tabId, { lib: SIGN_IN_LIB, args: [fields, origin, values], secret: true });
 }
 
 /**

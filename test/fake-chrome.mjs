@@ -42,37 +42,6 @@ if (!globalThis.navigator?.locks) {
 	else Object.defineProperty(globalThis, "navigator", { value: { locks }, configurable: true });
 }
 
-// The page library (D62, src/browser/page.ts runLib): a page function is installed once per document and then called
-// by its key. Tests answer page code by what it says, so every debugger command passes through this first: an install
-// is kept and answered, and a call by key reaches the test as the whole code, as the document would run it. A key no
-// install has named answers that it is missing, as a new document does.
-const LIB_INSTALL = /Object\.defineProperty\(L, ("[^"]+"), \{ value: \(([\s\S]*)\) \}\);\s*return true;\s*\}\)\(\)/;
-const LIB_CALL =
-	/\(\(\) => \{ const L = globalThis\.__localStudioLib; const f = L && L\[("[^"]+")\]; return typeof f === "function" \? f\(([\s\S]*?)\) : "__localStudio_lib_missing"; \}\)\(\)/;
-function pageLib(installed, sendCommand) {
-	if (sendCommand.pageLib) return sendCommand;
-	const wrapped = async (target, method, params) => {
-		const expression = method === "Runtime.evaluate" ? params?.expression : undefined;
-		if (typeof expression === "string") {
-			const install = LIB_INSTALL.exec(expression);
-			if (install) {
-				installed.set(install[1], install[2]);
-				return { result: { value: { ok: true, value: true } } };
-			}
-			const call = LIB_CALL.exec(expression);
-			if (call) {
-				const source = installed.get(call[1]);
-				if (source === undefined) return { result: { value: { ok: true, value: "__localStudio_lib_missing" } } };
-				const whole = `(${source})(${call[2]})`;
-				return sendCommand(target, method, { ...params, expression: expression.replace(call[0], () => whole) });
-			}
-		}
-		return sendCommand(target, method, params);
-	};
-	wrapped.pageLib = true;
-	return wrapped;
-}
-
 export function installFakeChrome() {
 	const tick = () => new Promise((r) => setTimeout(r, Math.random() * 3));
 	const store = { local: {}, session: {} };
@@ -312,17 +281,6 @@ export function installFakeChrome() {
 		webNavigation,
 		sidePanel: { async getOptions() { return {}; } },
 	};
-	// Whatever a test puts in sendCommand's place still sees page library calls as whole code (pageLib above).
-	const installed = new Map();
-	let sendCommand = pageLib(installed, chrome.debugger.sendCommand);
-	Object.defineProperty(chrome.debugger, "sendCommand", {
-		get: () => sendCommand,
-		set: (fn) => {
-			sendCommand = pageLib(installed, fn);
-		},
-		enumerable: true,
-		configurable: true,
-	});
 	return {
 		table: () => structuredClone(store.local.browser_sessions ?? {}),
 		addTab: (t) => {
