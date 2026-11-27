@@ -60,6 +60,7 @@ import { ApiKeyDialog } from "./dialogs/ApiKeyDialog.js";
 import { knownProvidersWithKeys, providersWithKeys } from "./dialogs/provider-key-status.js";
 import {
 	currentFleetModel,
+	fleetNotice,
 	fleetState,
 	isLocalStudioProvider,
 	isStaleLocalModel,
@@ -1157,12 +1158,7 @@ const createAgent = async (initialState?: Partial<AgentState>, shouldSave = true
 		onApiKeyRequired: async (provider: string) => {
 			if (isLocalStudioProvider(provider)) {
 				if ((await refreshLocalStudioModels().catch(() => [])).length) return true;
-				Toast.error(
-					fleetState().state === "ready"
-						? "Local models are running, but no model is loaded. Load one in Local Studio, then send again."
-						: "Local models aren't running. Start Local Studio's controller, then send again.",
-					8000,
-				);
+				Toast.error(fleetNotice(fleetState()), 8000);
 				return false;
 			}
 			// A subscription provider has no key: it is ready when its sign-in is.

@@ -202,6 +202,18 @@ test("the panel's local models come from the controller: list, row, picker, a ch
 	await reopen();
 	await waitFor(async () => /Fleet key not found/.test(await row()), 15_000, "the key fix");
 	if (process.platform === "linux") assert.match(await row(), /systemctl --user restart local-studio-controller/);
+	const toasts = () => panel(`[...document.querySelectorAll("toast-notification")].map((t) => (t.shadowRoot ?? t).textContent).join("\\n")`);
+	await ask("send with a refused key");
+	const refused = await waitFor(async () => {
+		const text = await toasts();
+		return /Fleet key not found/.test(text) && text;
+	}, 15_000, "the key toast");
+	const keyFile = join(h.home, ".local-studio-controller", "config.json");
+	assert.ok(refused.includes(`Fleet key not found. The helper read the controller's key from ${keyFile}, and the controller refused it.`), refused);
+	assert.ok((await row()).includes(`The helper read the controller's key from ${keyFile}, and the controller refused it.`));
+	if (process.platform === "linux") assert.match(refused, /Restart the controller: systemctl --user restart local-studio-controller/);
+	assert.doesNotMatch(refused.slice(refused.lastIndexOf("Fleet key not found")), /aren't running/);
+	assert.equal(stub.chats.length, 3, "nothing is sent with a refused key");
 
 	stub.server.closeAllConnections();
 	await new Promise((ok) => stub.server.close(ok));

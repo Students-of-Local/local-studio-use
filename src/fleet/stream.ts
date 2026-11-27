@@ -26,6 +26,18 @@ export type FleetState =
 	| { state: "ready"; count: number }
 	| { state: "unauthorized"; path?: string; fix?: string };
 
+export function keyRefusedText(path?: string): string {
+	return `The helper read the controller's key from ${path ?? "its config.json"}, and the controller refused it.`;
+}
+
+export function fleetNotice(f: FleetState): string {
+	if (f.state === "ready" && f.count === 0)
+		return "Local models are running, but no model is loaded. Load one in Local Studio, then send again.";
+	if (f.state === "unauthorized")
+		return `Fleet key not found. ${keyRefusedText(f.path)}${f.fix ? ` Restart the controller: ${f.fix}` : ""}`;
+	return "Local models aren't running. Start Local Studio's controller, then send again.";
+}
+
 let lastModels: Model<Api>[] = [];
 let last: FleetState = { state: "checking" };
 let refreshing: Promise<Model<Api>[]> | undefined;

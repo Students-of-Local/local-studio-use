@@ -8,7 +8,13 @@ import { watchHostConnected } from "../bridge/host-state.js";
 import { agentSetupPromptButton } from "../components/AgentSetupPrompt.js";
 import { COMMAND_BOX_CLASS } from "../components/command-box.js";
 import { Toast } from "../components/Toast.js";
-import { type FleetState, fleetState, localStudioModels, refreshLocalStudioModels } from "../fleet/stream.js";
+import {
+	type FleetState,
+	fleetState,
+	keyRefusedText,
+	localStudioModels,
+	refreshLocalStudioModels,
+} from "../fleet/stream.js";
 import { APP_DOWNLOAD_URL } from "../release-source.js";
 import { request, SubscriptionRequestError, type SubscriptionStatus, subscriptionStatus } from "./client.js";
 import { COPILOT, cliMcpSetup, SIWC } from "./constants.js";
@@ -316,7 +322,7 @@ export class ConnectList extends LitElement {
 			return row(
 				"Fleet key not found",
 				check,
-				html`<p>The helper read the controller's key from ${f.path ?? "its config.json"}, and the controller refused it.</p>
+				html`<p>${keyRefusedText(f.path)}</p>
 					${f.fix ? this.command("Restart the controller", f.fix) : nothing}`,
 			);
 		return row("Local models aren't running", check);
