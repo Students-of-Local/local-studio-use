@@ -3,7 +3,7 @@
 //   node evals/weak-model/run.mjs --label r1-haiku [--model claude-haiku-5-5] [--trials 2] [--kind browser|computer|stub|all]
 //        [--only id,id] [--concurrency 3] [--turns 30] [--wall 240] [--list]
 // Tasks come from every tasks/*.mjs file (WM_TASKS_DIR overrides the folder); --list prints them and starts nothing.
-// Needs `npm run build` at browser/ (dist-chrome) and in cli/, and a Playwright Chromium. Never calls an API key:
+// Needs `npm run build` at the repository root (dist-chrome) and in cli/, and a Playwright Chromium. Never calls an API key:
 // the responder is `claude -p` under the signed-in Claude Code account.
 //
 // Everything the run makes registers its undo in one Cleanup the moment it exists (cleanup.mjs), and every way out

@@ -25,13 +25,13 @@ node --import tsx --test test/*.test.mjs  # extension tests
 
 `(cd cli && npm run test:e2e)` drives the extension, native host and MCP server in a
 throwaway headless Chromium, and `(cd cli && npm run test:e2e:panel)` draws the side panel in one. Both
-run in CI as the `browser-e2e` job (with `bench:dom` below); run them after bridge, MCP or panel changes
+run in CI as the `e2e` job (`bench:dom` below runs in `market-evals`); run them after bridge, MCP or panel changes
 (first time: `cd cli && npx playwright-core install chromium`).
 
 `(cd cli && npm run bench:dom)` is the DOM benchmark: 44 hand-written pages (`cli/test/dom-bench/pages/`), each with a task an
 agent would get, a `solve(t)` that uses only the MCP tools and finds every target by meaning (the `find` tool or a `read_page`
 snapshot searched by role and label, never a selector or id, never `run_js` to act), and a `check(page)` that reads the app's
-own state back through CDP. It shares its Chromium setup with the e2e test (`cli/test/e2e-harness.mjs`), runs in the `browser-e2e` CI job without `--time`, and writes `cli/test/dom-bench/last-run.json`. `floor.json` is the ratchet: `passing` ids must keep passing within
+own state back through CDP. It shares its Chromium setup with the e2e test (`cli/test/e2e-harness.mjs`), runs in the `market-evals` CI job without `--time`, and writes `cli/test/dom-bench/last-run.json`. `floor.json` is the ratchet: `passing` ids must keep passing within
 their `calls` ceiling (tool calls in `solve`; fewer tightens it), or the run exits 1. Wall time is reported; it gates only with
 `--time` (ceiling max of 2000 ms and 3x the measured time), on a quiet machine, because load swings it several fold. `failing` holds each case the tools cannot do yet,
 with the real reason; those are the tool improvements to make. A fix moves its case to `passing` (`node test/dom-bench/run.mjs
@@ -81,7 +81,7 @@ it (`RELEASE_BUILD`); the app copies the program without that file. Run
 ## Skills
 The app's skills are in `skills/` (docs/decisions.md, D71). Local Studio ships them, and
 agents find them through `skill_search` and `skill_read`, which this server passes to `local-studio skills mcp`. Nothing in
-`browser/` keeps a list, a lint or a copy of them; the one exception is the side panel's "/" menu, which `scripts/build.mjs`
+this repository keeps a list, a lint or a copy of them; the one exception is the side panel's "/" menu, which `scripts/build.mjs`
 makes from that folder. They run with the user's sign-in in every agent that reads them, so treat a skill change like a
 security change (`docs/skill-security.md`).
 
@@ -89,9 +89,8 @@ security change (`docs/skill-security.md`).
   beside it `asks.txt` (the words a person would use, one per line), `where.txt` (the sites and apps it is for) and
   `names.txt` (other names), each optional.
 - Keep `SKILL.md` to 150 lines and 8,000 characters (D12). Split longer material into its own skill.
-- After a change, from the repository root, with the built `local-studio`: `LOCAL_STUDIO_SKILLS_DIR=$PWD/skills local-studio
-  skills list --shipped --json` shows no row with a `problem`, and `scripts/tests/skills-text-test.sh` and
-  `scripts/tests/skills-recall-test.sh` pass.
+- After a change, from the repository root, with the Local Studio app's `local-studio` program:
+  `LOCAL_STUDIO_SKILLS_DIR=$PWD/skills local-studio skills list --shipped --json` shows no row with a `problem`.
 - Skills describe attacks; they never quote them, not even in a code fence.
 - Personal skills (anything with the user's own data) are never committed, pushed or submitted (D6).
 
@@ -136,7 +135,7 @@ Tests that run `install` must give it a throwaway HOME and unset `XDG_CONFIG_HOM
 it writes the real launchers and host manifests whatever HOME says.
 
 ## Brand
-The extension wears Local Studio's mark and colors (`docs/brand` at the top of this repository). `media/brand/build.mjs` copies
+The extension wears Local Studio's mark and colors (`docs/brand`, copied from the Local Studio app's repository). `media/brand/build.mjs` copies
 the mark and renders the icons; `media/brand/BRAND.md` has the palette, and `test/local-studio-logo.test.mjs` checks the copies
 match. Never edit those outputs by hand.
 

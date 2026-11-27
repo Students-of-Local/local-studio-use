@@ -6,7 +6,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 
-const ciPath = new URL("../../.github/workflows/browser-ci.yml", import.meta.url);
+const ciPath = new URL("../.github/workflows/browser-ci.yml", import.meta.url);
 
 /** The Windows steps in `yaml` that run several commands without bash, as "job: step" names. */
 export function maskedWindowsSteps(yaml) {

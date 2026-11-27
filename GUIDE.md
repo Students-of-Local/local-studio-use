@@ -5,7 +5,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/baney75/local-studio/actions/workflows/browser-ci.yml"><img src="https://github.com/baney75/local-studio/actions/workflows/browser-ci.yml/badge.svg?branch=main" alt="CI"></a>
+  <a href="https://github.com/Students-of-Local/local-studio-use/actions/workflows/browser-ci.yml"><img src="https://github.com/Students-of-Local/local-studio-use/actions/workflows/browser-ci.yml/badge.svg?branch=main" alt="CI"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-AGPL--3.0-blue" alt="License: AGPL-3.0"></a>
 </p>
 
@@ -49,8 +49,7 @@ extension and its helper (the `local-studio-browser` CLI and native host) come w
 [README.md](README.md#install) has the steps. Or from source:
 
 ```bash
-mkdir local-studio-src && cd local-studio-src        # setup puts two build dependencies beside the clone
-git clone https://github.com/baney75/local-studio && cd local-studio/browser
+git clone https://github.com/Students-of-Local/local-studio-use && cd local-studio-use
 (cd cli && npm install && npm run build && npm link)
 local-studio-browser setup
 ```
@@ -58,8 +57,7 @@ local-studio-browser setup
 If `npm link` fails with a permissions error, skip it and run `node cli/dist/index.js setup`.
 
 The first build clones [pi-mono](https://github.com/badlogic/pi-mono) (pinned and patched)
-and [mini-lit](https://github.com/badlogic/mini-lit) next to the `local-studio-browser` folder, which is
-why the clone goes in a folder of its own.
+and [mini-lit](https://github.com/badlogic/mini-lit) into `vendor/` inside the clone (ignored by git).
 
 On a Mac with a warm npm cache, a fresh clone reached "Connected" in 45 seconds with
 `local-studio-browser setup --yes`. A first install with a cold cache downloads more and can take a few
@@ -75,7 +73,7 @@ the one step the browser makes you do by hand:
 │ 1  Open chrome://extensions, turn on Developer mode,           │
 │    and click Load unpacked.                                    │
 │ 2  Pick this folder:                                           │
-│    /path/to/local-studio/browser/dist-chrome                  │
+│    /path/to/local-studio-use/dist-chrome                       │
 │ 3  Optional: click Details on Local Studio and turn on         │
 │    Allow user scripts (faster page scripts).                   │
 ╰────────────────────────────────────────────────────────────────╯

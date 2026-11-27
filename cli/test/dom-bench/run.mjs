@@ -1,5 +1,5 @@
 // The DOM benchmark: every case in pages/ driven through the MCP tools in a throwaway Chromium.
-// `node test/dom-bench/run.mjs [ids...] [--update] [--time]`. See browser/AGENTS.md for the ratchet.
+// `node test/dom-bench/run.mjs [ids...] [--update] [--time]`. See AGENTS.md for the ratchet.
 import { readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";

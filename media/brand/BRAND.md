@@ -1,7 +1,7 @@
 # The extension's brand
 
 The extension and its helper are part of Local Studio and wear its mark, colors and voice. The mark, its colors and how
-it moves are in [docs/brand](../../../docs/brand/README.md) at the top of this repository; this page says only how the
+it moves are in [docs/brand](../../docs/brand/README.md); this page says only how the
 extension draws them.
 
 ## Mark

@@ -9,7 +9,7 @@ import { fileURLToPath } from "node:url";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const browserRoot = join(here, "..", "..");
-const brand = join(browserRoot, "..", "docs", "brand");
+const brand = join(browserRoot, "docs", "brand");
 
 /** Ids the panel can tell from a page's own, and no fixed size: the caller's box sets it. */
 const prepare = (svg) =>

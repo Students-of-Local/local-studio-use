@@ -11,7 +11,7 @@
 //   1. on a line that defines a custom property (`--tk-accent: #e3a93b;`), because that is where tokens live;
 //   2. in a file the allowlist below names, up to the count written there, with the reason.
 // The allowlist is a ceiling: a new color in an allowed file raises the count and fails until someone
-// changes the number here, in a change a reviewer sees. Run from browser/: node scripts/check-theme.mjs
+// changes the number here, in a change a reviewer sees. Run from the repository root: node scripts/check-theme.mjs
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -20,7 +20,7 @@ const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const SCAN = ["src", "static"];
 const EXT = /\.(ts|css|html|js)$/;
 
-/** file (relative to browser/) -> { max: how many literals, why }. Keep the reasons honest. */
+/** file (relative to the repository root) -> { max: how many literals, why }. Keep the reasons honest. */
 export const ALLOWLIST = {
 	"src/appearance/palettes.ts": {
 		max: Number.POSITIVE_INFINITY,
