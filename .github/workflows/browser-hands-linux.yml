@@ -1,0 +1,134 @@
+# The Linux computer-use helper (hands/linux) against real widgets, in a private headless desktop per job:
+#   x11:  Xvfb with openbox (EWMH), and X11 capture for shot.
+#   sway: sway on the headless wlroots backend with software rendering.
+# Each job builds the static helper the way a release would (musl), then runs, inside that desktop:
+#   - the hands conformance suite (cli/test/hands-conformance.test.mjs) against the binary, with the person's access
+#     mode at Full, Default and Read Only;
+#   - the live suite (cli/test/hands-linux-live.test.mjs): every verb on the GTK fixture, the person's focus and typing,
+#     and an end to end run through `local-studio-browser mcp`.
+# The x11 job also builds the aarch64 binary and keeps both as workflow artifacts. No secrets, no write token.
+name: Hands (Linux)
+
+on:
+  pull_request:
+    paths:
+      - "hands/**"
+      - "cli/src/computer.ts"
+      - "cli/test/hands-*.mjs"
+      - "cli/test/helpers/hands-conformance.mjs"
+      - "cli/test/helpers/fake-hands.mjs"
+      - "docs/hands-protocol.md"
+      - ".github/workflows/browser-hands-linux.yml"
+  push:
+    branches: [main]
+    paths:
+      - "hands/**"
+      - "cli/src/computer.ts"
+      - "cli/test/hands-*.mjs"
+      - "cli/test/helpers/hands-conformance.mjs"
+      - "cli/test/helpers/fake-hands.mjs"
+      - "docs/hands-protocol.md"
+      - ".github/workflows/browser-hands-linux.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: hands-linux-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  hands-linux:
+    name: hands-linux (${{ matrix.desktop }})
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        desktop: [x11, sway]
+    steps:
+      - name: Check out
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Node
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+
+      # The desktop pieces: a display server and window manager, the accessibility bus and registry, GTK 3 through
+      # PyGObject for the fixture, and the X11 or wlroots tools the tests use as the person.
+      - name: Install the headless desktop
+        env:
+          DESKTOP: ${{ matrix.desktop }}
+        run: |
+          sudo apt-get update -q
+          pkgs="dbus dbus-daemon at-spi2-core libglib2.0-bin python3-gi gir1.2-gtk-3.0 fonts-dejavu-core"
+          if [ "$DESKTOP" = x11 ]; then pkgs="$pkgs xvfb openbox xdotool"; else pkgs="$pkgs sway grim"; fi
+          sudo apt-get install -y -q --no-install-recommends $pkgs
+
+      - name: Build the helper (static, x86_64 musl)
+        working-directory: hands/linux
+        run: |
+          rustup target add x86_64-unknown-linux-musl
+          cargo test --locked
+          cargo build --locked --release --target x86_64-unknown-linux-musl
+          file target/x86_64-unknown-linux-musl/release/local-studio-computer | tee /dev/stderr | grep -q "static"
+          echo "HANDS_BIN=$PWD/target/x86_64-unknown-linux-musl/release/local-studio-computer" >> "$GITHUB_ENV"
+
+      - name: Build the helper (static, aarch64 musl)
+        if: matrix.desktop == 'x11'
+        working-directory: hands/linux
+        run: |
+          rustup target add aarch64-unknown-linux-musl
+          cargo build --locked --release --target aarch64-unknown-linux-musl
+          file target/aarch64-unknown-linux-musl/release/local-studio-computer | tee /dev/stderr | grep -q "ARM aarch64.*statically linked"
+
+      - name: Install and build the CLI without install scripts
+        working-directory: cli
+        run: |
+          npm ci --ignore-scripts --no-audit --no-fund
+          node node_modules/esbuild/install.js
+          npm run build
+
+      - name: Conformance against the helper, at each access mode
+        env:
+          DESKTOP: ${{ matrix.desktop }}
+        run: |
+          for mode in full default read_only; do
+            conf="$RUNNER_TEMP/conf-$mode"
+            mkdir -p "$conf"
+            printf '{"access":"%s","apps":["%s"]}' "$mode" "$PWD/hands/linux/test/fixture.py" > "$conf/hands.json"
+            echo "::group::conformance, $mode"
+            hands/linux/test/headless-session.sh "$DESKTOP" -- \
+              sh -c "cd cli && LOCAL_STUDIO_BROWSER_DIR='$conf' LOCAL_STUDIO_COMPUTER_CONFORMANCE_BIN='$HANDS_BIN' node --test test/hands-conformance.test.mjs"
+            echo "::endgroup::"
+          done
+
+      - name: Every verb on the GTK fixture, and end to end through local-studio-browser mcp
+        env:
+          DESKTOP: ${{ matrix.desktop }}
+          HANDS_SESSION_LOGS: ${{ runner.temp }}/session-logs
+        run: |
+          hands/linux/test/headless-session.sh "$DESKTOP" -- \
+            env LOCAL_STUDIO_COMPUTER_LIVE_BIN="$HANDS_BIN" node --test cli/test/hands-linux-live.test.mjs
+
+      - name: Keep the desktop's logs
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: hands-linux-${{ matrix.desktop }}-logs
+          path: ${{ runner.temp }}/session-logs
+          if-no-files-found: ignore
+
+      - name: Keep the static binaries
+        if: matrix.desktop == 'x11'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: local-studio-computer-linux
+          path: |
+            hands/linux/target/x86_64-unknown-linux-musl/release/local-studio-computer
+            hands/linux/target/aarch64-unknown-linux-musl/release/local-studio-computer
+          if-no-files-found: error
