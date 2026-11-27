@@ -262,7 +262,7 @@ export interface ExtEukhe {
 	type: "eukhe";
 	id: number;
 	conversation: string;
-	op: "probe" | "command" | "close";
+	op: "probe" | "command" | "close" | "fleet_models" | "fleet_chat";
 	command?: Record<string, unknown>;
 }
 

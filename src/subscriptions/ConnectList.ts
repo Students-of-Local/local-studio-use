@@ -2,23 +2,13 @@ import { Button } from "@mariozechner/mini-lit/dist/Button.js";
 import { icon } from "@mariozechner/mini-lit/dist/icons.js";
 import { html, LitElement, nothing, type TemplateResult } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
-import {
-	AppWindow,
-	ArrowUpRight,
-	ChevronDown,
-	ChevronRight,
-	Code,
-	type IconNode,
-	KeyRound,
-	MessageCircle,
-	Terminal,
-} from "lucide";
+import { AppWindow, ChevronDown, ChevronRight, Code, type IconNode, KeyRound, MessageCircle, Terminal } from "lucide";
 import { hostCommand } from "../bridge/host-command.js";
 import { watchHostConnected } from "../bridge/host-state.js";
 import { agentSetupPromptButton } from "../components/AgentSetupPrompt.js";
 import { COMMAND_BOX_CLASS } from "../components/command-box.js";
 import { Toast } from "../components/Toast.js";
-import { localStudioModels, localStudioReachable, refreshLocalStudioModels } from "../eukhe/stream.js";
+import { type FleetState, fleetState, localStudioModels, refreshLocalStudioModels } from "../fleet/stream.js";
 import { APP_DOWNLOAD_URL } from "../release-source.js";
 import { request, SubscriptionRequestError, type SubscriptionStatus, subscriptionStatus } from "./client.js";
 import { COPILOT, cliMcpSetup, SIWC } from "./constants.js";
@@ -31,13 +21,9 @@ export const SUBSCRIPTIONS_LOADED = "subscriptions-loaded";
 /** Fired (bubbling) after a sign-in, a sign-out or a look for the app that found something new: what can answer a chat may have changed. */
 export const CONNECT_CHANGED = "connect-changed";
 
-/** Systems the Local Studio app is built for; its row stays away elsewhere. */
-const APP_SYSTEMS: ReadonlySet<string> = new Set(["mac", "win", "linux"]);
-
 /** What a press on the whole row does. */
 interface Act {
 	press?: () => void;
-	href?: string;
 	/** The row's name for a screen reader, when it isn't the name shown. */
 	label?: string;
 	disabled?: boolean;
@@ -45,7 +31,7 @@ interface Act {
 	open?: boolean;
 }
 
-const isAct = (act: object | symbol): act is Act => typeof act === "object" && ("press" in act || "href" in act);
+const isAct = (act: object | symbol): act is Act => typeof act === "object" && "press" in act;
 
 /**
  * Where the side panel's answers can come from, one row each: the Local Studio app, the two plans with a sign-in other
@@ -68,11 +54,7 @@ export class ConnectList extends LitElement {
 	/** The row whose button was pressed with no helper to run it. */
 	@state() private needsHelper?: "chatgpt" | "copilot";
 	@state() private showCli = false;
-	/** Models the app answers with; undefined until it was asked. */
-	@state() private studioModels?: number;
-	@state() private checking = false;
-	/** Whether the app runs on this system; undefined until known. */
-	@state() private appRuns?: boolean;
+	@state() private fleet: FleetState = fleetState();
 	@state() private copied?: string;
 	private copiedTimer?: ReturnType<typeof setTimeout>;
 	/** The "Couldn't copy" toast, taken down as soon as a copy works. */
@@ -85,14 +67,6 @@ export class ConnectList extends LitElement {
 
 	override connectedCallback(): void {
 		super.connectedCallback();
-		chrome.runtime
-			.getPlatformInfo()
-			.then((info) => {
-				this.appRuns = APP_SYSTEMS.has(info.os);
-			})
-			.catch(() => {
-				this.appRuns = false;
-			});
 		// Called with the current state at once, then on every change: the rows follow the helper with no reload.
 		this.stopWatching = watchHostConnected(() => {
 			void this.load();
@@ -111,10 +85,10 @@ export class ConnectList extends LitElement {
 
 	private async checkApp(): Promise<void> {
 		const before = localStudioModels().length;
-		this.checking = true;
-		this.studioModels = (await refreshLocalStudioModels().catch(() => [])).length;
-		this.checking = false;
-		if (this.studioModels !== before) this.changed();
+		this.fleet = { state: "checking" };
+		await refreshLocalStudioModels().catch(() => []);
+		this.fleet = fleetState();
+		if (localStudioModels().length !== before) this.changed();
 	}
 
 	private async load(): Promise<void> {
@@ -286,10 +260,6 @@ export class ConnectList extends LitElement {
 		const end = (node: IconNode) => html`<span class="tk-row-chevron" aria-hidden="true">${icon(node, "sm")}</span>`;
 		const draw = (): TemplateResult => {
 			if (isAct(act)) {
-				if (act.href)
-					return html`<a class="tk-row tk-row-link" href=${act.href} target="_blank" rel="noopener" data-get-app>
-						${text} ${end(ArrowUpRight)}
-					</a>`;
 				return html`<button
 					type="button"
 					class="tk-row tk-row-link"
@@ -327,25 +297,29 @@ export class ConnectList extends LitElement {
 		</button>`;
 	}
 
-	private renderApp(): TemplateResult | typeof nothing {
-		if (!this.appRuns) return nothing;
-		const row = (line: string, act: Act | TemplateResult | typeof nothing, name = "Local Studio app") =>
-			this.row("studio", AppWindow, name, line, act);
-		const models = this.studioModels;
-		if (models) return row(`${models} ${models === 1 ? "model" : "models"} ready`, nothing);
-		if (this.noHost)
-			return row("Runs models on this computer", { href: APP_DOWNLOAD_URL }, "Get the Local Studio app");
-		return row(
-			this.checking || models === undefined
-				? "Checking"
-				: localStudioReachable()
-					? "Open, with no model ready yet"
-					: "Open the app, then check",
-			this.button("Check", () => void this.checkApp(), {
-				label: "Check for the Local Studio app",
-				disabled: this.checking,
-			}),
-		);
+	private renderApp(): TemplateResult {
+		const f = this.fleet;
+		const check = this.button("Check", () => void this.checkApp(), {
+			label: "Check for local models",
+			disabled: f.state === "checking",
+		});
+		const row = (
+			line: string,
+			act: TemplateResult | typeof nothing,
+			under: TemplateResult | typeof nothing = nothing,
+		) => this.row("studio", AppWindow, "Local models", line, act, under);
+		if (f.state === "ready" && f.count) return row(`${f.count} ${f.count === 1 ? "model" : "models"} ready`, nothing);
+		if (f.state === "ready")
+			return row("Running, no model loaded", check, html`<p>Load a model in Local Studio, then choose Check.</p>`);
+		if (f.state === "checking") return row("Checking", check);
+		if (f.state === "unauthorized")
+			return row(
+				"Fleet key not found",
+				check,
+				html`<p>The helper read the controller's key from ${f.path ?? "its config.json"}, and the controller refused it.</p>
+					${f.fix ? this.command("Restart the controller", f.fix) : nothing}`,
+			);
+		return row("Local models aren't running", check);
 	}
 
 	private renderSignIn(which: "chatgpt" | "copilot"): TemplateResult {

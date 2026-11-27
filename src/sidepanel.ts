@@ -59,13 +59,15 @@ import {
 import { ApiKeyDialog } from "./dialogs/ApiKeyDialog.js";
 import { knownProvidersWithKeys, providersWithKeys } from "./dialogs/provider-key-status.js";
 import {
+	currentFleetModel,
+	fleetState,
 	isLocalStudioProvider,
+	isStaleLocalModel,
 	LOCAL_STUDIO_PROVIDER,
 	localStudioModels,
-	probeLocalStudio,
 	refreshLocalStudioModels,
 	registerLocalStudioApi,
-} from "./eukhe/stream.js";
+} from "./fleet/stream.js";
 import { registerCompactionRenderer } from "./messages/CompactionMessage.js";
 import { browserMessageTransformer } from "./messages/message-transformer.js";
 import {
@@ -657,8 +659,8 @@ async function getProvidersWithKeys(): Promise<string[]> {
 }
 
 /**
- * Local Studio's models, looked up once when the panel starts (the host answers within about 2 s whether the Eukhe daemon
- * runs). Chats run there need no key in the extension (src/eukhe/stream.ts).
+ * Local Studio's models, looked up once when the panel starts (the host asks the controller). Chats run there need no key
+ * in the extension (src/fleet/stream.ts).
  */
 let localStudioReady: Promise<Model<any>[]> = Promise.resolve([]);
 
@@ -984,6 +986,11 @@ const createAgent = async (initialState?: Partial<AgentState>, shouldSave = true
 
 	// A chat saved on a removed subscription provider reopens on a working model instead.
 	if (initialState?.model && isBlockedModel(initialState.model)) initialState = { ...initialState, model: undefined };
+	if (initialState?.model && isStaleLocalModel(initialState.model))
+		initialState = {
+			...initialState,
+			model: currentFleetModel(initialState.model, await localStudioReady.catch(() => [])),
+		};
 
 	// Determine default model: saved > default for a provider with key > gemini flash fallback
 	let defaultModel: Model<any> | undefined;
@@ -993,8 +1000,10 @@ const createAgent = async (initialState?: Partial<AgentState>, shouldSave = true
 		// Studio pick, or no pick, waits to hear whether the daemon runs.
 		const usable = savedModel && !isBlockedModel(savedModel) ? savedModel : undefined;
 		const local = usable && !isLocalStudioProvider(usable.provider) ? [] : await localStudioReady.catch(() => []);
-		if (usable && (!isLocalStudioProvider(usable.provider) || local.some((m) => m.id === usable.id))) {
+		if (usable && !isLocalStudioProvider(usable.provider)) {
 			defaultModel = usable;
+		} else if (usable && local.some((m) => m.id === usable.id)) {
+			defaultModel = currentFleetModel(usable, local);
 		} else if (local.length > 0) {
 			defaultModel = local[0];
 		} else {
@@ -1146,11 +1155,12 @@ const createAgent = async (initialState?: Partial<AgentState>, shouldSave = true
 			return chrome.runtime.getURL("sandbox.html");
 		},
 		onApiKeyRequired: async (provider: string) => {
-			// Local Studio needs no key: it is ready when its daemon runs.
 			if (isLocalStudioProvider(provider)) {
-				if (await probeLocalStudio()) return true;
+				if ((await refreshLocalStudioModels().catch(() => [])).length) return true;
 				Toast.error(
-					"The Local Studio app isn't running. Start it, or run eukhe in a terminal, then send again.",
+					fleetState().state === "ready"
+						? "Local models are running, but no model is loaded. Load one in Local Studio, then send again."
+						: "Local models aren't running. Start Local Studio's controller, then send again.",
 					8000,
 				);
 				return false;
@@ -1738,7 +1748,6 @@ async function initApp() {
 
 	// Register cached provider model lists now; refresh stale ones in the background.
 	refreshDiscoveredModels(storage).catch((err) => console.warn("Model discovery failed:", err));
-	// Local Studio's daemon: when it runs, chats need no key (src/eukhe/stream.ts).
 	registerLocalStudioApi();
 	localStudioReady = refreshLocalStudioModels().catch((err) => {
 		console.warn("Local Studio models unavailable:", err);

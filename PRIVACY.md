@@ -39,14 +39,17 @@ Every host named below sees the computer's IP address, as any site does.
 | Update check, with the helper's name and version. Automatic updates also download the release. | `api.github.com`, `github.com`, and `release-assets.githubusercontent.com` for the files | About daily. A source checkout runs `git fetch` instead. | Settings > Updates, or `LOCAL_STUDIO_BROWSER_NO_UPDATE_CHECK=1` |
 | Model details, with no key, chat or page | `models.dev` | Only with a key saved for a provider that lists its models, when the copy is a day old | Settings > Privacy > "Look up model details on models.dev" |
 | Model lists, with the user's key for that provider (none for OpenRouter and Synthetic) | `api.anthropic.com`, `api.openai.com`, `generativelanguage.googleapis.com`, `openrouter.ai`, `api.mistral.ai`, `api.groq.com`, `api.x.ai`, `api.cerebras.ai`, `router.huggingface.co`, `api.synthetic.new` | When the panel opens and the list is an hour old, only for providers with a saved key | Remove the key |
+| Local model list, with the controller's key | The address in `LOCAL_STUDIO_FLEET_URL`, else the `url` in the controller's `config.json`, else `127.0.0.1:18091` | When the panel opens, and on Check in the Local models row | Stop the controller |
 | Free model list, with no key | `openrouter.ai` | When the panel opens and the copy is a day old, also with Free mode off | No switch |
 | A page's own icon | The address that page gives, which can be another site's | When the panel shows that page | No switch |
 
 ## What leaves the computer to answer the user
 
-- **The app (the default).** The side panel sends each chat, and what the agent reads from a page, to Local Studio on the
-  same computer through the helper. A local model keeps it on the computer. A subscription the user signed in to inside
-  the app sends it to that subscription's provider. The extension never sees a key or a sign-in token.
+- **Local models (the default).** The side panel sends each chat, and what the agent reads from a page, through the helper
+  to Local Studio's controller at the address in `LOCAL_STUDIO_FLEET_URL`, else the http or https `url` in the
+  controller's `config.json`, else `127.0.0.1:18091`. The helper adds the controller's key from that same `config.json`;
+  the extension never sees it. The controller runs the model on this computer
+  or on a machine the user joined to it.
 - **A ChatGPT or GitHub Copilot sign-in.** The side panel sends the chat to the helper on the same computer, which adds the
   user's token and forwards it to OpenAI (`api.openai.com`) or GitHub (`api.githubcopilot.com`, or the Copilot address
   GitHub gives the user's plan). Signing in and renewing use `auth.openai.com`, or `github.com` and `api.github.com`.

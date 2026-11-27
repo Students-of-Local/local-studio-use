@@ -48,7 +48,6 @@ test("screens that give a helper command also say how to get the helper", () => 
 	// The helper comes with the Local Studio app, so each of them links to it.
 	const list = read("src/subscriptions/ConnectList.ts");
 	assert.match(list, /this\.noHost \? html`<p data-helper-install>\$\{link\(APP_DOWNLOAD_URL, "Get the Local Studio app"\)\}/);
-	assert.match(list, /row\("Runs models on this computer", \{ href: APP_DOWNLOAD_URL \}, "Get the Local Studio app"\)/);
 	assert.match(read("src/dialogs/BridgeTab.ts"), /APP_DOWNLOAD_URL/);
 	assert.doesNotMatch(list, /dbaney\.com\/local-studio-browser|for Mac/);
 });

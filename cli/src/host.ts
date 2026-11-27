@@ -20,6 +20,7 @@ import { CHUNK_PIECE_BYTES, chunkFrame, MAX_CHUNKED_FRAME_BYTES } from "../../sr
 import { answerOpen } from "./open-link.ts";
 import { ChatSync } from "./chat-sync.ts";
 import { EukheRelay } from "./eukhe.ts";
+import { FLEET_OPS, FleetRelay } from "./fleet.ts";
 import { extensionOrigins } from "./install.ts";
 import { SubscriptionService } from "./subscriptions/service.ts";
 import { applyMirror } from "./threads-mirror.ts";
@@ -51,6 +52,7 @@ let connect: ConnectService | undefined;
 let stopping = false;
 /** The side panel's Local Studio chats (cli/src/eukhe.ts); made on the first frame. */
 let eukhe: EukheRelay | undefined;
+let fleet: FleetRelay | undefined;
 /** The side panel's chats as Local Studio threads (cli/src/chat-sync.ts); made on the first frame. */
 let chats: ChatSync | undefined;
 /** What the connected extension understands beyond its methods (ExtHello.features). */
@@ -179,6 +181,11 @@ function onExtensionMessage(message: ExtToHost): void {
 			void subscriptions.handle(message, toExtension);
 			return;
 		case "eukhe":
+			if (FLEET_OPS.has(message.op) || (message.op === "close" && fleet?.has(message.conversation))) {
+				fleet ??= new FleetRelay(toExtension);
+				fleet.handle(message);
+				return;
+			}
 			// Checked inside: only the panel commands in EUKHE_COMMANDS, on sessions the chat made itself.
 			eukhe ??= new EukheRelay(toExtension);
 			eukhe.handle(message);
@@ -408,6 +415,7 @@ export function runNativeHost(args: readonly string[] = []): void {
 	// never will be.
 	process.stdin.on("end", () => {
 		eukhe?.closeAll();
+		fleet?.closeAll();
 		chats?.stop();
 		stopping = true;
 		failOutstanding("the browser connection dropped while this ran (the Local Studio extension reloaded or restarted)");

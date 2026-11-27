@@ -170,22 +170,20 @@ for (const [width, height] of [[400, 860], [760, 850], [400, 1200], [320, 620]])
 
 // A copy from the store starts with no helper (#44). No native host runs here, so the worker reports none; the test then
 // writes what the worker writes when a helper talks (host-state.ts) and the page must change in place.
-test("with no model and no helper the home screen names every way to connect one, and links to the app", async () => {
+test("with no model and no helper the home screen names every way to connect one", async () => {
 	const page = await context.newPage();
 	try {
 		await saveKeys(page, []);
 		const home = page.locator("[data-welcome-connect]");
 		await home.waitFor({ timeout: 20_000 });
 		assert.deepEqual(await home.locator("[data-connect-list] [data-row-name]").allInnerTexts(), [
-			"Get the Local Studio app",
+			"Local models",
 			"Continue with ChatGPT",
 			"Sign in with GitHub Copilot",
 			"API key",
 			"Use your own agent",
 		]);
-		const link = home.locator("[data-get-app]").first();
-		await link.waitFor({ timeout: 10_000 });
-		assert.match(await link.getAttribute("href"), /^https:\/\/github\.com\/baney75\/local-studio\//);
+		assert.equal(await home.locator("[data-get-app]").count(), 0);
 		await home.getByRole("button", { name: "Add an API key" }).click();
 		const keys = page.locator('local-studio-settings [data-panel="Providers"]');
 		await keys.getByPlaceholder("Find a provider").waitFor({ timeout: 10_000 });

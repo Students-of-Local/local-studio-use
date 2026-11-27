@@ -9,6 +9,7 @@ export class EukheRequestError extends Error {
 	constructor(
 		readonly code: string,
 		message: string,
+		readonly detail: Record<string, unknown> = {},
 	) {
 		super(message);
 		this.name = "EukheRequestError";
@@ -39,7 +40,7 @@ function connect(): chrome.runtime.Port {
 			if (!w) return;
 			waiters.delete(reply.id);
 			clearTimeout(w.timer);
-			if (reply.error) w.reject(new EukheRequestError(reply.error.code, reply.error.message));
+			if (reply.error) w.reject(new EukheRequestError(reply.error.code, reply.error.message, reply.error));
 			else w.resolve(reply.result ?? {});
 			return;
 		}

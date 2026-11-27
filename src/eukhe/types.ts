@@ -6,7 +6,7 @@ export const EUKHE_PORT = "local-studio-eukhe";
 export interface EukheRequest {
 	id: number;
 	conversation: string;
-	op: "probe" | "command" | "close";
+	op: "probe" | "command" | "close" | "fleet_models" | "fleet_chat";
 	command?: Record<string, unknown>;
 }
 

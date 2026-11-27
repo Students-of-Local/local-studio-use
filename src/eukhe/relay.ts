@@ -13,7 +13,7 @@ import { EUKHE_PORT, type EukheReply, type EukheRequest } from "./types.js";
 
 export function startEukheRelay(): void {
 	/** host request id -> the panel port and the panel's id */
-	const waiting = new Map<number, { port: chrome.runtime.Port; id: number }>();
+	const waiting = new Map<number, { port: chrome.runtime.Port; id: number; name: string }>();
 	/** host conversation name -> the panel port and the panel's name for it */
 	const conversations = new Map<string, { port: chrome.runtime.Port; name: string }>();
 	let seq = 0;
@@ -23,7 +23,7 @@ export function startEukheRelay(): void {
 			for (const w of waiting.values())
 				w.port.postMessage({
 					id: w.id,
-					conversation: "",
+					conversation: w.name,
 					error: { code: "no_host", message: "Local Studio's native host disconnected. Try again." },
 				} satisfies EukheReply);
 			waiting.clear();
@@ -39,7 +39,7 @@ export function startEukheRelay(): void {
 			waiting.delete(message.id);
 			w.port.postMessage({
 				id: w.id,
-				conversation: conv?.name ?? "",
+				conversation: conv?.name ?? w.name,
 				...(message.error ? { error: message.error } : { result: message.result }),
 			} satisfies EukheReply);
 			return;
@@ -64,15 +64,27 @@ export function startEukheRelay(): void {
 		port.onMessage.addListener((raw: unknown) => {
 			const req = raw as Partial<EukheRequest>;
 			if (typeof req?.id !== "number" || typeof req.conversation !== "string" || !req.conversation) return;
-			if (req.op !== "probe" && req.op !== "command" && req.op !== "close") return;
+			const ops: readonly (string | undefined)[] = ["probe", "command", "close", "fleet_models", "fleet_chat"];
+			if (!req.op || !ops.includes(req.op)) return;
 			const conversation = `${prefix}${req.conversation}`.slice(0, 200);
 			conversations.set(conversation, { port, name: req.conversation });
 			mine.add(conversation);
 			const hostId = ++seq;
-			waiting.set(hostId, { port, id: req.id });
+			waiting.set(hostId, { port, id: req.id, name: req.conversation });
 			const command =
 				req.command && typeof req.command === "object" && !Array.isArray(req.command) ? req.command : undefined;
-			if (!sendEukhe({ type: "eukhe", id: hostId, conversation, op: req.op, ...(command ? { command } : {}) })) {
+			const sent = sendEukhe({
+				type: "eukhe",
+				id: hostId,
+				conversation,
+				op: req.op,
+				...(command ? { command } : {}),
+			});
+			if (req.op === "close") {
+				conversations.delete(conversation);
+				mine.delete(conversation);
+			}
+			if (!sent) {
 				waiting.delete(hostId);
 				port.postMessage({
 					id: req.id,
