@@ -1,0 +1,78 @@
+# The Mac computer-use helper (hands/mac), built and signed the way a release does it (hands/mac/scripts/package.sh: the
+# engine as a static library, `swift build -c release`, ad hoc signature with the hardened runtime, then a check that the
+# signed copy runs), the core's tests (`swift test`), and the hands conformance suite
+# (cli/test/hands-conformance.test.mjs) against that signed binary at the person's Default and Read Only modes.
+# The runner gives the helper no Accessibility grant; the suite passes without one (window verbs answer
+# permission_denied, which it accepts). No secrets, no write token.
+name: Hands (Mac)
+
+on:
+  pull_request:
+    paths:
+      - "hands/mac/**"
+      - "cli/src/computer.ts"
+      - "cli/test/hands-*.mjs"
+      - "cli/test/helpers/hands-conformance.mjs"
+      - "docs/hands-protocol.md"
+      - ".github/workflows/browser-hands-mac.yml"
+  push:
+    branches: [main]
+    paths:
+      - "hands/mac/**"
+      - "cli/src/computer.ts"
+      - "cli/test/hands-*.mjs"
+      - "cli/test/helpers/hands-conformance.mjs"
+      - "docs/hands-protocol.md"
+      - ".github/workflows/browser-hands-mac.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: hands-mac-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  hands-mac:
+    runs-on: macos-15
+    timeout-minutes: 30
+    steps:
+      - name: Check out
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Node
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+
+      - name: Build and sign the helper (arm64, ad hoc, hardened runtime)
+        run: |
+          hands/mac/scripts/package.sh "$RUNNER_TEMP/hands"
+          echo "HANDS_BIN=$RUNNER_TEMP/hands/local-studio-computer" >> "$GITHUB_ENV"
+
+      # After the build above: the test build links the helper too, and that needs engine/lib.
+      - name: Core tests
+        working-directory: hands/mac
+        run: swift test
+
+      - name: Conformance against the signed helper, at Default and Read Only
+        working-directory: cli
+        run: |
+          clear_mode() { if defaults read local-studio-computer agentAccessMode >/dev/null 2>&1; then defaults delete local-studio-computer agentAccessMode; fi; }
+          for mode in default read_only; do
+            if [ "$mode" = read_only ]; then defaults write local-studio-computer agentAccessMode read_only; else clear_mode; fi
+            echo "::group::conformance, $mode"
+            LOCAL_STUDIO_COMPUTER_CONFORMANCE_ACCESS=$mode LOCAL_STUDIO_COMPUTER_CONFORMANCE_BIN="$HANDS_BIN" node --test test/hands-conformance.test.mjs
+            echo "::endgroup::"
+          done
+          clear_mode
+
+      - name: Keep the signed binary
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: local-studio-computer-darwin-arm64
+          path: ${{ runner.temp }}/hands/local-studio-computer
+          if-no-files-found: error
