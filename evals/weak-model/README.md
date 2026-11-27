@@ -69,7 +69,7 @@ lower-case letters, digits, `_` and `-`, or two task ids that share a page path.
 
 ## Commands
 
-From `browser/`, after `npm run build` in `cli/` and an extension build with `LOCAL_STUDIO_BROWSER_NO_BUMP=1 LOCAL_STUDIO_BROWSER_OUT_DIR=$PWD/dist-chrome`:
+From the repository root, after `npm run build` in `cli/` and an extension build with `LOCAL_STUDIO_BROWSER_NO_BUMP=1 LOCAL_STUDIO_BROWSER_OUT_DIR=$PWD/dist-chrome`:
 
 ```sh
 node evals/weak-model/run.mjs --list                              # the tasks a run would do; starts nothing

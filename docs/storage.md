@@ -554,15 +554,15 @@ them from two more places (`src/threads/`):
 ## Related Files
 
 ### Core Storage (web-ui)
-- [types.ts](../../pi-mono/packages/web-ui/src/storage/types.ts) - Interfaces and types
-- [store.ts](../../pi-mono/packages/web-ui/src/storage/store.ts) - Base Store class
-- [app-storage.ts](../../pi-mono/packages/web-ui/src/storage/app-storage.ts) - Base AppStorage
-- [backends/indexeddb-storage-backend.ts](../../pi-mono/packages/web-ui/src/storage/backends/indexeddb-storage-backend.ts) - IndexedDB implementation
+- [types.ts](../vendor/pi-mono/packages/web-ui/src/storage/types.ts) - Interfaces and types
+- [store.ts](../vendor/pi-mono/packages/web-ui/src/storage/store.ts) - Base Store class
+- [app-storage.ts](../vendor/pi-mono/packages/web-ui/src/storage/app-storage.ts) - Base AppStorage
+- [backends/indexeddb-storage-backend.ts](../vendor/pi-mono/packages/web-ui/src/storage/backends/indexeddb-storage-backend.ts) - IndexedDB implementation
 
 ### Store Implementations (web-ui)
-- [stores/settings-store.ts](../../pi-mono/packages/web-ui/src/storage/stores/settings-store.ts)
-- [stores/provider-keys-store.ts](../../pi-mono/packages/web-ui/src/storage/stores/provider-keys-store.ts)
-- [stores/sessions-store.ts](../../pi-mono/packages/web-ui/src/storage/stores/sessions-store.ts)
+- [stores/settings-store.ts](../vendor/pi-mono/packages/web-ui/src/storage/stores/settings-store.ts)
+- [stores/provider-keys-store.ts](../vendor/pi-mono/packages/web-ui/src/storage/stores/provider-keys-store.ts)
+- [stores/sessions-store.ts](../vendor/pi-mono/packages/web-ui/src/storage/stores/sessions-store.ts)
 
 ### Extension Storage (sitegeist)
 - [app-storage.ts](../src/storage/app-storage.ts) - SitegeistAppStorage

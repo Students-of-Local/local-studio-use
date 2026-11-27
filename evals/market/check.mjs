@@ -125,9 +125,9 @@ export function raise(floors, runs) {
 export const formatProblems = (p) => p.map((x) => `  ${x}`).join("\n");
 const readJson = (p) => JSON.parse(readFileSync(p, "utf8"));
 
-// The checkout being judged: browser/ in the git root of the working directory, not this file's folder, because CI runs
+// The checkout being judged: the git root of the working directory, not this file's folder, because CI runs
 // the base branch's copy of this file from outside the checkout.
-const root = () => join(execFileSync("git", ["rev-parse", "--show-toplevel"], { encoding: "utf8" }).trim(), "browser");
+const root = () => execFileSync("git", ["rev-parse", "--show-toplevel"], { encoding: "utf8" }).trim();
 
 function atRef(ref, path) {
 	try {

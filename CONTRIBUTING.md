@@ -8,13 +8,11 @@ Security problems go through [SECURITY.md](SECURITY.md), not a public issue.
 
 ## Set up
 
-You need Node 20+, git and a Chromium 141+ browser. Clone into a folder of its own,
-because the build puts two sibling repositories beside the clone:
+You need Node 20+, git and a Chromium 141+ browser.
 
 ```bash
-mkdir local-studio-src && cd local-studio-src
-git clone https://github.com/baney75/local-studio && cd local-studio/browser
-./scripts/setup-siblings.sh               # clones pi-mono and mini-lit, pins and patches them, installs
+git clone https://github.com/Students-of-Local/local-studio-use && cd local-studio-use
+./scripts/setup-siblings.sh               # clones pi-mono and mini-lit into vendor/, pins and patches them, installs
 (cd cli && npm install && npm run build && npm link)
 local-studio-browser setup                    # builds the extension, registers the host, connects
 ```

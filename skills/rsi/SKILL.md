@@ -94,7 +94,7 @@ Only the user edits this file; never change it yourself.
 11. **Offer upstream,** when `submit` is `"ask"`: ask whether to propose the change to the
     skill library. A skill holding personal data is never
     proposed. Scrub it all as the `bug` skill's step 4 does; give the evidence as patterns, never
-    quoted errors or page text. Show the exact text, and only on an explicit yes open a pull request to `baney75/local-studio` that changes `browser/skills/<name>/SKILL.md`.
+    quoted errors or page text. Show the exact text, and only on an explicit yes open a pull request to `Students-of-Local/local-studio-use` that changes `skills/<name>/SKILL.md`.
 
 ## Done when
 

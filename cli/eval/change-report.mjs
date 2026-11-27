@@ -11,7 +11,7 @@
 //
 // Tokens are estimated as response bytes / 4. Both modes must pass the case's own check. Times are
 // wall clock; for the cost of the report itself, run the before mode on a build without it.
-//   cd browser/cli && npm run build && node eval/change-report.mjs [--out file.json]
+//   cd cli && npm run build && node eval/change-report.mjs [--out file.json]
 import { writeFileSync } from "node:fs";
 import { startHarness } from "../test/e2e-harness.mjs";
 import { parseNodes } from "../test/dom-bench/lib.mjs";

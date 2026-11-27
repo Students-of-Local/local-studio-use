@@ -44,7 +44,7 @@ The numbers come from CI's own runner, never a laptop: the `market-floors` workf
 runners and `check.mjs --raise` takes the worst of the 3, raising floors only. To raise them after a speedup:
 
 ```sh
-gh workflow run market-floors.yml --ref <branch>      # or push the branch as floors/<name>
+gh workflow run browser-market-floors.yml --ref <branch>      # or push the branch as floors/<name>
 gh run download <run id> -n market-floors             # floors.json and the 3 runs
 ```
 
